@@ -8,10 +8,10 @@
 
 <p align="center">
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="MIT License"></a>
-  <img src="https://img.shields.io/badge/version-2.4.1-brightgreen" alt="v2.4.1">
+  <a href="https://github.com/noambrand/kivun-terminal/releases/latest"><img src="https://img.shields.io/github/v/release/noambrand/kivun-terminal?label=version&color=brightgreen" alt="Latest release"></a>
   <img src="https://img.shields.io/badge/platform-Windows%2010%2F11%20%7C%20macOS%2012%2B-lightgrey" alt="Platform">
   <img src="https://img.shields.io/badge/languages-24%2B-orange" alt="24+ Languages">
-  <a href="https://github.com/noambrand/kivun-terminal/releases/latest"><img src="https://img.shields.io/github/downloads/noambrand/kivun-terminal/total?color=purple&label=downloads" alt="Total Downloads"></a>
+  <a href="https://github.com/noambrand/kivun-terminal/releases/latest"><img src="https://img.shields.io/github/downloads/noambrand/kivun-terminal/total?label=downloads&color=blue" alt="Total Downloads"></a>
 </p>
 
 <h3 align="center">Zero-to-Claude in 1 minute. Installer, status bar, and launcher for Claude Code on Windows & macOS.</h3>
@@ -40,13 +40,35 @@ The desktop shortcut opens this picker: type/paste a Windows path or browse the 
 
 |  | Manual Setup | Launchpad CLI |
 |---|---|---|
-| **Install Node.js, Git, Claude Code** | Find downloads, run 3 installers, configure PATH | Handled automatically |
-| **Terminal theme** | Edit Windows Terminal JSON by hand | One checkbox in the wizard |
-| **Status bar** (model, context %, usage limits) | Write your own statusline script, configure settings.json | Pre-installed and configured |
-| **Desktop shortcut + right-click menu** | Create shortcuts manually, edit registry | Included |
-| **Folder picker** | `cd` into every project | GUI picker or right-click any folder |
-| **Multi-language support** | Configure manually | One setting in `config.txt` |
+| **Get Claude Code running** | Find Node.js, Git, and Claude installers, run them in order, fix PATH | One installer, one click |
+| **Live status bar** (model, context %, usage) | Write your own statusline script + configure `settings.json` | Pre-installed |
+| **Desktop shortcut + right-click "Open with..."** | Manual `.lnk` files + registry edits | Included |
+| **Pick a folder before launching** | `cd` into every project | GUI picker dialog (browse tree or paste a path) |
+| **Default Claude flags + startup slash commands** | Type them every session | Set once in the picker, reused every launch |
+| **24+ languages** | Configure manually | One setting in `config.txt` |
 | **Time to first prompt** | 20+ minutes | ~1 minute |
+
+## Launchpad CLI vs Kivun Terminal — which one?
+
+There are **two** projects in this family. Pick whichever fits how you work:
+
+|  | **Launchpad CLI** *(this repo)* | **[Kivun Terminal](https://github.com/noambrand/kivun-terminal-wsl)** |
+|---|---|---|
+| **Hebrew / Arabic / Persian text right-aligned** | ❌ shows left-aligned | ✅ aligns to the right where it belongs |
+| **English/code mixed inside a Hebrew sentence** | ❌ words pushed to the wrong edge | ✅ words land at the correct position in the sentence |
+| **Supported RTL languages** | 0 (LTR only) | 11 (Hebrew, Arabic, Persian, Urdu, Pashto, Kurdish, Dari, Uyghur, Sindhi, Yiddish, Syriac) |
+| **Live status bar** (model, context %, usage) | ✅ | ✅ |
+| **Light-blue Kivun theme** | ✅ Windows Terminal | ✅ Konsole |
+| **Right-click "Open with..." on a folder** | ✅ Windows Explorer | ✅ Windows Explorer + Linux file managers |
+| **Folder picker dialog with model + flag chips** | ✅ | ✅ |
+| **Startup time** | ~2 s | ~6 s |
+| **Install size on Windows** | ~150 MB | ~2 GB *(includes Ubuntu + Konsole via WSL2)* |
+| **Runtime on Windows** | Native (Windows Terminal) | WSL2 + Ubuntu + Konsole |
+| **macOS support** | ✅ | ❌ Deprecated as of v1.2.4 *(no Mac terminal handles mixed Hebrew + English)* |
+| **Linux support** | ❌ | ✅ apt / dnf / pacman / zypper |
+
+> **Pick Launchpad CLI** if you work in English (or any LTR language), use macOS, or want the lightest fastest install.
+> **Pick [Kivun Terminal](https://github.com/noambrand/kivun-terminal-wsl)** if you work in Hebrew, Arabic, Persian, Urdu, or another RTL language — or you're on Linux.
 
 ## Quick Start
 

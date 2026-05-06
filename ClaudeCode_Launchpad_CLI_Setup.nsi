@@ -5,7 +5,7 @@
 Unicode True
 
 !define PRODUCT_NAME "ClaudeCode Launchpad CLI"
-!define PRODUCT_VERSION "2.4.1"
+!define PRODUCT_VERSION "2.5.0"
 !define PRODUCT_PUBLISHER "Noam Brand"
 !define PRODUCT_WEB_SITE "https://github.com"
 !define PRODUCT_DESCRIPTION "Claude Code installer for Windows"
@@ -165,8 +165,6 @@ Section "!Core Components (Required)" SecCore
   File "source\claude_icon.ico"
   File "source\config.txt"
   File "source\claudecode-launchpad.bat"
-  File "source\claudecode-launchpad-choose-folder.bat"
-  File "source\folder-picker.wsf"
   File "source\folder-picker-launcher.wsf"
   File "source\folder-picker.hta"
   File "source\write-path.js"
