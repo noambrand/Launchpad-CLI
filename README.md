@@ -45,7 +45,6 @@ The desktop shortcut opens this picker: type/paste a Windows path or browse the 
 | **Desktop shortcut + right-click "Open with..."** | Manual `.lnk` files + registry edits | Included |
 | **Pick a folder before launching** | `cd` into every project | GUI picker dialog (browse tree or paste a path) |
 | **Default Claude flags + startup slash commands** | Type them every session | Set once in the picker, reused every launch |
-| **24+ languages** | Configure manually | One setting in `config.txt` |
 | **Time to first prompt** | 20+ minutes | ~1 minute |
 
 ## Launchpad CLI vs Kivun Terminal — which one?
