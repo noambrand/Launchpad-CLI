@@ -102,28 +102,6 @@ A two-line live status bar at the bottom of every session:
 | **Tokens** | Combined input + output tokens this session |
 | **Session / Weekly** | Usage limit % with countdown to reset |
 
-## Architecture
-
-```mermaid
-graph TD
-    A[NSIS Installer / macOS .pkg] --> B{Dependency Check}
-    B -->|Missing| C[Install Node.js + Git + Windows Terminal]
-    B -->|Present| D[Skip]
-    C --> E[curl -fsSL https://claude.ai/install.cmd]
-    D --> E
-    E --> F[Configure statusline.mjs]
-    F --> G[Register WT Profile + Color Scheme]
-    G --> H[Create Desktop Shortcut + Context Menu]
-
-    subgraph Runtime
-        I[Launcher .bat / Terminal] --> J{Windows Terminal available?}
-        J -->|Yes| K[WT with Kivun profile]
-        J -->|No| L[CMD fallback + ANSI colors]
-        K --> M[Claude Code + Status Bar]
-        L --> M
-    end
-```
-
 ## Tech Stack
 
 | Component | Technology | Purpose |
