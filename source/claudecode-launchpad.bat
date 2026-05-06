@@ -142,7 +142,7 @@ if /i "!RESPONSE_LANGUAGE!"=="hausa_ajami" set "LANG_PROMPT=Always respond in Ha
 if /i "!RESPONSE_LANGUAGE!"=="rohingya" set "LANG_PROMPT=Always respond in Rohingya."
 if /i "!RESPONSE_LANGUAGE!"=="turoyo" set "LANG_PROMPT=Always respond in Turoyo (Neo-Aramaic)."
 
-REM --- Read one-time flags (written by choose-folder on text-input path) ---
+REM --- Read one-time flags (written by the HTA picker on Launch) ---
 set "ONE_TIME_FLAGS="
 if exist "%LOCALAPPDATA%\Kivun\kivun-claude-flags.txt" (
     for /f "usebackq delims=" %%F in ("%LOCALAPPDATA%\Kivun\kivun-claude-flags.txt") do set "ONE_TIME_FLAGS=%%F"
@@ -159,8 +159,8 @@ if not exist "%LOCALAPPDATA%\Kivun\kivun-claude-startcmd.txt" (
 )
 
 REM --- Spawn startup-command injector (detached) if a startup command is queued ---
-REM (File is written by choose-folder.bat, by the default-apply above, and cleared at
-REM  the top of each choose-folder run; injector self-deletes after firing.)
+REM (File is written by the HTA picker, by the default-apply above, and cleared
+REM  by the launcher.wsf at the top of each run; injector self-deletes after firing.)
 if exist "%LOCALAPPDATA%\Kivun\kivun-claude-startcmd.txt" (
     start "" /b wscript.exe //nologo "!SCRIPT_DIR!inject-startup-cmd.js"
 )

@@ -1,10 +1,9 @@
 <job>
 <script language="JScript">
 // ClaudeCode Launchpad CLI - Folder Picker & Launcher
-// Invokes the rich HTA picker (model radios, flag chips, startup slash
-// commands), waits for it to close, then launches claudecode-launchpad.bat
-// if the user selected a folder. If the HTA is missing, falls back to the
-// classic BrowseForFolder dialog so old installs still work.
+// Invokes the HTA picker (model radios, flag chips, startup slash commands),
+// waits for it to close, and launches claudecode-launchpad.bat if (and only
+// if) the user clicked Launch. Cancel terminates without spawning the bat.
 
 var wshShell = new ActiveXObject("WScript.Shell");
 var fso = new ActiveXObject("Scripting.FileSystemObject");
@@ -12,38 +11,29 @@ var fso = new ActiveXObject("Scripting.FileSystemObject");
 var scriptDir = fso.GetParentFolderName(WScript.ScriptFullName);
 var kivunDir = wshShell.ExpandEnvironmentStrings("%LOCALAPPDATA%") + "\\Kivun";
 var workdirFile = kivunDir + "\\kivun-workdir.txt";
+var htaPath = scriptDir + "\\folder-picker.hta";
 
 if (!fso.FolderExists(kivunDir)) {
     fso.CreateFolder(kivunDir);
 }
 
 // Stale workdir from a previous cancelled run would falsely trigger a
-// launch — clear it before the picker writes a fresh one (or doesn't).
+// launch — clear it before mshta gets the chance to write a fresh one.
 try { if (fso.FileExists(workdirFile)) fso.DeleteFile(workdirFile); } catch (e) {}
 
-var htaPath = scriptDir + "\\folder-picker.hta";
-if (fso.FileExists(htaPath)) {
-    // 1 = visible window, true = wait for mshta to exit. The HTA writes
-    // kivun-workdir.txt + kivun-claude-flags.txt + kivun-claude-startcmd.txt
-    // on Launch, nothing on Cancel.
-    wshShell.Run("mshta.exe \"" + htaPath + "\"", 1, true);
-} else {
-    // Fallback: classic BrowseForFolder for old installs
-    var shell = new ActiveXObject("Shell.Application");
-    var startPath = wshShell.ExpandEnvironmentStrings("%USERPROFILE%");
-    var folder = shell.BrowseForFolder(0, "Select folder for ClaudeCode Launchpad CLI", 0, startPath);
-    if (folder == null) { WScript.Quit(); }
-
-    var stream = new ActiveXObject("ADODB.Stream");
-    stream.Type = 2; stream.Charset = "utf-8"; stream.Open();
-    stream.WriteText(folder.Self.Path);
-    stream.Position = 0; stream.Type = 1; stream.Position = 3;
-    var outStream = new ActiveXObject("ADODB.Stream");
-    outStream.Type = 1; outStream.Open();
-    stream.CopyTo(outStream);
-    outStream.SaveToFile(workdirFile, 2);
-    outStream.Close(); stream.Close();
+if (!fso.FileExists(htaPath)) {
+    wshShell.Popup(
+        "folder-picker.hta is missing from " + scriptDir + ".\r\n\r\n" +
+        "Try reinstalling ClaudeCode Launchpad CLI.",
+        0, "ClaudeCode Launchpad CLI", 16  // vbCritical
+    );
+    WScript.Quit(1);
 }
+
+// 1 = visible window, true = wait for mshta to exit. The HTA writes
+// kivun-workdir.txt + kivun-claude-flags.txt + kivun-claude-startcmd.txt
+// on Launch, nothing on Cancel.
+wshShell.Run("mshta.exe \"" + htaPath + "\"", 1, true);
 
 // Cancel = no kivun-workdir.txt was written. Terminate cleanly without
 // launching the .bat (otherwise launcher would silently fall back to
