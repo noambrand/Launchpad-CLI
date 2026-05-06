@@ -151,6 +151,19 @@ if exist "%LOCALAPPDATA%\Kivun\kivun-claude-flags.txt" (
 set "FINAL_FLAGS=!CLAUDE_FLAGS!"
 if not "!ONE_TIME_FLAGS!"=="" set "FINAL_FLAGS=!FINAL_FLAGS! !ONE_TIME_FLAGS!"
 
+REM --- Read per-profile env vars from kivun-env.txt (written by HTA picker
+REM     on Launch). Each KEY=VAL becomes an env var visible to the claude
+REM     process spawned below. Unlike kivun-terminal-wsl, there is NO WSL
+REM     boundary here — `set` in cmd is enough; no WSLENV plumbing needed.
+REM     Schema: KEY=VAL one per line, # comments allowed. KEY validated by
+REM     the picker as ^[A-Za-z_][A-Za-z0-9_]*$ before being written.
+set "ENV_FILE=%LOCALAPPDATA%\Kivun\kivun-env.txt"
+if exist "!ENV_FILE!" (
+    for /f "usebackq eol=# tokens=1,* delims==" %%a in ("!ENV_FILE!") do (
+        if not "%%a"=="" set "%%a=%%b"
+    )
+)
+
 REM --- Apply default STARTUP_CMD from config if no one-time override is queued ---
 if not exist "%LOCALAPPDATA%\Kivun\kivun-claude-startcmd.txt" (
     if not "!STARTUP_CMD!"=="" (

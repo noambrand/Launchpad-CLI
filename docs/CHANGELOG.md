@@ -1,5 +1,29 @@
 # Changelog
 
+## [2.6.0] - 2026-05-06
+
+### Named profiles + per-profile env vars (parity with kivun-terminal-wsl v1.4.x)
+
+The picker dialog grows a **profile bar** (chip row) at the top so users with multiple projects can save folder + model + flags + startup commands + env vars as named combos and switch between them with one click. Direct port of the v1.4.x feature from the kivun-terminal-wsl sibling, adapted for Launchpad CLI's no-WSL-boundary architecture.
+
+#### Added
+
+- **`source/folder-picker.hta`** — top-of-dialog profile chip row (one chip per saved profile, active highlighted blue). `+ New` saves the current dialog state as a new named profile; `Rename` and `Delete` manage existing ones (Default is undeletable, auto-rebuilds from `config.txt` if `profiles.json` is missing). New §5 for `KEY=VAL` environment variables (one per line, `#` comments allowed, KEY validated as `[A-Za-z_][A-Za-z0-9_]*`). Resolved-command preview rebuilt: shows the full `$ claude <flags>` line plus secondary lines for startup-cmds and env-vars (`↳ then types: …`, `↳ with env (masked): KEY=…(set), …`). Env values **masked by default** for screenshot safety; `👁 show values` toggle reveals them. Profiles persist to `%LOCALAPPDATA%\Kivun\profiles.json`.
+- **`source/claudecode-launchpad.bat`** — env-var loading block before the `claude` invocation. Reads `%LOCALAPPDATA%\Kivun\kivun-env.txt` (written by the picker on Launch) and `set`s each `KEY=VAL` in cmd scope. Unlike kivun-terminal-wsl, **no `WSLENV` plumbing needed** — Launchpad CLI runs natively on Windows so cmd-set env vars reach the spawned `claude` process directly.
+
+#### Changed
+
+- **`source/folder-picker.hta`** — chip rendering uses `innerHTML` with inline `onclick` attributes instead of `createElement + .onclick` (the latter is unreliable for dynamically-created HTA elements; the former works because IE parses the attribute string into a real handler at render time).
+- **`source/folder-picker.hta`** — `+ Low effort` chip removed from the flag-chip palette. `+ High effort` remains. Existing profiles get `--effort low` auto-scrubbed from `customFlags` on load via `scrubDeprecatedFlags()` (persisted so the scrub runs once).
+- **`source/folder-picker.hta`** — Custom flags textbox `placeholder` attribute emptied per user feedback.
+- **`README.md`** — both compare tables get a new "Named profiles per project" row. Picker bullet copy updated to lead with profiles. Version + downloads badge URLs gain `&cb=v2.6.0` cachebust so GitHub camo refetches fresh SVGs immediately.
+- **`ClaudeCode_Launchpad_CLI_Setup.nsi`** — `PRODUCT_VERSION` 2.5.0 → 2.6.0; `VIProductVersion` and `FileVersion` → 2.6.0.0.
+
+#### Compatibility
+
+- `profiles.json` is created on first run from the existing `CLAUDE_FLAGS=` line in `config.txt`. No data lost; existing pinned flags become the Default profile.
+- macOS port of the profile feature is not in v2.6.0; the .pkg installer continues to ship the v2.5.0-equivalent picker. Mac parity is on the v2.7.x roadmap.
+
 ## [2.5.0] - 2026-05-06
 
 ### Folder picker dialog overhaul
