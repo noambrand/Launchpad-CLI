@@ -30,6 +30,12 @@
 
 > 💡 **Working in Hebrew, Arabic, Persian, or another RTL language?** Check out the sister project **[Kivun Terminal (kivun-terminal-wsl)](https://github.com/noambrand/kivun-terminal-wsl)** - same launcher concept but with full BiDi/RTL rendering for Claude Code on Windows (WSL+Konsole), Linux, and macOS. The new v1.1.0 ships a `kivun-claude-bidi` wrapper that fixes the bullet-line direction bug.
 
+<p align="center">
+  <img src="picker.png" alt="ClaudeCode Launchpad CLI folder picker - folder selection, model + flag chips, startup slash commands, all in one dialog" width="780">
+</p>
+
+The desktop shortcut opens this picker: type/paste a Windows path or browse the tree, optionally pick a model (Opus / Sonnet / Haiku), tap chips for common options (Respond in Hebrew, Low effort, High effort, Auto-accept file edits, Read-only, Don't fail if Opus is busy, Confirm before changes), and add startup slash commands like `/voicemode:converse` that get typed into Claude after it opens.
+
 ## Why Launchpad CLI?
 
 |  | Manual Setup | Launchpad CLI |

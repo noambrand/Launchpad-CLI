@@ -17,5 +17,8 @@ TERMINAL_COLOR=kivun
 #   --print                 One-off answer, no interactive chat
 #   --add-dir C:\full\path  Give Claude access to extra folder
 #   --enable-auto-mode      Skip permission prompts (auto-approve)
-# Combine: CLAUDE_FLAGS=--continue --model sonnet --add-dir C:\MyProject\src
+# Combine: CLAUDE_FLAGS=--continue --model opus --enable-auto-mode
 CLAUDE_FLAGS=
+# Default startup command auto-typed into Claude after the TUI loads (e.g. /voicemode:converse)
+# Leave empty to skip. Do NOT put passwords here (it will be typed visibly).
+STARTUP_CMD=

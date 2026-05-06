@@ -18,6 +18,7 @@ REM --- Read configuration ---
 set "RESPONSE_LANGUAGE=english"
 set "TERMINAL_COLOR=kivun"
 set "CLAUDE_FLAGS="
+set "STARTUP_CMD="
 set "SCRIPT_DIR=%~dp0"
 
 if exist "!SCRIPT_DIR!config.txt" (
@@ -27,6 +28,7 @@ if exist "!SCRIPT_DIR!config.txt" (
             if "%%A"=="RESPONSE_LANGUAGE" set "RESPONSE_LANGUAGE=%%B"
             if "%%A"=="TERMINAL_COLOR" set "TERMINAL_COLOR=%%B"
             if "%%A"=="CLAUDE_FLAGS" set "CLAUDE_FLAGS=%%B"
+            if "%%A"=="STARTUP_CMD" set "STARTUP_CMD=%%B"
         )
     )
 )
@@ -148,6 +150,20 @@ if exist "%LOCALAPPDATA%\Kivun\kivun-claude-flags.txt" (
 )
 set "FINAL_FLAGS=!CLAUDE_FLAGS!"
 if not "!ONE_TIME_FLAGS!"=="" set "FINAL_FLAGS=!FINAL_FLAGS! !ONE_TIME_FLAGS!"
+
+REM --- Apply default STARTUP_CMD from config if no one-time override is queued ---
+if not exist "%LOCALAPPDATA%\Kivun\kivun-claude-startcmd.txt" (
+    if not "!STARTUP_CMD!"=="" (
+        cscript //nologo "!SCRIPT_DIR!write-startcmd.js" "!STARTUP_CMD!" >nul 2>&1
+    )
+)
+
+REM --- Spawn startup-command injector (detached) if a startup command is queued ---
+REM (File is written by choose-folder.bat, by the default-apply above, and cleared at
+REM  the top of each choose-folder run; injector self-deletes after firing.)
+if exist "%LOCALAPPDATA%\Kivun\kivun-claude-startcmd.txt" (
+    start "" /b wscript.exe //nologo "!SCRIPT_DIR!inject-startup-cmd.js"
+)
 
 REM --- Launch Claude Code ---
 if defined LANG_PROMPT (
