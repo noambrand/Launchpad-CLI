@@ -1,65 +1,60 @@
 <job>
 <script language="JScript">
 // ClaudeCode Launchpad CLI - Folder Picker & Launcher
-// WSF wrapper ensures JScript engine is used regardless of .js file association.
-// Shows folder browse dialog, then launches ClaudeCode Launchpad CLI.
-// No intermediate cmd window is displayed.
-// Run with: wscript.exe folder-picker-launcher.wsf
+// Invokes the rich HTA picker (model radios, flag chips, startup slash
+// commands), waits for it to close, then launches claudecode-launchpad.bat
+// if the user selected a folder. If the HTA is missing, falls back to the
+// classic BrowseForFolder dialog so old installs still work.
 
 var wshShell = new ActiveXObject("WScript.Shell");
 var fso = new ActiveXObject("Scripting.FileSystemObject");
-var shell = new ActiveXObject("Shell.Application");
 
 var scriptDir = fso.GetParentFolderName(WScript.ScriptFullName);
-var startPath = wshShell.ExpandEnvironmentStrings("%USERPROFILE%");
-
-// Show folder browse dialog
-var folder = shell.BrowseForFolder(0, "Select folder for ClaudeCode Launchpad CLI", 0, startPath);
-
-if (folder == null) {
-    // User cancelled browse - offer text-based alternative
-    // 4 = vbYesNo, 32 = vbQuestion
-    var choice = wshShell.Popup(
-        "Would you like to type or paste a folder path instead?",
-        0, "ClaudeCode Launchpad CLI", 4 + 32
-    );
-    if (choice == 6) { // vbYes
-        wshShell.Run("\"" + scriptDir + "\\claudecode-launchpad-choose-folder.bat\" --text-only", 1, false);
-    }
-    WScript.Quit();
-}
-
-var selectedPath = folder.Self.Path;
-
-// Write selected path to file (UTF-8 without BOM)
 var kivunDir = wshShell.ExpandEnvironmentStrings("%LOCALAPPDATA%") + "\\Kivun";
-var filePath = kivunDir + "\\kivun-workdir.txt";
+var workdirFile = kivunDir + "\\kivun-workdir.txt";
 
 if (!fso.FolderExists(kivunDir)) {
     fso.CreateFolder(kivunDir);
 }
 
-var stream = new ActiveXObject("ADODB.Stream");
-stream.Type = 2; // adTypeText
-stream.Charset = "utf-8";
-stream.Open();
-stream.WriteText(selectedPath);
+// Stale workdir from a previous cancelled run would falsely trigger a
+// launch — clear it before the picker writes a fresh one (or doesn't).
+try { if (fso.FileExists(workdirFile)) fso.DeleteFile(workdirFile); } catch (e) {}
 
-// Strip the 3-byte UTF-8 BOM before saving
-stream.Position = 0;
-stream.Type = 1; // adTypeBinary
-stream.Position = 3;
+var htaPath = scriptDir + "\\folder-picker.hta";
+if (fso.FileExists(htaPath)) {
+    // 1 = visible window, true = wait for mshta to exit. The HTA writes
+    // kivun-workdir.txt + kivun-claude-flags.txt + kivun-claude-startcmd.txt
+    // on Launch, nothing on Cancel.
+    wshShell.Run("mshta.exe \"" + htaPath + "\"", 1, true);
+} else {
+    // Fallback: classic BrowseForFolder for old installs
+    var shell = new ActiveXObject("Shell.Application");
+    var startPath = wshShell.ExpandEnvironmentStrings("%USERPROFILE%");
+    var folder = shell.BrowseForFolder(0, "Select folder for ClaudeCode Launchpad CLI", 0, startPath);
+    if (folder == null) { WScript.Quit(); }
 
-var outStream = new ActiveXObject("ADODB.Stream");
-outStream.Type = 1;
-outStream.Open();
-stream.CopyTo(outStream);
-outStream.SaveToFile(filePath, 2); // adSaveCreateOverWrite
-outStream.Close();
-stream.Close();
+    var stream = new ActiveXObject("ADODB.Stream");
+    stream.Type = 2; stream.Charset = "utf-8"; stream.Open();
+    stream.WriteText(folder.Self.Path);
+    stream.Position = 0; stream.Type = 1; stream.Position = 3;
+    var outStream = new ActiveXObject("ADODB.Stream");
+    outStream.Type = 1; outStream.Open();
+    stream.CopyTo(outStream);
+    outStream.SaveToFile(workdirFile, 2);
+    outStream.Close(); stream.Close();
+}
 
-// Launch claudecode-launchpad.bat with READFILE argument
-// Window style 0 = hidden cmd window (WT opens its own visible window)
+// Cancel = no kivun-workdir.txt was written. Terminate cleanly without
+// launching the .bat (otherwise launcher would silently fall back to
+// %USERPROFILE%, which from the user's POV looks like Cancel didn't work).
+if (!fso.FileExists(workdirFile)) {
+    WScript.Quit(0);
+}
+
+// Launch claudecode-launchpad.bat with READFILE argument so it picks
+// the path from kivun-workdir.txt. Window style 0 = hidden cmd window
+// (Windows Terminal opens its own visible window).
 wshShell.Run("\"" + scriptDir + "\\claudecode-launchpad.bat\" \"READFILE\"", 0, false);
 </script>
 </job>

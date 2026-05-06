@@ -83,6 +83,15 @@ Var ConfigLanguage
 Var ConfigUsername
 Var ConfigTerminalColor
 
+; Pre-install warning: remind users to finish active CLI sessions
+Function .onInit
+  MessageBox MB_OKCANCEL|MB_ICONEXCLAMATION \
+    "Before installing ${PRODUCT_NAME}:$\r$\n$\r$\nIf you have any active Claude Code or terminal (CLI) sessions running, it is strongly advised to finish your work and close them now.$\r$\n$\r$\nThe installer may update Claude Code, Node.js, or Windows Terminal, which can interrupt running sessions and close terminal windows.$\r$\n$\r$\n  - Click OK to continue the installation.$\r$\n  - Click Cancel to abort so you can save your work first." \
+    /SD IDOK IDOK continueInstall
+  Abort
+  continueInstall:
+FunctionEnd
+
 ; Configuration page
 Function ConfigPage
   !insertmacro MUI_HEADER_TEXT "Configuration" "Choose your display name and language preference"
@@ -159,7 +168,11 @@ Section "!Core Components (Required)" SecCore
   File "source\claudecode-launchpad-choose-folder.bat"
   File "source\folder-picker.wsf"
   File "source\folder-picker-launcher.wsf"
+  File "source\folder-picker.hta"
   File "source\write-path.js"
+  File "source\write-startcmd.js"
+  File "source\inject-startup-cmd.js"
+  File "source\save-defaults.js"
   File "source\post-install.bat"
   File "source\claudecode-launchpad-wt-fragment.json"
   File "source\claudecode-launchpad-wt-fragment-nocolor.json"
@@ -243,8 +256,13 @@ Section "!Core Components (Required)" SecCore
   ${EndIf}
 
   FileWrite $0 "# Claude startup flags (optional, applied on every launch)$\r$\n"
-  FileWrite $0 "# Example: CLAUDE_FLAGS=--continue$\r$\n"
+  FileWrite $0 "# Example: CLAUDE_FLAGS=--continue --model opus --enable-auto-mode$\r$\n"
   FileWrite $0 "CLAUDE_FLAGS=$\r$\n"
+
+  FileWrite $0 "# Default startup command auto-typed into Claude after the TUI loads$\r$\n"
+  FileWrite $0 "# Example: STARTUP_CMD=/voicemode:converse$\r$\n"
+  FileWrite $0 "# Leave empty to skip. Do NOT put passwords here (typed visibly).$\r$\n"
+  FileWrite $0 "STARTUP_CMD=$\r$\n"
 
   FileClose $0
 

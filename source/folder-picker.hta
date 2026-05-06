@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<!--
+  Kivun Terminal - Folder Picker (HTA dialog)
+
+  v1.4.0 adds an inline Claude-flags picker — model radios,
+  conversation-continuation radios, common-flag chip buttons,
+  free-text custom flags, and a startup-slash-commands textarea
+  (e.g. /voicemode:converse). Reads/writes config.txt's
+  CLAUDE_FLAGS line + emits a separate kivun-startup-cmds.txt
+  for the bash launcher to type into the running Claude session.
+
+  Note: --dangerously-skip-permissions is INTENTIONALLY not surfaced
+  as a checkbox/chip. The safer alternative is in-session: launch
+  normally and press Shift+Tab inside Claude Code to toggle auto mode.
+  Power users can still type the flag into the Custom field if they
+  insist; the launcher passes it through verbatim.
+
+  Run with: mshta.exe folder-picker.hta
+-->
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<title>ClaudeCode Launchpad CLI - Pick Folder</title>
+<HTA:APPLICATION
+  ID="LaunchpadPicker"
+  APPLICATIONNAME="ClaudeCode Launchpad CLI Folder Picker"
+  BORDER="dialog"
+  CAPTION="yes"
+  CONTEXTMENU="no"
+  INNERBORDER="no"
+  MAXIMIZEBUTTON="no"
+  MINIMIZEBUTTON="no"
+  SCROLL="auto"
+  SELECTION="no"
+  SHOWINTASKBAR="yes"
+  SINGLEINSTANCE="yes"
+  SYSMENU="yes"
+  WINDOWSTATE="normal"
+/>
+<style>
+  html, body { height: 100%; }
+  body {
+    font-family: "Segoe UI", "Segoe UI Variable", Arial, sans-serif;
+    font-size: 16px;
+    margin: 0;
+    padding: 20px 32px;
+    background: #f3f3f3;
+    color: #1c1c1c;
+    box-sizing: border-box;
+  }
+  h1 { font-size: 22px; font-weight: 600; margin: 0 0 8px 0; }
+  .hint { font-size: 14px; color: #404040; margin: 0 0 16px 0; line-height: 1.5; }
+  .hint code, .hint kbd {
+    font-family: "Consolas", "Cascadia Mono", monospace;
+    font-size: 13px;
+    background: #e8e8e8;
+    padding: 2px 7px;
+    border-radius: 3px;
+  }
+
+  .option {
+    background: #fff;
+    border: 1px solid #d4d4d4;
+    border-radius: 6px;
+    padding: 14px 18px;
+    margin-bottom: 4px;
+  }
+  .opt-label {
+    font-size: 15px;
+    font-weight: 600;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .opt-num {
+    display: inline-block;
+    width: 24px; height: 24px; line-height: 24px;
+    text-align: center;
+    background: #0078d4; color: #fff;
+    border-radius: 50%;
+    font-size: 13px; font-weight: 700;
+    flex-shrink: 0;
+  }
+
+  .or-sep { text-align: center; margin: 8px 0; position: relative; }
+  .or-sep:before {
+    content: ""; position: absolute; top: 50%; left: 0; right: 0;
+    border-top: 1px solid #cfcfcf; z-index: 0;
+  }
+  .or-sep span {
+    position: relative; display: inline-block; padding: 0 16px;
+    background: #f3f3f3; color: #606060;
+    font-size: 12px; font-weight: 700; letter-spacing: 1.5px;
+    z-index: 1;
+  }
+
+  input[type=text] {
+    width: 100%; box-sizing: border-box;
+    padding: 11px 14px;
+    font-family: "Consolas", "Cascadia Mono", "Segoe UI", monospace;
+    font-size: 16px;
+    border: 1px solid #b8b8b8;
+    background: #fff;
+    border-radius: 4px;
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+  input[type=text]:focus, textarea:focus {
+    outline: none;
+    border-color: #0078d4;
+    box-shadow: 0 0 0 1px #0078d4;
+  }
+  textarea {
+    width: 100%; box-sizing: border-box;
+    padding: 9px 12px;
+    font-family: "Consolas", "Cascadia Mono", monospace;
+    font-size: 13px;
+    border: 1px solid #b8b8b8;
+    background: #fff;
+    border-radius: 4px;
+    resize: vertical;
+  }
+  button {
+    padding: 9px 16px;
+    font-family: "Segoe UI", Arial, sans-serif;
+    font-size: 14px;
+    background: #fafafa;
+    border: 1px solid #b8b8b8;
+    cursor: pointer;
+    white-space: nowrap;
+    border-radius: 4px;
+    transition: background 0.15s, border-color 0.15s;
+  }
+  button:hover { background: #eaeaea; border-color: #888; }
+  button:active { background: #d8d8d8; }
+  button.primary {
+    background: #0078d4; color: #fff; border-color: #005a9e;
+    font-weight: 600;
+  }
+  button.primary:hover { background: #1186e0; border-color: #00467a; }
+  button.primary:active { background: #005a9e; }
+  button.browse { min-width: 220px; font-weight: 600; }
+  button.config { min-width: 180px; font-size: 12px; }
+  button.cancel { min-width: 100px; }
+  button.ok { min-width: 240px; font-size: 15px; }
+
+  /* Flag picker grid */
+  .flag-grid {
+    display: grid;
+    grid-template-columns: 130px 1fr;
+    gap: 8px 14px;
+    align-items: start;
+    margin-top: 4px;
+  }
+  .flag-grid > .lbl {
+    font-weight: 600;
+    color: #303030;
+    font-size: 13px;
+    text-align: left;
+    padding-top: 4px;
+  }
+  .radio-row, .check-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 18px;
+    font-size: 13px;
+    color: #303030;
+  }
+  .radio-row label, .check-row label {
+    cursor: pointer;
+    user-select: none;
+    line-height: 1.6;
+  }
+  .radio-row input, .check-row input {
+    margin-right: 6px;
+    vertical-align: middle;
+  }
+
+  /* Common flag chips */
+  .chip-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .chip-row button.chip {
+    padding: 4px 11px;
+    font-size: 12px;
+    font-family: "Consolas", "Cascadia Mono", monospace;
+    background: #eaf3fb;
+    border: 1px solid #a9cfee;
+    color: #003e6b;
+    border-radius: 14px;
+    min-width: 0;
+  }
+  .chip-row button.chip:hover {
+    background: #d6e8f5;
+    border-color: #0078d4;
+  }
+
+  .flag-grid input[type=text] {
+    padding: 7px 11px;
+    font-size: 13px;
+  }
+  .flag-help {
+    font-size: 11px;
+    color: #707070;
+    margin-top: 2px;
+  }
+  .flag-tip {
+    font-size: 12px;
+    color: #404040;
+    background: #fff7e0;
+    border: 1px solid #ecd9a8;
+    border-radius: 4px;
+    padding: 7px 11px;
+    margin-top: 8px;
+  }
+  .flag-tip kbd {
+    font-family: "Consolas", "Cascadia Mono", monospace;
+    background: #fff;
+    border: 1px solid #c9bb89;
+    padding: 1px 6px;
+    border-radius: 3px;
+  }
+  .flag-preview {
+    margin-top: 10px;
+    padding: 8px 11px;
+    background: #f7f7f7;
+    border: 1px solid #d4d4d4;
+    border-radius: 4px;
+    font-family: "Consolas", "Cascadia Mono", monospace;
+    font-size: 12px;
+    color: #1c1c1c;
+    word-break: break-all;
+  }
+  .flag-preview .label {
+    color: #707070;
+    font-family: "Segoe UI", Arial, sans-serif;
+    font-size: 11px;
+    margin-right: 8px;
+  }
+
+  .actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 14px;
+    padding-top: 12px;
+    border-top: 1px solid #d8d8d8;
+  }
+  .actions .right { display: flex; gap: 10px; }
+  .err {
+    color: #b00020;
+    font-size: 13px;
+    min-height: 16px;
+    margin: 6px 0 0 0;
+    font-weight: 500;
+  }
+</style>
+<script language="JScript">
+  // Resize to fit all four sections WITHOUT scrolling. We use a generous
+  // 1040x980 baseline and then re-fit to actual content height after
+  // layout settles, so different DPI / font-render heights still get a
+  // scroll-free dialog. Caps at the screen size minus a small margin so
+  // the title bar + Windows taskbar stay visible on small displays.
+  window.resizeTo(1040, 980);
+  function autoSizeToContent() {
+    try {
+      var bodyHeight = document.body.scrollHeight + 60;  // chrome + margin
+      var availW = window.screen.availWidth;
+      var availH = window.screen.availHeight;
+      var w = 1040;
+      // Cap height so we never extend below the taskbar — a too-tall
+      // window placed at y=0 would still hide its bottom under the bar.
+      var h = Math.min(bodyHeight, availH - 60);
+      if (h < 700) h = 700;
+      window.resizeTo(w, h);
+      // Center the dialog so the bottom (Launch button + actions) stays
+      // visible regardless of monitor height. Earlier we let HTA pick
+      // the position, which often dropped the window low enough that
+      // the action row was hidden behind the taskbar.
+      var x = Math.max(0, Math.floor((availW - w) / 2));
+      var y = Math.max(0, Math.floor((availH - h) / 2));
+      window.moveTo(x, y);
+    } catch (e) {}
+  }
+
+  var wshShell = new ActiveXObject("WScript.Shell");
+  var fso = new ActiveXObject("Scripting.FileSystemObject");
+  var shell = new ActiveXObject("Shell.Application");
+
+  function getInstallDir() {
+    var url = decodeURIComponent(location.pathname).replace(/^\//, "").replace(/\//g, "\\");
+    return fso.GetParentFolderName(url);
+  }
+
+  var installDir = getInstallDir();
+  var kivunDir = wshShell.ExpandEnvironmentStrings("%LOCALAPPDATA%") + "\\Kivun";
+  var resultFile = kivunDir + "\\kivun-workdir.txt";
+  // Sibling project's existing inject-startup-cmd.js reads from this name.
+  var startupFile = kivunDir + "\\kivun-claude-startcmd.txt";
+  var configFile = installDir + "\\config.txt";
+
+  if (!fso.FolderExists(kivunDir)) { fso.CreateFolder(kivunDir); }
+
+  function writeUtf8NoBom(path, content) {
+    var stream = new ActiveXObject("ADODB.Stream");
+    stream.Type = 2; stream.Charset = "utf-8"; stream.Open();
+    stream.WriteText(content);
+    stream.Position = 0; stream.Type = 1; stream.Position = 3;
+    var outStream = new ActiveXObject("ADODB.Stream");
+    outStream.Type = 1; outStream.Open();
+    stream.CopyTo(outStream);
+    outStream.SaveToFile(path, 2);
+    outStream.Close(); stream.Close();
+  }
+
+  function readUtf8(path) {
+    if (!fso.FileExists(path)) return "";
+    var stream = new ActiveXObject("ADODB.Stream");
+    stream.Type = 2; stream.Charset = "utf-8"; stream.Open();
+    stream.LoadFromFile(path);
+    var text = stream.ReadText();
+    stream.Close();
+    return text;
+  }
+
+  function deleteIfExists(path) {
+    try { if (fso.FileExists(path)) fso.DeleteFile(path); } catch (e) {}
+  }
+
+  function writePath(p) { writeUtf8NoBom(resultFile, p); }
+
+  function clearError() { document.getElementById("err").innerText = ""; }
+  function showError(msg) { document.getElementById("err").innerText = msg; }
+
+  function browseFolder() {
+    clearError();
+    var startPath = wshShell.ExpandEnvironmentStrings("%USERPROFILE%");
+    // BIF_NEWDIALOGSTYLE | BIF_EDITBOX = 0x50.
+    var folder = shell.BrowseForFolder(0, "Pick a folder", 0x50, startPath);
+    if (folder != null) {
+      document.getElementById("path").value = folder.Self.Path;
+      document.getElementById("path").focus();
+    }
+  }
+
+  function editConfig() {
+    clearError();
+    if (!fso.FileExists(configFile)) {
+      showError("config.txt not found at " + configFile);
+      return;
+    }
+    wshShell.Run("notepad.exe \"" + configFile + "\"", 1, false);
+  }
+
+  // ---- Flag picker ---------------------------------------------------
+
+  function getRadioValue(name) {
+    var radios = document.getElementsByName(name);
+    for (var i = 0; i < radios.length; i++) {
+      if (radios[i].checked) return radios[i].value;
+    }
+    return "";
+  }
+  function setRadioValue(name, value) {
+    var radios = document.getElementsByName(name);
+    for (var i = 0; i < radios.length; i++) {
+      if (radios[i].value == value) { radios[i].checked = true; return; }
+    }
+    if (radios.length) radios[0].checked = true;
+  }
+
+  // Append a flag template to the custom-flags textbox (chip click).
+  // For flags that don't combine cleanly when repeated (multiple
+  // --append-system-prompt, --effort low + high, --permission-mode A
+  // and B), the latest click REPLACES the prior value. Otherwise the
+  // chip is a no-op when its flag is already present.
+  //
+  // The whole body is wrapped in try/catch — a thrown exception in an
+  // HTA event handler kills mshta silently, and the launcher then sees
+  // no kivun-workdir.txt and silently falls back to Konsole-at-home,
+  // which is indistinguishable from "I clicked Launch" to the user.
+  function addCustomFlag(template) {
+    try {
+      var box = document.getElementById("flag-custom");
+      var current = (box && box.value ? box.value : "").replace(/^\s+|\s+$/g, "");
+
+      var replaceablePatterns = [
+        [/--append-system-prompt\s+"[^"]*"/g, "--append-system-prompt"],
+        [/--effort\s+\S+/g,                   "--effort"],
+        [/--permission-mode\s+\S+/g,          "--permission-mode"],
+        [/--fallback-model\s+\S+/g,           "--fallback-model"]
+      ];
+      for (var i = 0; i < replaceablePatterns.length; i++) {
+        var pattern = replaceablePatterns[i][0];
+        var leadToken = replaceablePatterns[i][1];
+        if (template.indexOf(leadToken) === 0) {
+          current = current.replace(pattern, "").replace(/\s+/g, " ").replace(/^\s+|\s+$/g, "");
+          box.value = current ? (current + " " + template) : template;
+          updateFlagPreview();
+          if (box.focus) box.focus();
+          return;
+        }
+      }
+
+      var firstToken = template.split(/\s/)[0];
+      if (current && current.indexOf(firstToken) >= 0) return;
+      box.value = current ? (current + " " + template) : template;
+      updateFlagPreview();
+      if (box.focus) box.focus();
+    } catch (e) {
+      try { showError("addCustomFlag error: " + (e.message || e.description || e)); } catch (_) {}
+    }
+  }
+
+  function composeFlags() {
+    var parts = [];
+    var model = getRadioValue("flag-model");
+    if (model) parts.push("--model " + model);
+    var conv = getRadioValue("flag-conv");
+    if (conv) parts.push(conv);
+    var custom = document.getElementById("flag-custom").value;
+    custom = custom.replace(/^\s+|\s+$/g, "");
+    if (custom) parts.push(custom);
+    return parts.join(" ");
+  }
+
+  function updateFlagPreview() {
+    var s = composeFlags();
+    document.getElementById("flag-effective").innerText = s ? s : "(none — default Claude behavior)";
+  }
+
+  function loadFlagsFromConfig() {
+    // Opus is ALWAYS the default radio when the picker opens. We do not
+    // restore the previously-launched model from config.txt — the user
+    // wants to make a fresh choice every session, and a stale "--model
+    // haiku" from yesterday's experiment shouldn't quietly carry over.
+    setRadioValue("flag-model", "opus");
+
+    var content = readUtf8(configFile);
+    var match = content.match(/^CLAUDE_FLAGS=(.*)$/m);
+    var current = match ? match[1].replace(/^\s+|\s+$/g, "") : "";
+    if (!current) { updateFlagPreview(); return; }
+
+    // --model X: strip from `current` so it doesn't pollute the custom
+    // textbox, but do NOT use it to override the radio above.
+    var m = current.match(/--model\s+(\S+)/);
+    if (m) {
+      current = current.replace(m[0], "");
+    }
+
+    // --continue / --resume (mutually exclusive)
+    if (/(^|\s)--continue(\s|$)/.test(current)) {
+      setRadioValue("flag-conv", "--continue");
+      current = current.replace(/--continue/g, "");
+    } else if (/(^|\s)--resume(\s|$)/.test(current)) {
+      setRadioValue("flag-conv", "--resume");
+      current = current.replace(/--resume/g, "");
+    } else {
+      setRadioValue("flag-conv", "");
+    }
+
+    // Whatever's left becomes the custom field
+    current = current.replace(/\s+/g, " ").replace(/^\s+|\s+$/g, "");
+    document.getElementById("flag-custom").value = current;
+
+    updateFlagPreview();
+  }
+
+  function writeFlagsToConfig(newFlags) {
+    var content = readUtf8(configFile);
+    if (!content) return;
+    if (/^CLAUDE_FLAGS=.*$/m.test(content)) {
+      content = content.replace(/^CLAUDE_FLAGS=.*$/m, "CLAUDE_FLAGS=" + newFlags);
+    } else {
+      var nl = (content.indexOf("\r\n") >= 0) ? "\r\n" : "\n";
+      if (content.length && content.charAt(content.length - 1) !== "\n") content += nl;
+      content += "CLAUDE_FLAGS=" + newFlags + nl;
+    }
+    writeUtf8NoBom(configFile, content);
+  }
+
+  function writeStartupCmds() {
+    var raw = document.getElementById("startup-cmds").value;
+    var lines = raw.split(/\r?\n/);
+    var cleaned = [];
+    for (var i = 0; i < lines.length; i++) {
+      var ln = lines[i].replace(/^\s+|\s+$/g, "");
+      if (ln) cleaned.push(ln);
+    }
+    if (cleaned.length === 0) {
+      deleteIfExists(startupFile);
+      return;
+    }
+    writeUtf8NoBom(startupFile, cleaned.join("\n") + "\n");
+  }
+
+  function ok() {
+    clearError();
+    var p = document.getElementById("path").value;
+    if (p == null) p = "";
+    p = p.replace(/^\s+|\s+$/g, "");
+    p = p.replace(/^"+|"+$/g, "");
+    if (p == "") {
+      showError("Enter a folder path or click Browse.");
+      document.getElementById("path").focus();
+      return;
+    }
+    if (!fso.FolderExists(p)) {
+      showError("Folder does not exist: " + p);
+      document.getElementById("path").focus();
+      return;
+    }
+    try { writeFlagsToConfig(composeFlags()); } catch (e) {}
+    try { writeStartupCmds(); } catch (e) {}
+    writePath(p);
+    window.close();
+  }
+
+  function cancel() { window.close(); }
+
+  function onKey(ev) {
+    var e = ev || window.event;
+    var k = e.keyCode;
+    if (k == 13) { ok(); return false; }
+    if (k == 27) { cancel(); return false; }
+    return true;
+  }
+
+  // Bind chip click handlers programmatically so the flag template
+  // strings (some containing embedded double-quotes) survive HTA's
+  // HTML-entity decoding pass intact. Inline onclick='addCustomFlag("…&quot;…&quot;…")'
+  // breaks because &quot; decodes to " before the JS engine sees it,
+  // producing a malformed string literal.
+  function bindChips() {
+    var chips = [
+      ["chip-hebrew",      '--append-system-prompt "respond in Hebrew"'],
+      ["chip-effort-low",  '--effort low'],
+      ["chip-effort-high", '--effort high'],
+      ["chip-concise",     '--append-system-prompt "be concise; keep responses short"'],
+      ["chip-stepbystep",  '--append-system-prompt "explain your reasoning step by step"'],
+      ["chip-tests",       '--append-system-prompt "always include tests for any code changes"'],
+      ["chip-acceptedits", '--permission-mode acceptEdits'],
+      ["chip-readonly",    '--disallowedTools "Edit Write MultiEdit"'],
+      ["chip-fallback",    '--fallback-model sonnet'],
+      ["chip-confirm",     '--append-system-prompt "describe planned changes before making them"']
+    ];
+    for (var i = 0; i < chips.length; i++) {
+      (function(template) {
+        var el = document.getElementById(chips[i][0]);
+        if (el) el.onclick = function() { addCustomFlag(template); };
+      })(chips[i][1]);
+    }
+  }
+
+  // Catch any unhandled JScript error and display it instead of letting
+  // mshta exit silently — a silent exit is interpreted by the .bat as
+  // "user cancelled" and Konsole opens at the home folder, looking to
+  // the user like Launch fired itself.
+  window.onerror = function(msg, url, line) {
+    try {
+      var el = document.getElementById("err");
+      if (el) el.innerText = "Picker error (line " + line + "): " + msg;
+    } catch (_) {}
+    return true;
+  };
+
+  function init() {
+    try {
+      deleteIfExists(startupFile);   // start each session fresh
+      bindChips();
+      loadFlagsFromConfig();
+      autoSizeToContent();
+      var p = document.getElementById("path");
+      if (p && p.focus) p.focus();
+    } catch (e) {
+      try { showError("init error: " + (e.message || e.description || e)); } catch (_) {}
+    }
+  }
+</script>
+</head>
+<body onload="init()">
+  <h1>Pick a folder for ClaudeCode Launchpad CLI</h1>
+  <p class="hint">
+    Choose <b>one</b> of the two options below, optionally tune the Claude flags + startup commands, then click <b>Launch ClaudeCode Launchpad CLI</b>.
+  </p>
+
+  <div class="option">
+    <div class="opt-label"><span class="opt-num">1</span> Type or paste a Windows path:</div>
+    <input type="text" id="path" onkeydown="return onKey(event)" placeholder="C:\Users\you\Documents\MyProject" />
+  </div>
+
+  <div class="or-sep"><span>OR</span></div>
+
+  <div class="option">
+    <div class="opt-label"><span class="opt-num">2</span> Pick a folder from the Windows folder tree:</div>
+    <button type="button" class="browse" onclick="browseFolder()">Browse Folder Tree...</button>
+  </div>
+
+  <div class="option" style="margin-top:12px">
+    <div class="opt-label"><span class="opt-num">3</span> Claude flags (optional):</div>
+    <div class="flag-grid">
+
+      <div class="lbl">Model:</div>
+      <div class="radio-row">
+        <label><input type="radio" name="flag-model" value="opus" onclick="updateFlagPreview()" checked /> Opus <span style="color:#707070">(most capable)</span></label>
+        <label><input type="radio" name="flag-model" value="sonnet" onclick="updateFlagPreview()" /> Sonnet <span style="color:#707070">(balanced)</span></label>
+        <label><input type="radio" name="flag-model" value="haiku" onclick="updateFlagPreview()" /> Haiku <span style="color:#707070">(fastest)</span></label>
+        <label><input type="radio" name="flag-model" value="" onclick="updateFlagPreview()" /> Let Claude decide</label>
+      </div>
+
+      <div class="lbl">Conversation:</div>
+      <div class="radio-row">
+        <label><input type="radio" name="flag-conv" value="" onclick="updateFlagPreview()" checked /> Start fresh</label>
+        <label><input type="radio" name="flag-conv" value="--continue" onclick="updateFlagPreview()" /> Continue last</label>
+        <label><input type="radio" name="flag-conv" value="--resume" onclick="updateFlagPreview()" /> Pick from history</label>
+      </div>
+
+      <div class="lbl">Quick options:</div>
+      <div class="chip-row">
+        <button type="button" class="chip" id="chip-hebrew"      title="Asks Claude to reply in Hebrew">+ Respond in Hebrew</button>
+        <button type="button" class="chip" id="chip-effort-low"  title="--effort low — Claude answers quickly with less deliberation; fastest and cheapest">+ Low effort</button>
+        <button type="button" class="chip" id="chip-effort-high" title="--effort high — Claude thinks harder before answering; slower and more thorough">+ High effort</button>
+        <button type="button" class="chip" id="chip-concise"     title="Tells Claude to keep replies short and to the point">+ Concise responses</button>
+        <button type="button" class="chip" id="chip-stepbystep"  title="Tells Claude to explain its reasoning step by step before any conclusion">+ Step-by-step reasoning</button>
+        <button type="button" class="chip" id="chip-tests"       title="Tells Claude to always include tests when writing or changing code">+ Always include tests</button>
+        <button type="button" class="chip" id="chip-acceptedits" title="--permission-mode acceptEdits — auto-accept file edits without asking each time (Shift+Tab inside Claude does the same per-session)">+ Auto-accept file edits</button>
+        <button type="button" class="chip" id="chip-readonly"    title="Disable Edit/Write/MultiEdit tools — Claude can read and explain code but can't modify files">+ Read-only (no file edits)</button>
+        <button type="button" class="chip" id="chip-fallback"    title="--fallback-model sonnet — if Opus is at capacity at launch, auto-switch to Sonnet so the session still starts">+ Don't fail if Opus is busy</button>
+        <button type="button" class="chip" id="chip-confirm"     title="Tells Claude to describe planned changes before making them">+ Confirm before changes</button>
+      </div>
+
+      <div class="lbl">Custom:</div>
+      <div>
+        <input type="text" id="flag-custom" onkeyup="updateFlagPreview()" placeholder="Click chips above, or type any flags here verbatim" />
+        <div class="flag-help">Anything in this box is appended verbatim to the Claude command. Chips above append into here; you can also edit freely.</div>
+      </div>
+    </div>
+
+    <div class="flag-preview"><span class="label">Effective:</span><span id="flag-effective">(none)</span></div>
+  </div>
+
+  <div class="option" style="margin-top:12px">
+    <div class="opt-label"><span class="opt-num">4</span> Startup slash commands (optional):</div>
+    <textarea id="startup-cmds" rows="3" placeholder="One per line, e.g.&#10;/voicemode:converse&#10;/model opus"></textarea>
+    <div class="flag-help">Each line is typed into Claude after the session opens. Use this to auto-launch voice mode, switch to a specific model, etc. Leave empty for normal launch.</div>
+  </div>
+
+  <div class="actions">
+    <button type="button" class="config" onclick="editConfig()" title="Open config.txt in Notepad for advanced settings (language, theme, BiDi tunables)">Open config.txt (advanced)</button>
+    <div class="right">
+      <button type="button" class="cancel" onclick="cancel()">Cancel</button>
+      <button type="button" class="primary ok" onclick="ok()">Launch ClaudeCode Launchpad CLI</button>
+    </div>
+  </div>
+  <p class="err" id="err"></p>
+</body>
+</html>
