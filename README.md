@@ -53,16 +53,16 @@ There are **two** projects in this family. Pick whichever fits how you work:
 
 |  | **Launchpad CLI** *(this repo)* | **[Kivun Terminal](https://github.com/noambrand/kivun-terminal-wsl)** |
 |---|---|---|
-| **Hebrew / Arabic / Persian text right-aligned** | ❌ shows left-aligned | ✅ aligns to the right where it belongs |
-| **English/code mixed inside a Hebrew sentence** | ❌ words pushed to the wrong edge | ✅ words land at the correct position in the sentence |
-| **Supported RTL languages** | 0 (LTR only) | 11 (Hebrew, Arabic, Persian, Urdu, Pashto, Kurdish, Dari, Uyghur, Sindhi, Yiddish, Syriac) |
 | **Live status bar** (model, context %, usage) | ✅ | ✅ |
 | **Light-blue Kivun theme** | ✅ Windows Terminal | ✅ Konsole |
 | **Right-click "Open with..." on a folder** | ✅ Windows Explorer | ✅ Windows Explorer + Linux file managers |
 | **Folder picker dialog with model + flag chips** | ✅ | ✅ |
+| **Hebrew / Arabic / Persian text right-aligned** | ❌ shows left-aligned | ✅ aligns to the right where it belongs |
+| **English/code mixed inside a Hebrew sentence** | ❌ words pushed to the wrong edge | ✅ words land at the correct position in the sentence |
+| **Supported RTL languages** | 0 (LTR only) | 11 (Hebrew, Arabic, Persian, Urdu, Pashto, Kurdish, Dari, Uyghur, Sindhi, Yiddish, Syriac) |
 | **Startup time** | ~2 s | ~6 s |
 | **Install size on Windows** | ~150 MB | ~2 GB *(includes Ubuntu + Konsole via WSL2)* |
-| **Runtime on Windows** | Native (Windows Terminal) | WSL2 + Ubuntu + Konsole |
+| **Windows support** | Native (Windows Terminal) | WSL2 + Ubuntu + Konsole |
 | **macOS support** | ✅ | ❌ Deprecated as of v1.2.4 *(no Mac terminal handles mixed Hebrew + English)* |
 | **Linux support** | ❌ | ✅ apt / dnf / pacman / zypper |
 
