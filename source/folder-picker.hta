@@ -145,6 +145,34 @@
   button.cancel { min-width: 100px; }
   button.ok { min-width: 240px; font-size: 15px; }
 
+  /* Advanced collapsible (wraps flags + startup cmds + env vars) */
+  .advanced-toggle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    background: transparent;
+    border: 1px dashed #c0c0c0;
+    border-radius: 6px;
+    padding: 10px 14px;
+    margin: 12px 0 0 0;
+    font-size: 14px;
+    font-weight: 600;
+    color: #404040;
+    cursor: pointer;
+    text-align: left;
+  }
+  .advanced-toggle:hover { background: #ececec; border-color: #a8a8a8; color: #1c1c1c; }
+  .advanced-toggle .arrow {
+    display: inline-block;
+    width: 12px;
+    transition: transform 0.15s ease;
+  }
+  .advanced-toggle.open .arrow { transform: rotate(90deg); }
+  .advanced-toggle .sub { font-weight: 400; color: #707070; font-size: 12px; }
+  .advanced-body { display: none; margin-top: 4px; }
+  .advanced-body.open { display: block; }
+
   /* Flag picker grid */
   .flag-grid {
     display: grid;
@@ -363,17 +391,26 @@
   // layout settles, so different DPI / font-render heights still get a
   // scroll-free dialog. Caps at the screen size minus a small margin so
   // the title bar + Windows taskbar stay visible on small displays.
-  window.resizeTo(1040, 980);
+  window.resizeTo(1040, 615);
   function autoSizeToContent() {
     try {
-      var bodyHeight = document.body.scrollHeight + 60;  // chrome + margin
       var availW = window.screen.availWidth;
       var availH = window.screen.availHeight;
       var w = 1040;
-      // Cap height so we never extend below the taskbar — a too-tall
-      // window placed at y=0 would still hide its bottom under the bar.
-      var h = Math.min(bodyHeight, availH - 60);
-      if (h < 700) h = 700;
+      var h;
+      var advBody = document.getElementById("advanced-body");
+      var advancedOpen = advBody && advBody.className.indexOf("open") >= 0;
+      if (advancedOpen) {
+        // Expanded: size to actual content (capped so we don't overflow
+        // off-screen below the taskbar).
+        h = Math.min(document.body.scrollHeight + 60, availH - 60);
+        if (h < 615) h = 615;
+      } else {
+        // Collapsed: fixed compact height. scrollHeight in HTA is not
+        // always reliable when content is display:none, so we hardcode
+        // instead of measuring.
+        h = 615;
+      }
       window.resizeTo(w, h);
       // Center the dialog so the bottom (Launch button + actions) stays
       // visible regardless of monitor height. Earlier we let HTA pick
@@ -536,6 +573,59 @@
     return parts.join(" ");
   }
 
+  // Compose flags for persistence to config.txt. Excludes --continue and
+  // --resume: those are per-launch decisions and must NOT carry over to
+  // right-click "Open with..." launches, which read CLAUDE_FLAGS from
+  // config.txt. A folder with no prior conversation would otherwise
+  // crash with "No conversation found to continue".
+  function composeFlagsForConfig() {
+    var parts = [];
+    var model = getRadioValue("flag-model");
+    if (model) parts.push("--model " + model);
+    var custom = document.getElementById("flag-custom").value;
+    custom = custom.replace(/^\s+|\s+$/g, "");
+    if (custom) parts.push(custom);
+    return parts.join(" ");
+  }
+
+  function setAdvancedOpen(open) {
+    var btn = document.getElementById("advanced-toggle");
+    var body = document.getElementById("advanced-body");
+    if (!btn || !body) return;
+    if (open) {
+      btn.className = "advanced-toggle open";
+      body.className = "advanced-body open";
+      var arrow = btn.getElementsByTagName("span")[0];
+      if (arrow) arrow.innerHTML = "▼";
+    } else {
+      btn.className = "advanced-toggle";
+      body.className = "advanced-body";
+      var arrow2 = btn.getElementsByTagName("span")[0];
+      if (arrow2) arrow2.innerHTML = "▶";
+    }
+  }
+
+  function toggleAdvanced() {
+    var body = document.getElementById("advanced-body");
+    var isOpen = body && body.className.indexOf("open") >= 0;
+    setAdvancedOpen(!isOpen);
+    try { autoSizeToContent(); } catch (e) {}
+  }
+
+  function autoExpandAdvancedIfDirty() {
+    var custom = (document.getElementById("flag-custom") || {value: ""}).value;
+    var conv = getRadioValue("flag-conv");
+    var model = getRadioValue("flag-model");
+    var startup = (document.getElementById("startup-cmds") || {value: ""}).value;
+    var envv = (document.getElementById("env-vars") || {value: ""}).value;
+    var dirty = (custom && custom.replace(/\s/g, "")) ||
+                conv ||
+                (model && model !== "opus") ||
+                (startup && startup.replace(/\s/g, "")) ||
+                (envv && envv.replace(/\s/g, ""));
+    if (dirty) setAdvancedOpen(true);
+  }
+
   function escapeHtml(s) {
     if (s === null || s === undefined) return "";
     return ("" + s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
@@ -681,7 +771,7 @@
     // Keep config.txt's CLAUDE_FLAGS in sync for backwards compat with
     // any external tool that scrapes config.txt; profiles.json is the
     // source of truth from v1.4.0 onwards.
-    try { writeFlagsToConfig(composeFlags()); } catch (e) {}
+    try { writeFlagsToConfig(composeFlagsForConfig()); } catch (e) {}
     try { writeStartupCmds(); } catch (e) {}
     try { writeEnvFile(); } catch (e) {}
     writePath(p);
@@ -1077,6 +1167,13 @@
     <button type="button" class="browse" onclick="browseFolder()">Browse Folder Tree...</button>
   </div>
 
+  <button type="button" id="advanced-toggle" class="advanced-toggle" title="Click to expand: model, conversation flags, startup slash commands, environment variables" onclick="toggleAdvanced()">
+    <span class="arrow">▶</span>
+    <span>Advanced options</span>
+    <span class="sub">— click to show model, flags, startup slash commands, env vars</span>
+  </button>
+  <div id="advanced-body" class="advanced-body">
+
   <div class="option" style="margin-top:12px">
     <div class="opt-label"><span class="opt-num">3</span> Claude flags (optional):</div>
     <div class="flag-grid">
@@ -1142,6 +1239,8 @@
     </div>
     <div class="flag-help">Per-profile environment variables passed into the Claude session. Values are masked in the preview by default for screenshot safety — click <b>👁 show values</b> above to reveal.</div>
   </div>
+
+  </div><!-- /advanced-body -->
 
   <div class="actions">
     <button type="button" class="config" onclick="editConfig()" title="Open config.txt in Notepad for advanced settings (language, theme, BiDi tunables)">Open config.txt (advanced)</button>
