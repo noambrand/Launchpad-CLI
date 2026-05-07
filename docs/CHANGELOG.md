@@ -1,5 +1,16 @@
 # Changelog
 
+## [2.6.1] - 2026-05-07
+
+### Collapse Advanced section in picker + fix sticky `--continue` bug
+
+User feedback after v2.6.0: the picker's five-section layout (model / flags / startup-cmds / env-vars on top of folder selection) was overwhelming for first-time users, and a separate report that right-clicking a folder via the desktop shortcut crashed Claude with `No conversation found to continue` even when the user hadn't asked for `--continue`.
+
+- **`source/folder-picker.hta`** — sections 3 (Claude flags), 4 (startup slash commands), 5 (environment variables) wrapped in a collapsible `<div id="advanced-body">` toggled by a single button labelled `▶ Advanced options — click to show model, flags, startup slash commands, env vars`. Default state is collapsed regardless of profile content. Window opens at a compact 615 px and grows to fit content when the toggle is clicked (`autoSizeToContent` switches between fixed 615 px collapsed and dynamic `scrollHeight + 60` expanded; HTA's scrollHeight measurement is unreliable when content is `display:none`, so the collapsed branch hardcodes the value rather than measuring).
+- **`source/folder-picker.hta`** — new `composeFlagsForConfig()` helper used in the `writeFlagsToConfig` call. It excludes `--continue` and `--resume` (the two values from the `flag-conv` radio group). `composeFlags()` still includes them for the live preview and the actual launch. The reason: right-click "Open with ClaudeCode Launchpad CLI" reads `CLAUDE_FLAGS` from `config.txt` and runs `claude` with those flags in the chosen folder; if a previous picker session set `flag-conv=Continue last`, the resulting `CLAUDE_FLAGS=--continue` line poisoned every right-click launch on a folder with no prior session. Conversation flags are now per-launch only — they affect the current click but never become sticky.
+- **`ClaudeCode_Launchpad_CLI_Setup.nsi`** — `PRODUCT_VERSION` 2.6.0 → 2.6.1; `VIProductVersion` and `FileVersion` → 2.6.1.0.
+
+
 ## [2.6.0] - 2026-05-06
 
 ### Named profiles + per-profile env vars (parity with kivun-terminal-wsl v1.4.x)
