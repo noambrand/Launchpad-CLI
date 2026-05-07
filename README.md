@@ -130,8 +130,11 @@ CLAUDE_FLAGS=                 # e.g. --continue
 
 Contributions are welcome! Areas where help is especially useful:
 
-- **Linux installer** -- no Linux support yet
 - **Installer testing** -- different Windows/macOS versions and locales
+- **Windows on ARM** -- the NSIS installer is x64-only today
+- **macOS notarization** -- the .pkg is currently unsigned; users on stricter Gatekeeper settings have to right-click → Open
+
+> **Looking for Linux + RTL (Hebrew/Arabic/Persian)?** Use the sister project [kivun-terminal-wsl](https://github.com/noambrand/kivun-terminal-wsl) — Windows-via-WSL + Linux installers with full BiDi rendering.
 
 Fork the repo, make your changes, and open a PR.
 
