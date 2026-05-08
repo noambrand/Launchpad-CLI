@@ -28,14 +28,6 @@
 
 ---
 
-> 💡 **Working in Hebrew, Arabic, Persian, or another RTL language?** Check out the sister project **[Kivun Terminal (kivun-terminal-wsl)](https://github.com/noambrand/kivun-terminal-wsl)** - same launcher concept but with full BiDi/RTL rendering for Claude Code on Windows (WSL+Konsole), Linux, and macOS. The new v1.1.0 ships a `kivun-claude-bidi` wrapper that fixes the bullet-line direction bug.
-
-<p align="center">
-  <img src="picker.png" alt="ClaudeCode Launchpad CLI folder picker (v2.6.3) — folder selection up top, an Advanced options toggle that hides model / flags / startup slash-commands / env-vars by default, and a yellow 'Update available' banner that checks GitHub Releases on launch and offers a one-click Download button" width="780">
-</p>
-
-The desktop shortcut opens this picker: pick a profile from the chip row at the top (or `+ New` to save the current setup as a named profile — folder + model + flags + startup commands + env vars), type/paste a Windows path or browse the tree, optionally pick a model (Opus / Sonnet / Haiku), tap chips for common options (Respond in Hebrew, High effort, Auto-accept file edits, Read-only, Don't fail if Opus is busy, Confirm before changes), and add startup slash commands like `/voicemode:converse` that get typed into Claude after it opens.
-
 ## Why Launchpad CLI?
 
 |  | Manual Setup | Launchpad CLI |
@@ -47,6 +39,20 @@ The desktop shortcut opens this picker: pick a profile from the chip row at the 
 | **Default Claude flags + startup slash commands** | Type them every session | Set once in the picker, reused every launch |
 | **Named profiles per project** (folder + model + flags + env vars + startup slash-commands) | Track combos in your head, retype every session | 🆕 v2.6.0 — chip row at top of picker, click to switch; `ANTHROPIC_API_KEY` etc. masked in preview by default |
 | **Time to first prompt** | 20+ minutes | ~1 minute |
+
+<p align="center">
+  <a href="https://github.com/noambrand/kivun-terminal/releases/latest/download/ClaudeCode_Launchpad_CLI_Setup.exe"><img src="https://img.shields.io/badge/⬇_Download_for_Windows-2962ff?style=for-the-badge" alt="Download for Windows"></a>
+  &nbsp;
+  <a href="https://github.com/noambrand/kivun-terminal/releases/latest/download/ClaudeCode_Launchpad_CLI_Setup_mac.pkg"><img src="https://img.shields.io/badge/🍎_Download_for_macOS-6366f1?style=for-the-badge" alt="Download for macOS"></a>
+</p>
+
+### Here's the picker you'll get
+
+<p align="center">
+  <img src="picker.png" alt="ClaudeCode Launchpad CLI folder picker (v2.6.4) — folder selection up top, an Advanced options toggle that hides model / flags / startup slash-commands / env-vars by default, and a yellow 'Update available' banner that checks GitHub Releases on launch and offers a one-click Download button" width="780">
+</p>
+
+The desktop shortcut opens this picker: pick a profile from the chip row at the top (or `+ New` to save the current setup as a named profile — folder + model + flags + startup commands + env vars), type/paste a Windows path or browse the tree, optionally pick a model (Opus / Sonnet / Haiku), tap chips for common options (Respond in Hebrew, High effort, Auto-accept file edits, Read-only, Don't fail if Opus is busy, Confirm before changes), and add startup slash commands like `/voicemode:converse` that get typed into Claude after it opens.
 
 ## Launchpad CLI vs Kivun Terminal — which one?
 
