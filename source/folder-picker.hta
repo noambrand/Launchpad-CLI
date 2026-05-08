@@ -463,7 +463,7 @@
   // rate-limited, etc.) silently does nothing — never blocks the user.
 
   var GITHUB_REPO = "noambrand/kivun-terminal";
-  var FALLBACK_VERSION = "2.6.3";
+  var FALLBACK_VERSION = "2.6.4";
   var ASSET_NAME_RE = /^ClaudeCode_Launchpad_CLI_Setup\.exe$/i;
 
   function readInstalledVersion() {
@@ -522,24 +522,57 @@
     }
   }
 
+  // Stashed at banner-render time; read by openLatestRelease/openLatestDownload
+  // when the user clicks. SECURITY (v2.6.4, audit #3): we no longer
+  // interpolate URLs into onclick="" string literals — that path could be
+  // broken out of by a hostile JSON response containing  '  in the URL.
+  var __pendingReleaseUrl = "";
+  var __pendingDownloadUrl = "";
+
   function showUpdateBanner(currentV, newV, releaseUrl, downloadUrl) {
     var b = document.getElementById("update-banner");
     if (!b) return;
+    __pendingReleaseUrl = isTrustedUpdateUrl(releaseUrl) ? releaseUrl : "";
+    __pendingDownloadUrl = isTrustedUpdateUrl(downloadUrl) ? downloadUrl : "";
     var safeNew = escapeHtml(newV);
     var safeCur = escapeHtml(currentV);
-    var safeDl = escapeHtml(downloadUrl);
-    var safeNotes = escapeHtml(releaseUrl);
     b.innerHTML =
       '<span class="text">🆕 <b>Update available:</b> v' + safeNew +
       ' &nbsp;<span style="opacity:.7">(you have v' + safeCur + ')</span> ' +
-      '&nbsp;<a href="javascript:openUpdateUrl(\'' + safeNotes + '\')" style="font-size:12px">release notes</a></span>' +
-      '<button type="button" class="primary" onclick="openUpdateUrl(\'' + safeDl + '\')">Download v' + safeNew + '</button>' +
+      '&nbsp;<a href="javascript:openLatestRelease()" style="font-size:12px">release notes</a></span>' +
+      '<button type="button" class="primary" onclick="openLatestDownload()">Download v' + safeNew + '</button>' +
       '<button type="button" class="dismiss" onclick="dismissUpdateBanner()" title="Hide until next launch">✕</button>';
     b.style.display = "flex";
     try { autoSizeToContent(); } catch (_) {}
   }
 
+  function openLatestRelease() { openUpdateUrl(__pendingReleaseUrl); }
+  function openLatestDownload() { openUpdateUrl(__pendingDownloadUrl); }
+
+  // SECURITY (v2.6.4, audit #3): only open URLs that point to this
+  // project's GitHub release pages or release-asset CDN. Even though TLS
+  // protects api.github.com under normal conditions, a corp-MITM root CA
+  // can rewrite the JSON; without an allowlist a hostile proxy could swap
+  // browser_download_url for any URL and ride the user's click into
+  // arbitrary download/run.
+  function isTrustedUpdateUrl(url) {
+    if (!url || typeof url !== "string") return false;
+    var prefixes = [
+      "https://github.com/" + GITHUB_REPO + "/",
+      "https://github.com/" + GITHUB_REPO,
+      "https://api.github.com/repos/" + GITHUB_REPO + "/",
+      "https://objects.githubusercontent.com/"
+    ];
+    for (var i = 0; i < prefixes.length; i++) {
+      if (url.length >= prefixes[i].length && url.substr(0, prefixes[i].length) === prefixes[i]) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   function openUpdateUrl(url) {
+    if (!isTrustedUpdateUrl(url)) return;
     try { wshShell.Run('"' + url + '"', 1, false); } catch (e) {}
   }
 
@@ -1086,8 +1119,12 @@
   // even though the same pattern works on STATIC elements (the existing
   // flag chips). innerHTML construction sidesteps this — IE parses the
   // attribute string into a real onclick handler at render time.
-  // Profile name escaping: HTML entities for &<>", plus &#39; for the
-  // single quote we use to delimit the JS string in onclick=.
+  // SECURITY: passing the profile NAME through onclick="" string-interp
+  // (v2.6.0–v2.6.3) was a JScript-injection vector — a profile name
+  // like  x'); evil(); //  survived &#39; HTML-escaping because the
+  // attribute is HTML-decoded before JS parsing. v2.6.4 fixes this by
+  // passing a profile INDEX (a literal integer, no interpolation risk)
+  // and looking the name up from trusted state inside the handler.
   function populateProfileChips() {
     var row = document.getElementById("profile-chips");
     if (!row) return;
@@ -1095,13 +1132,19 @@
     for (var i = 0; i < profilesState.profiles.length; i++) {
       var name = profilesState.profiles[i].name;
       var isActive = (name === profilesState.active);
-      var nameEsc = escapeHtml(name).replace(/'/g, "&#39;");
+      var nameEsc = escapeHtml(name);
       var cls = "profile-chip" + (isActive ? " active" : "");
       var ttl = isActive ? "Active profile — already loaded" : "Switch to profile: " + name;
       html += '<button type="button" class="' + cls + '" title="' + escapeHtml(ttl) + '"'
-            + ' onclick="switchToProfile(\'' + nameEsc + '\')">' + nameEsc + '</button>';
+            + ' onclick="switchToProfileByIndex(' + i + ')">' + nameEsc + '</button>';
     }
     row.innerHTML = html;
+  }
+
+  function switchToProfileByIndex(idx) {
+    var p = profilesState.profiles[idx];
+    if (!p) return;
+    switchToProfile(p.name);
   }
 
   function switchToProfile(name) {

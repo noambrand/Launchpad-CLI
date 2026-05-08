@@ -5,7 +5,7 @@
 Unicode True
 
 !define PRODUCT_NAME "ClaudeCode Launchpad CLI"
-!define PRODUCT_VERSION "2.6.3"
+!define PRODUCT_VERSION "2.6.4"
 !define PRODUCT_PUBLISHER "Noam Brand"
 !define PRODUCT_WEB_SITE "https://github.com"
 !define PRODUCT_DESCRIPTION "Claude Code installer for Windows"
@@ -19,8 +19,12 @@ Unicode True
 !include "WinMessages.nsh"
 
 
-; Request admin privileges
-RequestExecutionLevel admin
+; Per-user install — no admin needed. Everything lands under
+; %LOCALAPPDATA%\Kivun, HKCU registry, and the user's desktop.
+; Previous releases requested admin and wrote to HKLM/HKCR; that broke
+; under "over-the-shoulder" UAC because $LOCALAPPDATA then resolved to
+; the elevating admin's profile, not the invoking user's. Fixed v2.6.4.
+RequestExecutionLevel user
 
 ; Installer settings
 Name "${PRODUCT_NAME}"
@@ -29,12 +33,12 @@ InstallDir "${INSTALL_DIR}"
 ShowInstDetails show
 
 ; Version info
-VIProductVersion "2.6.3.0"
+VIProductVersion "2.6.4.0"
 VIAddVersionKey "ProductName" "${PRODUCT_NAME}"
 VIAddVersionKey "ProductVersion" "${PRODUCT_VERSION}"
 VIAddVersionKey "CompanyName" "${PRODUCT_PUBLISHER}"
 VIAddVersionKey "FileDescription" "${PRODUCT_DESCRIPTION}"
-VIAddVersionKey "FileVersion" "2.6.3.0"
+VIAddVersionKey "FileVersion" "2.6.4.0"
 VIAddVersionKey "LegalCopyright" "(C) 2026 ${PRODUCT_PUBLISHER}"
 
 ; Modern UI Configuration
@@ -273,10 +277,17 @@ Section "!Core Components (Required)" SecCore
   CreateShortCut "$SMPROGRAMS\${PRODUCT_NAME}\Configuration.lnk" "notepad.exe" "$INSTDIR\config.txt" "" 0 SW_SHOWNORMAL "" "Configure language settings"
   CreateShortCut "$SMPROGRAMS\${PRODUCT_NAME}\Uninstall.lnk" "$INSTDIR\Uninstall.exe" "" "" 0 SW_SHOWNORMAL "" "Uninstall ${PRODUCT_NAME}"
 
-  ; Clean up old-name entries from previous "Kivun Terminal" installs
+  ; Clean up old-name entries from previous "Kivun Terminal" installs.
+  ; HKCU keys clean reliably under user-level execution; HKLM/HKCR
+  ; deletions are best-effort and will silently no-op without admin
+  ; (acceptable — those entries only existed in the rare admin-elevated
+  ; install path that we no longer use).
   Delete "$DESKTOP\Kivun Terminal.lnk"
   Delete "$SENDTO\Kivun Terminal.lnk"
   RMDir /r "$SMPROGRAMS\Kivun Terminal"
+  DeleteRegKey HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\Kivun"
+  DeleteRegKey HKCU "Software\Classes\Directory\shell\KivunTerminal"
+  DeleteRegKey HKCU "Software\Classes\Directory\Background\shell\KivunTerminal"
   DeleteRegKey HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\Kivun"
   DeleteRegKey HKCR "Directory\shell\KivunTerminal"
   DeleteRegKey HKCR "Directory\Background\shell\KivunTerminal"
@@ -289,24 +300,24 @@ Section "!Core Components (Required)" SecCore
   CreateShortCut "$SENDTO\ClaudeCode Launchpad CLI.lnk" "$INSTDIR\claudecode-launchpad.bat" "" "$INSTDIR\claude_icon.ico" 0 SW_SHOWNORMAL "" "Open with ClaudeCode Launchpad CLI"
 
   ; Write registry for Add/Remove Programs
-  WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\ClaudeCodeLaunchpad" "DisplayName" "${PRODUCT_NAME}"
-  WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\ClaudeCodeLaunchpad" "DisplayVersion" "${PRODUCT_VERSION}"
-  WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\ClaudeCodeLaunchpad" "Publisher" "${PRODUCT_PUBLISHER}"
-  WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\ClaudeCodeLaunchpad" "UninstallString" "$INSTDIR\Uninstall.exe"
-  WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\ClaudeCodeLaunchpad" "DisplayIcon" "$INSTDIR\claude_icon.ico"
-  WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\ClaudeCodeLaunchpad" "URLInfoAbout" "${PRODUCT_WEB_SITE}"
-  WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\ClaudeCodeLaunchpad" "HelpLink" "${PRODUCT_WEB_SITE}"
-  WriteRegDWORD HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\ClaudeCodeLaunchpad" "NoModify" 1
-  WriteRegDWORD HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\ClaudeCodeLaunchpad" "NoRepair" 1
+  WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\ClaudeCodeLaunchpad" "DisplayName" "${PRODUCT_NAME}"
+  WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\ClaudeCodeLaunchpad" "DisplayVersion" "${PRODUCT_VERSION}"
+  WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\ClaudeCodeLaunchpad" "Publisher" "${PRODUCT_PUBLISHER}"
+  WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\ClaudeCodeLaunchpad" "UninstallString" "$INSTDIR\Uninstall.exe"
+  WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\ClaudeCodeLaunchpad" "DisplayIcon" "$INSTDIR\claude_icon.ico"
+  WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\ClaudeCodeLaunchpad" "URLInfoAbout" "${PRODUCT_WEB_SITE}"
+  WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\ClaudeCodeLaunchpad" "HelpLink" "${PRODUCT_WEB_SITE}"
+  WriteRegDWORD HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\ClaudeCodeLaunchpad" "NoModify" 1
+  WriteRegDWORD HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\ClaudeCodeLaunchpad" "NoRepair" 1
 
   ; Add right-click context menu for folders: "Open with ClaudeCode Launchpad CLI"
-  WriteRegStr HKCR "Directory\shell\ClaudeCodeLaunchpad" "" "Open with ClaudeCode Launchpad CLI"
-  WriteRegStr HKCR "Directory\shell\ClaudeCodeLaunchpad" "Icon" "$INSTDIR\claude_icon.ico"
+  WriteRegStr HKCU "Software\Classes\Directory\shell\ClaudeCodeLaunchpad" "" "Open with ClaudeCode Launchpad CLI"
+  WriteRegStr HKCU "Software\Classes\Directory\shell\ClaudeCodeLaunchpad" "Icon" "$INSTDIR\claude_icon.ico"
   WriteRegStr HKCR "Directory\shell\ClaudeCodeLaunchpad\command" "" '"$INSTDIR\claudecode-launchpad.bat" "%1"'
 
   ; Also add to directory background (right-click inside a folder)
-  WriteRegStr HKCR "Directory\Background\shell\ClaudeCodeLaunchpad" "" "Open ClaudeCode Launchpad CLI here"
-  WriteRegStr HKCR "Directory\Background\shell\ClaudeCodeLaunchpad" "Icon" "$INSTDIR\claude_icon.ico"
+  WriteRegStr HKCU "Software\Classes\Directory\Background\shell\ClaudeCodeLaunchpad" "" "Open ClaudeCode Launchpad CLI here"
+  WriteRegStr HKCU "Software\Classes\Directory\Background\shell\ClaudeCodeLaunchpad" "Icon" "$INSTDIR\claude_icon.ico"
   WriteRegStr HKCR "Directory\Background\shell\ClaudeCodeLaunchpad\command" "" '"$INSTDIR\claudecode-launchpad.bat" "%V"'
 
   ; Install Windows Terminal fragment
@@ -317,9 +328,11 @@ Section "!Core Components (Required)" SecCore
     CopyFiles /SILENT "$INSTDIR\claudecode-launchpad-wt-fragment-nocolor.json" "$LOCALAPPDATA\Microsoft\Windows Terminal\Fragments\ClaudeCodeLaunchpad\claudecode-launchpad-wt-fragment.json"
   ${EndIf}
 
-  ; Set CLAUDE_CODE_STATUSLINE environment variable (system-wide, persists)
+  ; Set CLAUDE_CODE_STATUSLINE environment variable (per-user, persists)
+  ; Per-user (HKCU\Environment) instead of system-wide (HKLM) since we no
+  ; longer require admin and the install dir is in the user's profile.
   DetailPrint "Setting CLAUDE_CODE_STATUSLINE environment variable..."
-  WriteRegExpandStr HKLM "SYSTEM\CurrentControlSet\Control\Session Manager\Environment" "CLAUDE_CODE_STATUSLINE" "$INSTDIR\statusline.mjs"
+  WriteRegExpandStr HKCU "Environment" "CLAUDE_CODE_STATUSLINE" "$INSTDIR\statusline.mjs"
   ; Broadcast WM_SETTINGCHANGE so running processes pick it up
   SendMessage ${HWND_BROADCAST} ${WM_SETTINGCHANGE} 0 "STR:Environment" /TIMEOUT=5000
 
@@ -451,23 +464,33 @@ Section "Uninstall"
   ; Remove old Start Menu folder
   RMDir /r "$SMPROGRAMS\Kivun Terminal"
 
-  ; Remove old registry entries
+  ; Remove old registry entries (HKCU first; the legacy HKLM/HKCR variants
+  ; are best-effort — without admin we can't delete them, so v2.6.3-and-older
+  ; admin installs leave residue that the user can clear manually if needed).
+  DeleteRegKey HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\Kivun"
+  DeleteRegKey HKCU "Software\Classes\Directory\shell\KivunTerminal"
+  DeleteRegKey HKCU "Software\Classes\Directory\Background\shell\KivunTerminal"
   DeleteRegKey HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\Kivun"
   DeleteRegKey HKCR "Directory\shell\KivunTerminal"
   DeleteRegKey HKCR "Directory\Background\shell\KivunTerminal"
   RMDir /r "$LOCALAPPDATA\Microsoft\Windows Terminal\Fragments\KivunTerminal"
 
   ; Remove registry entries - Add/Remove Programs
+  DeleteRegKey HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\ClaudeCodeLaunchpad"
   DeleteRegKey HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\ClaudeCodeLaunchpad"
 
   ; Remove context menu entries
+  DeleteRegKey HKCU "Software\Classes\Directory\shell\ClaudeCodeLaunchpad"
+  DeleteRegKey HKCU "Software\Classes\Directory\Background\shell\ClaudeCodeLaunchpad"
   DeleteRegKey HKCR "Directory\shell\ClaudeCodeLaunchpad"
   DeleteRegKey HKCR "Directory\Background\shell\ClaudeCodeLaunchpad"
 
   ; Remove Windows Terminal fragment
   RMDir /r "$LOCALAPPDATA\Microsoft\Windows Terminal\Fragments\ClaudeCodeLaunchpad"
 
-  ; Remove CLAUDE_CODE_STATUSLINE environment variable
+  ; Remove CLAUDE_CODE_STATUSLINE environment variable (HKCU first; the
+  ; legacy HKLM SYSTEM-wide value from v2.6.3-and-older requires admin).
+  DeleteRegValue HKCU "Environment" "CLAUDE_CODE_STATUSLINE"
   DeleteRegValue HKLM "SYSTEM\CurrentControlSet\Control\Session Manager\Environment" "CLAUDE_CODE_STATUSLINE"
   SendMessage ${HWND_BROADCAST} ${WM_SETTINGCHANGE} 0 "STR:Environment" /TIMEOUT=5000
 

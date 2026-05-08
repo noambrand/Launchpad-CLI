@@ -1,5 +1,32 @@
 # Changelog
 
+## [2.6.4] - 2026-05-08
+
+### Security fixes from internal audit
+
+A security audit of the v2.6.3 codebase surfaced three HIGH-severity issues — one in the NSIS installer, two in the picker. All fixed in this release.
+
+#### Fixed (HIGH)
+
+- **`ClaudeCode_Launchpad_CLI_Setup.nsi` — installer no longer requests admin elevation (audit #1).** v2.6.3 and earlier shipped with `RequestExecutionLevel admin` while writing per-user files into `$LOCALAPPDATA\Kivun` and the right-click context menu into `HKLM`/`HKCR`. Under "over-the-shoulder" UAC (a regular user enters an admin's password), `$LOCALAPPDATA` resolves to the **admin's** profile, not the invoking user — so the desktop shortcut, picker, and Windows Terminal fragment land where the real user can't reach them. Fixed: `RequestExecutionLevel user`; uninstaller entry moved from `HKLM` to `HKCU`; right-click context menu moved from `HKCR Directory\shell\...` to `HKCU Software\Classes\Directory\shell\...`; `CLAUDE_CODE_STATUSLINE` env var moved from `HKLM SYSTEM\...\Environment` to `HKCU\Environment`. Uninstaller also best-effort cleans the legacy HKLM/HKCR locations from v2.6.3-and-older admin installs (silently no-ops without admin, which is fine).
+- **`source/folder-picker.hta` — JScript injection via profile chip onclick (audit #2).** v2.6.0–v2.6.3's `populateProfileChips()` HTML-escaped profile names with `&#39;` for the single quote, then interpolated them into `onclick="switchToProfile('NAME')"`. IE/HTA HTML-decodes attributes **before** evaluating the JS, so `&#39;` becomes `'` again and a profile name like `x'); evil(); //` survives the escape and runs as JScript with full ActiveX privileges. Fixed by passing a profile **index** (a literal integer, no interpolation risk) and looking up the name from trusted state inside a new `switchToProfileByIndex()` handler.
+- **`source/folder-picker.hta` — `WshShell.Run` trusted attacker-controllable URL in update banner (audit #3).** v2.6.1's update-check feature interpolated GitHub's `browser_download_url` into `onclick="openUpdateUrl('URL')"`. Two layers of risk: (a) `escapeHtml` did not escape `'`, so a hostile JSON response with `'` in the URL could break out of the JS string; (b) under a corp-MITM root CA, the JSON itself can be rewritten to point `browser_download_url` at any URL and ride the user's click into arbitrary download/run. Fixed two ways: (1) URLs stashed in module-scope `__pendingReleaseUrl`/`__pendingDownloadUrl` read by parameter-less click handlers — no string interpolation; (2) new `isTrustedUpdateUrl()` allowlists the URL prefix to `https://github.com/noambrand/kivun-terminal/`, `https://api.github.com/repos/noambrand/kivun-terminal/`, and `https://objects.githubusercontent.com/`; anything else is silently rejected.
+
+#### Not fixed in this release (deferred)
+
+- **MEDIUM #4 — `KIVUN_CLAUDE_BIN` env validation.** Applies to the WSL sister repo only (this repo doesn't ship the BiDi wrapper). N/A here.
+- **MEDIUM #5 — synchronous WinHttp call hangs picker UI ≤ 5 s on hostile networks.** Marked as known limitation; async rewrite isn't worth destabilising a working feature.
+- **MEDIUM #6 — quote injection if `installDir` contains `"` or `&`.** Theoretical; NTFS forbids `"` in paths.
+
+#### Confirmed clean (negative findings)
+
+- ✅ No hardcoded secrets in source
+- ✅ Bash and batch launchers correctly quote user paths
+- ✅ No DLL search-order hijacking opportunities
+- ✅ NSIS uninstaller `RMDir /r` is path-bounded — can't be tricked into root delete
+- ✅ `data.tag_name` from GitHub API is `escapeHtml`'d before innerHTML
+
+
 ## [2.6.3] - 2026-05-08
 
 ### Doc/version consistency sweep across bundled .txt files
