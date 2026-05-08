@@ -8,10 +8,10 @@
 
 <p align="center">
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="MIT License"></a>
-  <a href="https://github.com/noambrand/kivun-terminal/releases/latest"><img src="https://img.shields.io/github/v/release/noambrand/kivun-terminal?label=version&color=brightgreen&cb=v2.6.1" alt="Latest release"></a>
+  <a href="https://github.com/noambrand/kivun-terminal/releases/latest"><img src="https://img.shields.io/github/v/release/noambrand/kivun-terminal?label=version&color=brightgreen&cb=v2.6.2" alt="Latest release"></a>
   <img src="https://img.shields.io/badge/platform-Windows%2010%2F11%20%7C%20macOS%2012%2B-lightgrey" alt="Platform">
   <img src="https://img.shields.io/badge/languages-24%2B-orange" alt="24+ Languages">
-  <a href="https://github.com/noambrand/kivun-terminal/releases/latest"><img src="https://img.shields.io/github/downloads/noambrand/kivun-terminal/total?label=downloads&color=blue&cb=v2.6.1" alt="Total Downloads"></a>
+  <a href="https://github.com/noambrand/kivun-terminal/releases/latest"><img src="https://img.shields.io/github/downloads/noambrand/kivun-terminal/total?label=downloads&color=blue&cb=v2.6.2" alt="Total Downloads"></a>
 </p>
 
 <h3 align="center">Zero-to-Claude in 1 minute. Installer, status bar, and launcher for Claude Code on Windows & macOS.</h3>
@@ -45,7 +45,7 @@ The desktop shortcut opens this picker: pick a profile from the chip row at the 
 | **Desktop shortcut + right-click "Open with..."** | Manual `.lnk` files + registry edits | Included |
 | **Pick a folder before launching** | `cd` into every project | GUI picker dialog (browse tree or paste a path) |
 | **Default Claude flags + startup slash commands** | Type them every session | Set once in the picker, reused every launch |
-| **Named profiles per project** (folder + model + flags + env vars) | Track combos in your head, retype every session | 🆕 v2.6.0 — chip row at top of picker, click to switch; `ANTHROPIC_API_KEY` etc. masked in preview by default |
+| **Named profiles per project** (folder + model + flags + env vars + startup slash-commands) | Track combos in your head, retype every session | 🆕 v2.6.0 — chip row at top of picker, click to switch; `ANTHROPIC_API_KEY` etc. masked in preview by default |
 | **Time to first prompt** | 20+ minutes | ~1 minute |
 
 ## Launchpad CLI vs Kivun Terminal — which one?
@@ -58,7 +58,7 @@ There are **two** projects in this family. Pick whichever fits how you work:
 | **Light-blue Kivun theme** | ✅ Windows Terminal | ✅ Konsole |
 | **Right-click "Open with..." on a folder** | ✅ Windows Explorer | ✅ Windows Explorer + Linux file managers |
 | **Folder picker dialog with model + flag chips** | ✅ | ✅ |
-| **Named profiles per project** (folder + model + flags + env vars) | ✅ v2.6.0 | ✅ v1.4.0 |
+| **Named profiles per project** (folder + model + flags + env vars + startup slash-commands) | ✅ v2.6.0 | ✅ v1.4.0 |
 | **Hebrew / Arabic / Persian text right-aligned** | ❌ shows left-aligned | ✅ aligns to the right where it belongs |
 | **English/code mixed inside a Hebrew sentence** | ❌ words pushed to the wrong edge | ✅ words land at the correct position in the sentence |
 | **Supported RTL languages** | 0 (LTR only) | 11 (Hebrew, Arabic, Persian, Urdu, Pashto, Kurdish, Dari, Uyghur, Sindhi, Yiddish, Syriac) |

@@ -1,5 +1,22 @@
 # Changelog
 
+## [2.6.2] - 2026-05-08
+
+### Update-available banner in the picker + table fixes + bigger collapsed window
+
+User feedback after v2.6.1: comparison-table parenthetical in the README was missing `+ startup slash-commands` (the WSL sister repo had the full feature list, this one was clipped), and the picker should detect when a newer release is available and offer one-click download.
+
+- **`source/folder-picker.hta`** — new yellow banner at the top of the picker (above the profile chip row) that reads *"🆕 Update available: vX.Y.Z (you have vA.B.C) — release notes — [Download vX.Y.Z]"*. Banner appears only when `compareVersions(latestTag, installed) > 0`. Hidden by default; rendered only after a successful API check. Has a `✕` dismiss button (hides until next launch) and a "release notes" link to the GitHub release page. The `Download` button shells out via `WSHShell.Run` to the asset URL — opens in the user's default browser, which starts downloading `ClaudeCode_Launchpad_CLI_Setup.exe` immediately.
+- **`source/folder-picker.hta`** — new helpers: `readInstalledVersion()` (reads `installDir\VERSION`, falls back to a hardcoded `FALLBACK_VERSION = "2.6.2"` since this repo's `.nsi` doesn't yet write the file at install time); `compareVersions(a, b)` (numeric tuple compare); `checkForUpdate()` (synchronous `WinHttp.WinHttpRequest.5.1` GET against `https://api.github.com/repos/noambrand/kivun-terminal/releases/latest` with 5 s timeouts, picks the asset matching `/^ClaudeCode_Launchpad_CLI_Setup\.exe$/i`). All errors swallowed silently. The check is deferred via `setTimeout(checkForUpdate, 100)` from `init()` so the picker renders before the sync HTTP call blocks the UI thread.
+- **`source/folder-picker.hta`** — collapsed-window height bumped from 615 px to 690 px so the optional update-banner fits without triggering scrollbars when shown.
+- **`README.md`** — comparison table parentheticals at lines 48 and 61 updated from `(folder + model + flags + env vars)` to `(folder + model + flags + env vars + startup slash-commands)` to match the actual feature list and the WSL sister repo's table.
+- **`ClaudeCode_Launchpad_CLI_Setup.nsi`** — `PRODUCT_VERSION` 2.6.1 → 2.6.2; `VIProductVersion` and `FileVersion` → 2.6.2.0.
+
+### Why FALLBACK_VERSION exists
+
+The picker reads `VERSION` from `installDir` to know what's installed. This `.nsi` doesn't currently write a `VERSION` file at install time (unlike the kivun-terminal-wsl sister), so on every install `readInstalledVersion()` falls back to the constant baked into the HTA. That means the "you have vX.Y.Z" line in the banner reflects the **picker's** version, not the original installer's — close enough until the .nsi grows a `FileWrite "${INSTDIR}\VERSION" "${PRODUCT_VERSION}"` line in a follow-up.
+
+
 ## [2.6.1] - 2026-05-07
 
 ### Collapse Advanced section in picker + fix sticky `--continue` bug

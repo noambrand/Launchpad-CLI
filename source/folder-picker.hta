@@ -286,6 +286,30 @@
     font-weight: 500;
   }
 
+  /* Update-available banner (hidden until a newer release is detected) */
+  .update-banner {
+    display: none;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 14px;
+    margin: 0 0 12px 0;
+    border-radius: 6px;
+    background: #fff8dc;
+    border: 1px solid #f0c060;
+    color: #604000;
+    font-size: 14px;
+  }
+  .update-banner .text { flex: 1; }
+  .update-banner button { min-width: 0; }
+  .update-banner button.dismiss {
+    padding: 4px 10px;
+    background: transparent;
+    border: 1px solid #c0a060;
+    color: #604000;
+    font-size: 12px;
+  }
+  .update-banner a { color: #604000; }
+
   /* Profile bar (v1.4.0; chip-button refactor in v1.4.1 — HTA's <select>
      onchange is unreliable per project memory; chip onclick fires reliably) */
   .profile-bar {
@@ -391,7 +415,7 @@
   // layout settles, so different DPI / font-render heights still get a
   // scroll-free dialog. Caps at the screen size minus a small margin so
   // the title bar + Windows taskbar stay visible on small displays.
-  window.resizeTo(1040, 615);
+  window.resizeTo(1040, 690);
   function autoSizeToContent() {
     try {
       var availW = window.screen.availWidth;
@@ -404,12 +428,13 @@
         // Expanded: size to actual content (capped so we don't overflow
         // off-screen below the taskbar).
         h = Math.min(document.body.scrollHeight + 60, availH - 60);
-        if (h < 615) h = 615;
+        if (h < 690) h = 690;
       } else {
         // Collapsed: fixed compact height. scrollHeight in HTA is not
         // always reliable when content is display:none, so we hardcode
-        // instead of measuring.
-        h = 615;
+        // instead of measuring. Sized to fit the optional update-banner
+        // without triggering scrollbars.
+        h = 690;
       }
       window.resizeTo(w, h);
       // Center the dialog so the bottom (Launch button + actions) stays
@@ -429,6 +454,99 @@
   function getInstallDir() {
     var url = decodeURIComponent(location.pathname).replace(/^\//, "").replace(/\//g, "\\");
     return fso.GetParentFolderName(url);
+  }
+
+  // ---- Update check --------------------------------------------------
+  // Async-ish background check against the GitHub Releases API. On
+  // success, shows a yellow banner with a Download button that opens
+  // the .exe asset URL directly. On failure (offline, GitHub down,
+  // rate-limited, etc.) silently does nothing — never blocks the user.
+
+  var GITHUB_REPO = "noambrand/kivun-terminal";
+  var FALLBACK_VERSION = "2.6.2";
+  var ASSET_NAME_RE = /^ClaudeCode_Launchpad_CLI_Setup\.exe$/i;
+
+  function readInstalledVersion() {
+    try {
+      var verFile = installDir + "\\VERSION";
+      if (fso.FileExists(verFile)) {
+        var content = readUtf8(verFile);
+        var trimmed = content.replace(/^\s+|\s+$/g, "").replace(/[\r\n].*/, "");
+        if (trimmed) return trimmed;
+      }
+    } catch (e) {}
+    return FALLBACK_VERSION;
+  }
+
+  function compareVersions(a, b) {
+    var pa = (a || "0").split(".");
+    var pb = (b || "0").split(".");
+    var n = Math.max(pa.length, pb.length);
+    for (var i = 0; i < n; i++) {
+      var na = parseInt(pa[i] || "0", 10); if (isNaN(na)) na = 0;
+      var nb = parseInt(pb[i] || "0", 10); if (isNaN(nb)) nb = 0;
+      if (na > nb) return 1;
+      if (na < nb) return -1;
+    }
+    return 0;
+  }
+
+  function checkForUpdate() {
+    try {
+      var local = readInstalledVersion();
+      var http = new ActiveXObject("WinHttp.WinHttpRequest.5.1");
+      http.Open("GET", "https://api.github.com/repos/" + GITHUB_REPO + "/releases/latest", false);
+      http.SetRequestHeader("User-Agent", "kivun-picker/" + local);
+      http.SetRequestHeader("Accept", "application/vnd.github+json");
+      try { http.SetTimeouts(5000, 5000, 5000, 5000); } catch (_) {}
+      http.Send();
+      if (http.Status !== 200) return;
+      var data;
+      try { data = JSON.parse(http.ResponseText); } catch (_) { return; }
+      var latest = (data.tag_name || "").replace(/^v/, "");
+      if (!latest || compareVersions(latest, local) <= 0) return;
+      var assetUrl = null;
+      if (data.assets && data.assets.length) {
+        for (var i = 0; i < data.assets.length; i++) {
+          var a = data.assets[i];
+          if (a && a.name && ASSET_NAME_RE.test(a.name)) {
+            assetUrl = a.browser_download_url;
+            break;
+          }
+        }
+      }
+      var releaseUrl = data.html_url || ("https://github.com/" + GITHUB_REPO + "/releases/latest");
+      showUpdateBanner(local, latest, releaseUrl, assetUrl || releaseUrl);
+    } catch (e) {
+      // network error, offline, antivirus blocking, etc. — silent
+    }
+  }
+
+  function showUpdateBanner(currentV, newV, releaseUrl, downloadUrl) {
+    var b = document.getElementById("update-banner");
+    if (!b) return;
+    var safeNew = escapeHtml(newV);
+    var safeCur = escapeHtml(currentV);
+    var safeDl = escapeHtml(downloadUrl);
+    var safeNotes = escapeHtml(releaseUrl);
+    b.innerHTML =
+      '<span class="text">🆕 <b>Update available:</b> v' + safeNew +
+      ' &nbsp;<span style="opacity:.7">(you have v' + safeCur + ')</span> ' +
+      '&nbsp;<a href="javascript:openUpdateUrl(\'' + safeNotes + '\')" style="font-size:12px">release notes</a></span>' +
+      '<button type="button" class="primary" onclick="openUpdateUrl(\'' + safeDl + '\')">Download v' + safeNew + '</button>' +
+      '<button type="button" class="dismiss" onclick="dismissUpdateBanner()" title="Hide until next launch">✕</button>';
+    b.style.display = "flex";
+    try { autoSizeToContent(); } catch (_) {}
+  }
+
+  function openUpdateUrl(url) {
+    try { wshShell.Run('"' + url + '"', 1, false); } catch (e) {}
+  }
+
+  function dismissUpdateBanner() {
+    var b = document.getElementById("update-banner");
+    if (b) b.style.display = "none";
+    try { autoSizeToContent(); } catch (_) {}
   }
 
   var installDir = getInstallDir();
@@ -1132,6 +1250,9 @@
       autoSizeToContent();
       var p = document.getElementById("path");
       if (p && p.focus) p.focus();
+      // Defer the GitHub check so the picker renders first; the sync
+      // WinHttp call can briefly block the UI thread on slow links.
+      try { window.setTimeout(checkForUpdate, 100); } catch (_) {}
     } catch (e) {
       try { showError("init error: " + (e.message || e.description || e)); } catch (_) {}
     }
@@ -1140,6 +1261,7 @@
 </script>
 </head>
 <body onload="init()">
+  <div id="update-banner" class="update-banner"></div>
   <div class="profile-bar">
     <span class="lbl">Profile:</span>
     <span id="profile-chips" class="profile-chip-row"></span>
