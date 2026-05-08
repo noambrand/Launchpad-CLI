@@ -31,7 +31,7 @@
 > 💡 **Working in Hebrew, Arabic, Persian, or another RTL language?** Check out the sister project **[Kivun Terminal (kivun-terminal-wsl)](https://github.com/noambrand/kivun-terminal-wsl)** - same launcher concept but with full BiDi/RTL rendering for Claude Code on Windows (WSL+Konsole), Linux, and macOS. The new v1.1.0 ships a `kivun-claude-bidi` wrapper that fixes the bullet-line direction bug.
 
 <p align="center">
-  <img src="picker.png" alt="ClaudeCode Launchpad CLI folder picker (v2.6.0) — profile chip row at top, folder selection, model radios, flag chips, startup slash-commands, env-vars section, all in one dialog" width="780">
+  <img src="picker.jpg" alt="ClaudeCode Launchpad CLI folder picker (v2.6.3) — folder selection up top, an Advanced options toggle that hides model / flags / startup slash-commands / env-vars by default, and a yellow 'Update available' banner that checks GitHub Releases on launch and offers a one-click Download button" width="780">
 </p>
 
 The desktop shortcut opens this picker: pick a profile from the chip row at the top (or `+ New` to save the current setup as a named profile — folder + model + flags + startup commands + env vars), type/paste a Windows path or browse the tree, optionally pick a model (Opus / Sonnet / Haiku), tap chips for common options (Respond in Hebrew, High effort, Auto-accept file edits, Read-only, Don't fail if Opus is busy, Confirm before changes), and add startup slash commands like `/voicemode:converse` that get typed into Claude after it opens.
