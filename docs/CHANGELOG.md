@@ -1,5 +1,21 @@
 # Changelog
 
+## [2.6.3] - 2026-05-08
+
+### Doc/version consistency sweep across bundled .txt files
+
+User feedback: *"the txt has the old version noted, all txt should have the updated txt version number to prevent confusion. every release needs to check consistency for all documents and github notes on read me and release notes."*
+
+- **`START_HERE.txt`** — header banner bumped from `ClaudeCode Launchpad CLI v2.0.1` to `v2.6.3`. The file ships inside the installer (visible to first-time users opening the install dir), so a stale "v2.0.1" header was misleading them.
+- **`README.md`** — version cachebust query `cb=v2.6.2` → `v2.6.3` so shields.io re-fetches version + downloads badges.
+- **`source/folder-picker.hta`** — `FALLBACK_VERSION = "2.6.2"` → `"2.6.3"`.
+- **`ClaudeCode_Launchpad_CLI_Setup.nsi`** — `PRODUCT_VERSION` 2.6.2 → 2.6.3; `VIProductVersion` and `FileVersion` → 2.6.3.0.
+
+### Process change
+
+Going forward: every release scans `git ls-files` for stale version refs (any `v2.X.Y` older than the upcoming tag) in `*.txt` and `*.md` files BEFORE the tag is pushed. CI doesn't enforce this yet — it's a manual checklist item until a workflow validates it. The reason this slipped on v2.6.2: I bumped `.nsi PRODUCT_VERSION` and `docs/CHANGELOG.md` at release time but never grep'd the rest of the tree.
+
+
 ## [2.6.2] - 2026-05-08
 
 ### Update-available banner in the picker + table fixes + bigger collapsed window
