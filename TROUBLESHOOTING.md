@@ -4,6 +4,51 @@ Common issues and fixes for ClaudeCode Launchpad CLI.
 
 ---
 
+## Status bar: customizing what shows on line 1 (v2.6.5+)
+
+`source/statusline.mjs` (internal v2.2) reads four optional environment variables:
+
+| Env var | Default | Effect |
+|---|---|---|
+| `CLAUDE_CODE_EFFORT_LEVEL` | *unset* | Forces the `effort:` field on line 1 to the given value (e.g. `low`, `medium`, `high`, `max`). Used when `d.effort.level` is absent from the statusline JSON (Anthropic [issue #40261](https://github.com/anthropics/claude-code/issues/40261) — open) and you don't want to rely on the `~/.claude/settings.json` fallback. |
+| `KIVUN_SL_COST` | unset | Set to `1` / `true` / `yes` / `on` to render the session cost in USD (`$X.XX`, green) on line 1. |
+| `KIVUN_SL_CACHE` | unset | Set to truthy to render cached tokens (`cache:N`, blue), summing `cache_read_input_tokens` + `cache_creation_input_tokens`. |
+| `KIVUN_SL_TPM` | unset | Set to truthy to render tokens-per-minute throughput (`tpm:N`, cyan). Suppressed in the first 5 s of a session. |
+
+**Windows (PowerShell)** — add to your `$PROFILE`:
+
+```powershell
+$env:KIVUN_SL_COST = '1'
+$env:KIVUN_SL_CACHE = '1'
+$env:KIVUN_SL_TPM = '1'
+```
+
+…or set persistently via `setx`:
+
+```cmd
+setx KIVUN_SL_COST 1
+setx KIVUN_SL_CACHE 1
+setx KIVUN_SL_TPM 1
+```
+
+**macOS / Linux** — add to `~/.zshrc` or `~/.bashrc`:
+
+```bash
+export KIVUN_SL_COST=1
+export KIVUN_SL_CACHE=1
+export KIVUN_SL_TPM=1
+```
+
+Restart your Claude Code session for changes to take effect.
+
+**Effort resolution order** (`readEffort()` in `statusline.mjs`):
+1. `d.effort.level` from the statusline JSON payload (forward-compatible — appears when Anthropic ships issue #40261).
+2. `CLAUDE_CODE_EFFORT_LEVEL` env var.
+3. `effortLevel` key in `~/.claude/settings.json`. **Known gap:** `settings.json` is not rewritten when you toggle effort mid-session via `/effort` — the statusline will show whatever was set at session start until #40261 lands.
+4. If nothing resolves, the field is hidden entirely.
+
+---
+
 ## Windows
 
 ### "Claude Code not found" on launch

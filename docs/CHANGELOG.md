@@ -1,5 +1,39 @@
 # Changelog
 
+## [2.6.5] - 2026-05-18
+
+### Added — statusline reasoning-effort field + opt-in extras
+
+The bottom-of-session statusline (`source/statusline.mjs`, internal version bumped v2.1 → v2.2) now surfaces the reasoning effort level (low/medium/high/max) that Claude Code 2.1.x supports via `/effort`. Inspired by [jftuga/claude-statusline](https://github.com/jftuga/claude-statusline), which also exposes session cost, cache tokens, and tokens/minute — those land here as **opt-in** fields so the bar stays clean for users who don't want them.
+
+#### `source/statusline.mjs`
+
+- **New default field `effort:<level>` on line 1**, magenta, placed right after the model name. Three-tier resolution chain in `readEffort()`:
+  1. `d.effort.level` from the JSON Claude Code pipes to the statusline. Forward-compat for [anthropics/claude-code#40261](https://github.com/anthropics/claude-code/issues/40261) (request to expose effort on the statusline payload) — still open as of 2026-05, also tracked under #38476, #31415, #27747.
+  2. `CLAUDE_CODE_EFFORT_LEVEL` env var. Useful as an explicit override per shell.
+  3. `effortLevel` key from `~/.claude/settings.json`. Picks up the user's saved default. **Known gap:** stale on mid-session `/effort` overrides — Claude Code doesn't rewrite `settings.json` when the user toggles effort during a session, so the statusline will show whatever was set at session start. Upstream limitation; no workaround until Anthropic ships #40261.
+
+  If none of the three resolve, the field is hidden (cleaner than rendering a misleading `auto` placeholder).
+
+- **Three opt-in fields, off by default** — each gated by a single env var matched by `truthy()` (`1`/`true`/`yes`/`on`):
+  - `KIVUN_SL_COST=1` — renders `$X.XX` from `d.cost.total_cost_usd` in green.
+  - `KIVUN_SL_CACHE=1` — renders `cache:<N>` (sum of `cache_read_input_tokens` + `cache_creation_input_tokens`, formatted as M/K/raw) in blue.
+  - `KIVUN_SL_TPM=1` — renders `tpm:<output_tokens_per_minute>` in cyan, suppressed when session duration is under 5 s.
+- **No installer changes.** Env vars beat installer-controlled flags here because adding new keys would have meant touching `ClaudeCode_Launchpad_CLI_Setup.nsi` and the macOS `.pkg` postinstall scripts. Env vars require touching neither — `setx KIVUN_SL_COST 1` on Windows or `export KIVUN_SL_COST=1` in shell rc on macOS, and the field appears. Trade-off: less discoverable; documented in `TROUBLESHOOTING.md` to compensate.
+- **Imports added:** `fs`, `path`, `os` (needed for the `settings.json` fallback read). First time the file has imports.
+
+#### Release sweep
+
+- `ClaudeCode_Launchpad_CLI_Setup.nsi` — `PRODUCT_VERSION` 2.6.4 → 2.6.5; `VIProductVersion` and `FileVersion` → 2.6.5.0.
+- `README.md` — cachebust `cb=v2.6.4` → `v2.6.5` (both badges); picker.png alt text version bumped.
+- `source/folder-picker.hta` — `FALLBACK_VERSION = "2.6.4"` → `"2.6.5"`.
+- `START_HERE.txt` — banner version bumped.
+- `TROUBLESHOOTING.md` — new section documenting the four statusline env vars (`CLAUDE_CODE_EFFORT_LEVEL`, `KIVUN_SL_COST`, `KIVUN_SL_CACHE`, `KIVUN_SL_TPM`).
+
+#### Sister repo
+
+Same statusline change shipped same day in `noambrand/kivun-terminal-wsl` as Kivun Terminal v1.4.10.
+
 ## [2.6.4] - 2026-05-08
 
 ### Security fixes from internal audit

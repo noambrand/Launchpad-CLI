@@ -1,7 +1,11 @@
 #!/usr/bin/env node
 
 // Claude Code Status Line — 2-Line Layout with Usage Bars
-// [UPDATED] v2.1 — restored full labels, full path, 2-line output
+// [UPDATED] v2.2 — effort level on line 1 (default); cost/cache/tpm opt-in via env vars
+
+import fs from 'fs';
+import path from 'path';
+import os from 'os';
 
 const C = {
   g: '\x1b[32m',
@@ -10,8 +14,34 @@ const C = {
   c: '\x1b[36m',
   d: '\x1b[90m',
   b: '\x1b[34m',
+  m: '\x1b[35m',
   n: '\x1b[0m'
 };
+
+// ── Env-var opt-in flags (parsed once per invocation) ──
+const truthy = v => /^(1|true|yes|on)$/i.test(String(v || ''));
+const SHOW_COST  = truthy(process.env.KIVUN_SL_COST);
+const SHOW_CACHE = truthy(process.env.KIVUN_SL_CACHE);
+const SHOW_TPM   = truthy(process.env.KIVUN_SL_TPM);
+
+// ── Effort source resolver ────────────
+// Resolution order:
+//   1) d.effort.level from stdin JSON (Anthropic issue #40261 — open as of 2026-05)
+//   2) env CLAUDE_CODE_EFFORT_LEVEL
+//   3) effortLevel in ~/.claude/settings.json (stale on mid-session /effort overrides)
+// Returns null when no source available → field is hidden.
+function readEffort(d) {
+  const fromJson = d.effort?.level;
+  if (fromJson) return String(fromJson);
+  const fromEnv = process.env.CLAUDE_CODE_EFFORT_LEVEL;
+  if (fromEnv) return String(fromEnv);
+  try {
+    const settingsPath = path.join(os.homedir(), '.claude', 'settings.json');
+    const s = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
+    if (s.effortLevel) return String(s.effortLevel);
+  } catch {}
+  return null;
+}
 
 // ── Progress Bar Builder ──────────────
 function makeBar(pct, width = 10) {
@@ -90,6 +120,46 @@ function fieldFullPath(d) {
   return `${C.d}${dir}${C.n}`;
 }
 
+// ── Effort Level (default-on, hides if unresolved) ──
+function fieldEffort(d) {
+  const level = readEffort(d);
+  if (!level) return '';
+  return `${C.m}effort:${level}${C.n}`;
+}
+
+// ── Session Cost (opt-in: KIVUN_SL_COST=1) ──
+function fieldCost(d) {
+  if (!SHOW_COST) return '';
+  const usd = d.cost?.total_cost_usd;
+  if (usd == null) return '';
+  return `${C.g}$${Number(usd).toFixed(2)}${C.n}`;
+}
+
+// ── Cache Tokens (opt-in: KIVUN_SL_CACHE=1) ──
+function fieldCache(d) {
+  if (!SHOW_CACHE) return '';
+  const cu = d.context_window?.current_usage;
+  if (!cu) return '';
+  const cache = (cu.cache_read_input_tokens || 0) + (cu.cache_creation_input_tokens || 0);
+  if (cache <= 0) return '';
+  let label;
+  if (cache >= 1_000_000) label = (cache / 1_000_000).toFixed(1) + 'M';
+  else if (cache >= 1_000) label = Math.round(cache / 1_000) + 'K';
+  else label = String(cache);
+  return `${C.b}cache:${label}${C.n}`;
+}
+
+// ── Tokens / Minute (opt-in: KIVUN_SL_TPM=1) ──
+function fieldTpm(d) {
+  if (!SHOW_TPM) return '';
+  const ms = d.cost?.total_duration_ms || 0;
+  if (ms < 5000) return '';
+  const out = d.context_window?.total_output_tokens || 0;
+  const tpm = Math.round(out / (ms / 60000));
+  if (!tpm) return '';
+  return `${C.c}tpm:${tpm}${C.n}`;
+}
+
 // ── 5-Hour Usage ──────────────────────
 function fieldUsage5h(d) {
   const rl = d.rate_limits?.five_hour;
@@ -112,8 +182,12 @@ function fieldUsage7d(d) {
 const LINE1 = [
   fieldProject,
   fieldModel,
+  fieldEffort,
   fieldContextUsed,
   fieldTokens,
+  fieldCache,
+  fieldTpm,
+  fieldCost,
   fieldDuration,
   fieldFullPath
 ];
