@@ -3,7 +3,7 @@
         {
             "name": "ClaudeCode Launchpad CLI",
             "commandline": "cmd /c claude",
-            "icon": "%LOCALAPPDATA%\\Kivun\\claude_code.ico",
+            "icon": "%LOCALAPPDATA%\\Kivun\\claude_icon.ico",
             "cursorShape": "bar",
             "font": {
                 "face": "Cascadia Mono",

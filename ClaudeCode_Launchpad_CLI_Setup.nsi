@@ -5,7 +5,7 @@
 Unicode True
 
 !define PRODUCT_NAME "ClaudeCode Launchpad CLI"
-!define PRODUCT_VERSION "2.6.5"
+!define PRODUCT_VERSION "2.6.6"
 !define PRODUCT_PUBLISHER "Noam Brand"
 !define PRODUCT_WEB_SITE "https://github.com"
 !define PRODUCT_DESCRIPTION "Claude Code installer for Windows"
@@ -33,12 +33,12 @@ InstallDir "${INSTALL_DIR}"
 ShowInstDetails show
 
 ; Version info
-VIProductVersion "2.6.5.0"
+VIProductVersion "2.6.6.0"
 VIAddVersionKey "ProductName" "${PRODUCT_NAME}"
 VIAddVersionKey "ProductVersion" "${PRODUCT_VERSION}"
 VIAddVersionKey "CompanyName" "${PRODUCT_PUBLISHER}"
 VIAddVersionKey "FileDescription" "${PRODUCT_DESCRIPTION}"
-VIAddVersionKey "FileVersion" "2.6.5.0"
+VIAddVersionKey "FileVersion" "2.6.6.0"
 VIAddVersionKey "LegalCopyright" "(C) 2026 ${PRODUCT_PUBLISHER}"
 
 ; Modern UI Configuration
@@ -71,8 +71,10 @@ Page custom ConfigPage ConfigPageLeave
 !define MUI_FINISHPAGE_RUN
 !define MUI_FINISHPAGE_RUN_TEXT "Create Desktop Shortcut"
 !define MUI_FINISHPAGE_RUN_FUNCTION CreateDesktopShortcut
+!define MUI_FINISHPAGE_RUN_NOTCHECKED
 !define MUI_FINISHPAGE_SHOWREADME "$INSTDIR\QUICK_START.md"
 !define MUI_FINISHPAGE_SHOWREADME_TEXT "View Quick Start Guide"
+!define MUI_FINISHPAGE_SHOWREADME_NOTCHECKED
 !insertmacro MUI_PAGE_FINISH
 
 ; Uninstaller pages
@@ -277,20 +279,20 @@ Section "!Core Components (Required)" SecCore
   CreateShortCut "$SMPROGRAMS\${PRODUCT_NAME}\Configuration.lnk" "notepad.exe" "$INSTDIR\config.txt" "" 0 SW_SHOWNORMAL "" "Configure language settings"
   CreateShortCut "$SMPROGRAMS\${PRODUCT_NAME}\Uninstall.lnk" "$INSTDIR\Uninstall.exe" "" "" 0 SW_SHOWNORMAL "" "Uninstall ${PRODUCT_NAME}"
 
-  ; Clean up old-name entries from previous "Kivun Terminal" installs.
-  ; HKCU keys clean reliably under user-level execution; HKLM/HKCR
-  ; deletions are best-effort and will silently no-op without admin
-  ; (acceptable — those entries only existed in the rare admin-elevated
-  ; install path that we no longer use).
-  Delete "$DESKTOP\Kivun Terminal.lnk"
-  Delete "$SENDTO\Kivun Terminal.lnk"
-  RMDir /r "$SMPROGRAMS\Kivun Terminal"
+  ; Clean up THIS product's own old-name ("Kivun") ARP entry + legacy
+  ; Windows Terminal fragment. HKCU keys clean reliably under user-level
+  ; execution; HKLM is best-effort and will silently no-op without admin.
+  ;
+  ; IMPORTANT: do NOT touch "Kivun Terminal" / "KivunTerminal" entries.
+  ; Those now belong to a SEPARATE, still-installed product (the WSL-based
+  ; Kivun Terminal in ../kivun-terminal-wsl), which legitimately creates
+  ; "$DESKTOP\Kivun Terminal.lnk" and the HKCU "...Directory\shell\KivunTerminal"
+  ; right-click keys. Deleting them here was wiping that product's desktop
+  ; shortcut and context menu whenever this installer ran. The two products
+  ; coexist: this one uses the "ClaudeCodeLaunchpad" namespace, that one uses
+  ; "KivunTerminal". Keep them strictly separate.
   DeleteRegKey HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\Kivun"
-  DeleteRegKey HKCU "Software\Classes\Directory\shell\KivunTerminal"
-  DeleteRegKey HKCU "Software\Classes\Directory\Background\shell\KivunTerminal"
   DeleteRegKey HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\Kivun"
-  DeleteRegKey HKCR "Directory\shell\KivunTerminal"
-  DeleteRegKey HKCR "Directory\Background\shell\KivunTerminal"
   RMDir /r "$LOCALAPPDATA\Microsoft\Windows Terminal\Fragments\KivunTerminal"
 
   ; Create Desktop shortcut
@@ -441,7 +443,8 @@ SectionEnd
 
 ; Desktop shortcut creation function (called from finish page)
 Function CreateDesktopShortcut
-  Delete "$DESKTOP\Kivun Terminal.lnk"
+  ; Do NOT delete "$DESKTOP\Kivun Terminal.lnk" — that belongs to the
+  ; separate WSL Kivun Terminal product. Only create our own shortcut.
   CreateShortCut "$DESKTOP\ClaudeCode Launchpad CLI.lnk" "wscript.exe" '"$INSTDIR\folder-picker-launcher.wsf"' "$INSTDIR\claude_icon.ico" 0 SW_SHOWNORMAL "" "${PRODUCT_DESCRIPTION}"
 FunctionEnd
 
@@ -453,26 +456,19 @@ Section "Uninstall"
   ; Remove Start Menu shortcuts
   RMDir /r "$SMPROGRAMS\${PRODUCT_NAME}"
 
-  ; Remove Desktop shortcut (both old and new names)
-  Delete "$DESKTOP\Kivun Terminal.lnk"
+  ; Remove Desktop shortcut. Only this product's own shortcut — NOT
+  ; "Kivun Terminal.lnk", which belongs to the separate WSL Kivun Terminal
+  ; product and must survive uninstalling this one.
   Delete "$DESKTOP\ClaudeCode Launchpad CLI.lnk"
 
-  ; Remove SendTo shortcut (both old and new names)
-  Delete "$SENDTO\Kivun Terminal.lnk"
+  ; Remove SendTo shortcut (this product only)
   Delete "$SENDTO\ClaudeCode Launchpad CLI.lnk"
 
-  ; Remove old Start Menu folder
-  RMDir /r "$SMPROGRAMS\Kivun Terminal"
-
-  ; Remove old registry entries (HKCU first; the legacy HKLM/HKCR variants
-  ; are best-effort — without admin we can't delete them, so v2.6.3-and-older
-  ; admin installs leave residue that the user can clear manually if needed).
+  ; Remove this product's own old-name ("Kivun") ARP entry + legacy WT
+  ; fragment. Do NOT delete "KivunTerminal" / "Kivun Terminal" entries —
+  ; they belong to the separate, still-installed WSL Kivun Terminal product.
   DeleteRegKey HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\Kivun"
-  DeleteRegKey HKCU "Software\Classes\Directory\shell\KivunTerminal"
-  DeleteRegKey HKCU "Software\Classes\Directory\Background\shell\KivunTerminal"
   DeleteRegKey HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\Kivun"
-  DeleteRegKey HKCR "Directory\shell\KivunTerminal"
-  DeleteRegKey HKCR "Directory\Background\shell\KivunTerminal"
   RMDir /r "$LOCALAPPDATA\Microsoft\Windows Terminal\Fragments\KivunTerminal"
 
   ; Remove registry entries - Add/Remove Programs

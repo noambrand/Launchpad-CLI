@@ -1,5 +1,23 @@
 # Changelog
 
+## [2.6.6] - 2026-05-24
+
+### Fixed — Windows Terminal tab/taskbar icon (broken since v2.2.0)
+
+The Windows Terminal profile pointed its `icon` at `%LOCALAPPDATA%\Kivun\claude_code.ico`, but v2.2.0 renamed the shipped icon to `claude_icon.ico` and updated everything **except** the two WT fragment files. Since then Windows Terminal has been pointing at a non-existent file, so the Launchpad profile showed the wrong/stale icon on the tab and no Kivun icon on the taskbar when minimized (on machines upgraded from a pre-v2.2.0 install, a leftover `claude_code.ico` made the tab show the *old* icon).
+
+- `source/claudecode-launchpad-wt-fragment.json` and `source/claudecode-launchpad-wt-fragment-nocolor.json`: `icon` now references `claude_icon.ico` (the file the installer actually ships), matching the shortcut, Add/Remove Programs, and context-menu entries which were already correct.
+
+No other behavior change. Users upgrading should close all Windows Terminal windows and relaunch so WT reloads the fragment; a leftover `claude_code.ico` from a very old install can be deleted.
+
+### Fixed — no longer deletes the sister Kivun Terminal (WSL) product's shortcut + right-click menu
+
+This installer used to treat `Kivun Terminal` as its own former name and, on every install/uninstall, delete `$DESKTOP\Kivun Terminal.lnk`, `$SMPROGRAMS\Kivun Terminal`, and the `KivunTerminal` folder context-menu keys. Those now belong to a **separate, still-installed product** — the WSL-based Kivun Terminal (`noambrand/kivun-terminal-wsl`) — so this was wiping that product's desktop shortcut and "Open with Kivun Terminal" menu whenever this installer ran. Removed that cleanup from `SecCore`, the uninstaller, and the finish-page shortcut function. The two products now coexist: this one owns the `ClaudeCodeLaunchpad` namespace, the other owns `KivunTerminal`. (This installer still cleans up its *own* legacy `Kivun` ARP entry and Windows Terminal fragment.)
+
+### Changed — finish-page checkboxes default to unchecked
+
+"Create Desktop Shortcut" and "View Quick Start Guide" on the installer's finish page are now unchecked by default (`MUI_FINISHPAGE_RUN_NOTCHECKED`, `MUI_FINISHPAGE_SHOWREADME_NOTCHECKED`).
+
 ## [2.6.5] - 2026-05-18
 
 ### Added — statusline reasoning-effort field + opt-in extras
