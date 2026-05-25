@@ -9,7 +9,7 @@ jobs:
     runs-on: macos-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Prepare scripts
         run: |
@@ -34,7 +34,7 @@ jobs:
           echo "Package built successfully: $(ls -lh ClaudeCode_Launchpad_CLI_Setup_mac.pkg)"
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: claudecode-launchpad-mac
           path: ClaudeCode_Launchpad_CLI_Setup_mac.pkg

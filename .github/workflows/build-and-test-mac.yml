@@ -22,7 +22,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Copy dependencies to mac/scripts
         run: |
@@ -87,7 +87,7 @@ jobs:
           grep -q "RESPONSE_LANGUAGE" mac/scripts/postinstall && echo "✓ Language configuration found" || echo "✗ Language configuration NOT found"
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: macos-installer
           path: ClaudeCode_Launchpad_CLI_Setup_mac.pkg
