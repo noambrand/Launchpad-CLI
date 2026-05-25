@@ -5,7 +5,7 @@
 Unicode True
 
 !define PRODUCT_NAME "ClaudeCode Launchpad CLI"
-!define PRODUCT_VERSION "2.6.7"
+!define PRODUCT_VERSION "2.6.8"
 !define PRODUCT_PUBLISHER "Noam Brand"
 !define PRODUCT_WEB_SITE "https://github.com"
 !define PRODUCT_DESCRIPTION "Claude Code installer for Windows"
@@ -33,12 +33,12 @@ InstallDir "${INSTALL_DIR}"
 ShowInstDetails show
 
 ; Version info
-VIProductVersion "2.6.7.0"
+VIProductVersion "2.6.8.0"
 VIAddVersionKey "ProductName" "${PRODUCT_NAME}"
 VIAddVersionKey "ProductVersion" "${PRODUCT_VERSION}"
 VIAddVersionKey "CompanyName" "${PRODUCT_PUBLISHER}"
 VIAddVersionKey "FileDescription" "${PRODUCT_DESCRIPTION}"
-VIAddVersionKey "FileVersion" "2.6.7.0"
+VIAddVersionKey "FileVersion" "2.6.8.0"
 VIAddVersionKey "LegalCopyright" "(C) 2026 ${PRODUCT_PUBLISHER}"
 
 ; Modern UI Configuration
@@ -165,6 +165,17 @@ FunctionEnd
 Section "!Core Components (Required)" SecCore
   SectionIn RO  ; Read-only, cannot be deselected
 
+  ; Hardening (v2.6.8): close any launcher window left running from a previous
+  ; build BEFORE we overwrite files. An open mshta window only runs its update
+  ; check once at load, so without this an upgraded user keeps seeing the OLD
+  ; build's "update available" banner until they happen to relaunch. Extract
+  ; the closer to the temp plugins dir so it runs even on a first install (and
+  ; before $INSTDIR is touched); it is best-effort and never blocks the install.
+  InitPluginsDir
+  File "/oname=$PLUGINSDIR\close-launchers.js" "source\close-launchers.js"
+  nsExec::Exec 'cscript.exe //B //Nologo "$PLUGINSDIR\close-launchers.js"'
+  Pop $0
+
   SetOutPath "$INSTDIR"
 
   ; Copy essential files from source/
@@ -185,6 +196,7 @@ Section "!Core Components (Required)" SecCore
   File "source\configure-statusline.js"
   File "source\install.cmd"
   File "source\fix-wt-icon.hta"
+  File "source\close-launchers.js"
 
   ; Copy documentation
   File "source\FIX_WT_ICON_README.txt"
@@ -270,6 +282,16 @@ Section "!Core Components (Required)" SecCore
   FileWrite $0 "# Leave empty to skip. Do NOT put passwords here (typed visibly).$\r$\n"
   FileWrite $0 "STARTUP_CMD=$\r$\n"
 
+  FileClose $0
+
+  ; Single source of truth for the self-reported version (v2.6.8). The launcher
+  ; HTA reads this file first and only falls back to its hardcoded
+  ; FALLBACK_VERSION when the file is absent, so the "you have vX" banner figure
+  ; always matches what was actually installed - even if the HTA constant is
+  ; ever left un-bumped. No trailing newline; readInstalledVersion() trims.
+  Delete "$INSTDIR\VERSION"
+  FileOpen $0 "$INSTDIR\VERSION" w
+  FileWrite $0 "${PRODUCT_VERSION}"
   FileClose $0
 
   ; Write uninstaller
@@ -452,6 +474,12 @@ FunctionEnd
 
 ; Uninstaller
 Section "Uninstall"
+  ; Close any running launcher window first so its files aren't held open
+  ; while we delete $INSTDIR (best-effort; the closer is still present here,
+  ; it is removed by the RMDir below). See CHANGELOG v2.6.8.
+  nsExec::Exec 'cscript.exe //B //Nologo "$INSTDIR\close-launchers.js"'
+  Pop $0
+
   ; Remove install directory
   RMDir /r "$INSTDIR"
 

@@ -1,5 +1,47 @@
 # Changelog
 
+## [2.6.8] - 2026-05-25
+
+### Hardened — upgrades no longer leave a stale "update available" banner
+
+After installing a new build, a launcher window left open from the *previous*
+build kept showing the old version's `🆕 Update available` banner (e.g. "you
+have v2.6.6" right after installing v2.6.7). The launcher is an HTA hosted by
+`mshta.exe`; it loads into memory and runs its GitHub update check only **once**
+at window load, so an already-open window never re-checks against the newly
+installed files. The on-disk install was correct — the open window was just
+running old code.
+
+Two belt-and-suspenders fixes:
+
+- **Installer now closes running launcher windows before overwriting files.**
+  New `source/close-launchers.js` (pure WSH + WMI, no PowerShell) terminates
+  any `mshta.exe` whose command line references `folder-picker.hta` — targeted,
+  so unrelated mshta windows and this product's own `fix-wt-icon.hta` are left
+  alone. Run from the temp plugins dir at the start of `SecCore` (so it works
+  even before `$INSTDIR` is touched, and on first installs) and again at the
+  start of uninstall so `RMDir` isn't blocked by an open window. Best-effort:
+  any failure is swallowed and never blocks the install.
+- **Installer now writes `$INSTDIR\VERSION` as the single source of truth.**
+  `readInstalledVersion()` already preferred this file and only fell back to the
+  HTA's hardcoded `FALLBACK_VERSION` when it was absent — but nothing ever wrote
+  it, so the self-reported "you have vX" figure depended entirely on the HTA
+  constant being bumped. The figure now always matches what was actually
+  installed.
+
+### Docs
+
+- `docs/QUICK_START.md` — added a "Pin it to your taskbar (Windows)" section, mirroring the installer finish-page tip, so the one-click blue icon is discoverable.
+
+### Release sweep
+
+- `ClaudeCode_Launchpad_CLI_Setup.nsi` — `PRODUCT_VERSION` 2.6.7 → 2.6.8;
+  `VIProductVersion` / `FileVersion` → 2.6.8.0; ships `close-launchers.js`;
+  writes `VERSION`; closes launchers on install + uninstall.
+- `source/folder-picker.hta` — `FALLBACK_VERSION` → 2.6.8.
+- `README.md` — badge cachebusts `v2.6.7` → `v2.6.8`; picker.png alt-text bump.
+- `START_HERE.txt` — version bumped.
+
 ## [2.6.7] - 2026-05-25
 
 ### Fixed — Launchpad profile could open a bare cmd.exe instead of Claude

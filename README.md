@@ -8,10 +8,10 @@
 
 <p align="center">
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="MIT License"></a>
-  <a href="https://github.com/noambrand/kivun-terminal/releases/latest"><img src="https://img.shields.io/github/v/release/noambrand/kivun-terminal?label=version&color=brightgreen&cb=v2.6.7" alt="Latest release"></a>
+  <a href="https://github.com/noambrand/kivun-terminal/releases/latest"><img src="https://img.shields.io/github/v/release/noambrand/kivun-terminal?label=version&color=brightgreen&cb=v2.6.8" alt="Latest release"></a>
   <img src="https://img.shields.io/badge/platform-Windows%2010%2F11%20%7C%20macOS%2012%2B-lightgrey" alt="Platform">
   <img src="https://img.shields.io/badge/languages-24%2B-orange" alt="24+ Languages">
-  <a href="https://github.com/noambrand/kivun-terminal/releases/latest"><img src="https://img.shields.io/github/downloads/noambrand/kivun-terminal/total?label=downloads&color=blue&cb=v2.6.7" alt="Total Downloads"></a>
+  <a href="https://github.com/noambrand/kivun-terminal/releases/latest"><img src="https://img.shields.io/github/downloads/noambrand/kivun-terminal/total?label=downloads&color=blue&cb=v2.6.8" alt="Total Downloads"></a>
 </p>
 
 <h3 align="center">Zero-to-Claude in 1 minute. Installer, status bar, and launcher for Claude Code on Windows & macOS.</h3>
@@ -49,7 +49,7 @@
 ### Here's the picker you'll get
 
 <p align="center">
-  <img src="picker.png" alt="ClaudeCode Launchpad CLI folder picker (v2.6.7) — folder selection up top, an Advanced options toggle that hides model / flags / startup slash-commands / env-vars by default, and a yellow 'Update available' banner that checks GitHub Releases on launch and offers a one-click Download button" width="780">
+  <img src="picker.png" alt="ClaudeCode Launchpad CLI folder picker (v2.6.8) — folder selection up top, an Advanced options toggle that hides model / flags / startup slash-commands / env-vars by default, and a yellow 'Update available' banner that checks GitHub Releases on launch and offers a one-click Download button" width="780">
 </p>
 
 The desktop shortcut opens this picker: pick a profile from the chip row at the top (or `+ New` to save the current setup as a named profile — folder + model + flags + startup commands + env vars), type/paste a Windows path or browse the tree, optionally pick a model (Opus / Sonnet / Haiku), tap chips for common options (Respond in Hebrew, High effort, Auto-accept file edits, Read-only, Don't fail if Opus is busy, Confirm before changes), and add startup slash commands like `/voicemode:converse` that get typed into Claude after it opens.
