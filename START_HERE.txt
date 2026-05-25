@@ -1,6 +1,6 @@
 ╔════════════════════════════════════════════════════════════╗
 ║                                                            ║
-║        ClaudeCode Launchpad CLI v2.6.5                      ║
+║        ClaudeCode Launchpad CLI v2.6.7                      ║
 ║        Windows & macOS Installer                           ║
 ║                                                            ║
 ╚════════════════════════════════════════════════════════════╝
@@ -23,6 +23,14 @@ INSTALLATION:
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 DAILY USE:
+
+  ★ RECOMMENDED: Pin it to your taskbar (one time, ~10 seconds)
+    So you never have to hunt for it on the desktop again:
+      1. Click Start and type:  ClaudeCode Launchpad CLI
+      2. Right-click the result → "Pin to taskbar"
+         (Windows 11: right-click → More → Pin to taskbar, or
+          choose "Open file location", then drag the icon to the taskbar)
+      3. Done — click the blue Claude icon on your taskbar to launch.
 
   Desktop shortcut:
     "ClaudeCode Launchpad CLI"  → pick a project folder and start Claude Code

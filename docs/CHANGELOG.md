@@ -1,5 +1,33 @@
 # Changelog
 
+## [2.6.7] - 2026-05-25
+
+### Fixed — Launchpad profile could open a bare cmd.exe instead of Claude
+
+On a machine where the ClaudeCode Launchpad profile had been *materialized* into Windows Terminal's `settings.json` (`source: ClaudeCodeLaunchpad`), the materialized entry could end up with **no `commandline` key**. Windows Terminal then fell back to the global `defaultProfile` (Command Prompt), so the window opened a bare `cmd` shell **without Claude**. The same profile had also had its keys **duplicated 4×** by the legacy string-splicing `apply-wt-settings.js` (the duplication noted in the v2.6.6 follow-ups below).
+
+- Repair: a materialized `ClaudeCodeLaunchpad` profile now always carries `"commandline": "cmd /c claude"`, and duplicate keys are collapsed to a single set.
+- A leftover window restored by `"firstWindowPreference": "persistedWindowLayout"` can make this present as *"two windows open, one without Claude"* — closing all Windows Terminal windows once clears the restored layout.
+
+### Changed — `source/apply-wt-settings.js` rewritten to parse real JSON (was string-splicing)
+
+The previous version edited `settings.json` by raw string insertion. Its only idempotency guard was a text search for `"colorScheme"`, so repeated installs appended the same keys again and again (the 4× duplication above) and it never wrote a `commandline`. Rewritten to:
+
+- `JSON.parse` → mutate the object → `JSON.stringify` — inherently idempotent, and collapses any pre-existing duplicate keys;
+- always set `"commandline": "cmd /c claude"` on the materialized profile;
+- strip a UTF-8 BOM before parsing and write UTF-8 (no BOM), the encoding Windows Terminal expects;
+- back up `settings.json` first and **bail without writing** if the file can't be parsed (e.g. hand-edited JSONC), so a malformed file is never clobbered.
+
+### Note — `fix-wt-icon.hta` tooling now actually committed
+
+The v2.6.6 entry described `source/fix-wt-icon.hta` + `source/FIX_WT_ICON_README.txt`, but those files were never committed with that release. They are included here.
+
+### Release sweep
+
+- `ClaudeCode_Launchpad_CLI_Setup.nsi` — `PRODUCT_VERSION` 2.6.6 → 2.6.7; `VIProductVersion` / `FileVersion` → 2.6.7.0.
+- `README.md` — badge cachebust `v2.6.6` → `v2.6.7`; picker.png alt-text version bump.
+- `START_HERE.txt`, `source/folder-picker.hta` (`FALLBACK_VERSION`) — version bumped.
+
 ## [2.6.6] - 2026-05-24
 
 ### Fixed — Windows Terminal tab/taskbar icon (broken since v2.2.0)
@@ -9,6 +37,19 @@ The Windows Terminal profile pointed its `icon` at `%LOCALAPPDATA%\Kivun\claude_
 - `source/claudecode-launchpad-wt-fragment.json` and `source/claudecode-launchpad-wt-fragment-nocolor.json`: `icon` now references `claude_icon.ico` (the file the installer actually ships), matching the shortcut, Add/Remove Programs, and context-menu entries which were already correct.
 
 No other behavior change. Users upgrading should close all Windows Terminal windows and relaunch so WT reloads the fragment; a leftover `claude_code.ico` from a very old install can be deleted.
+
+> **Follow-up (2026-05-24): the fragment fix alone does not repair already-customized machines.** On a machine where the Launchpad profile was customized, WT materializes it into `settings.json` (`source: ClaudeCodeLaunchpad`) and that entry can shadow the fragment. On at least one upgraded machine the materialized profile also had its keys duplicated 4× (legacy `apply-wt-settings.js` appending on every install) and **no explicit `icon` key**, so the icon fell back to the generic WT icon. First manual fix: open `%LOCALAPPDATA%\Packages\Microsoft.WindowsTerminal_8wekyb3d8bbwe\LocalState\settings.json`, find the `ClaudeCodeLaunchpad` profile, remove the duplicated keys, add an `"icon"`, save, then fully close and relaunch WT (all windows).
+>
+> **Follow-up 2 (2026-05-24): the tab icon and the taskbar/window icon are loaded by *different* code paths in WT, and only the tab path is robust.** After adding the `icon` key above, the **tab** showed the Kivun icon correctly but the **taskbar button stayed generic** — even with the launch working directory and the icon both on `C:`. This is upstream bug [microsoft/terminal#16233](https://github.com/microsoft/terminal/issues/16233) (open, Priority-3): WT's window/taskbar icon loader is fragile about local `.ico` references and silently fails to render them while the tab loader succeeds. Confirmed *not* the cause on this machine: icon file is valid (16/32/48/64 px, 32bpp) and on the same drive as the launch dir. Suspected remaining trigger: the window-icon loader not resolving the `%LOCALAPPDATA%` environment variable that the tab loader resolves fine. **Current mitigation:** the profile `icon` was changed from `%LOCALAPPDATA%\\Kivun\\claude_icon.ico` to a **literal absolute path** (`C:\\Users\\<user>\\AppData\\Local\\Kivun\\claude_icon.ico`) on the same drive as the launch directory. Per #16233 the only *fully* reliable taskbar icons are same-drive literal paths or built-in `ms-appx:` icons; cross-drive paths and `https:` URLs are confirmed to fail. The installer should write the expanded literal path into the fragment at install time (the fragment can't carry a per-user absolute path); tracked as a follow-up.
+
+### Added — `fix-wt-icon.hta` automated repair tool (+ two HTA bugs fixed during testing)
+
+New `source/fix-wt-icon.hta` automates the manual `settings.json` repair above: backs up the file, locates the `ClaudeCodeLaunchpad` profile, sets `"icon"` to the **expanded literal absolute path** (`%LOCALAPPDATA%` resolved at runtime via `ExpandEnvironmentStrings`, e.g. `C:\Users\<user>\AppData\Local\Kivun\claude_icon.ico`) per Follow-up 2 above, and saves. Companion `source/FIX_WT_ICON_README.txt` documents both the automated and manual paths. No PowerShell — runs via `mshta.exe` ([[no-powershell]] project rule).
+
+Two bugs surfaced and were fixed while testing the tool on a live machine:
+
+- **`'JSON' is undefined`** — `mshta.exe` renders in IE7 document mode by default, where the native `JSON` object (IE8+ standards mode) does not exist, so `JSON.parse` threw. Fixed by adding `<meta http-equiv="X-UA-Compatible" content="IE=edge">` as the first `<head>` element, forcing the modern IE11 script engine — matching the already-working `source/folder-picker.hta`.
+- **`Invalid character`** — the file was read with `OpenTextFile(..., -1)` (UTF-16) and written with `CreateTextFile(..., true)` (UTF-16), but Windows Terminal stores `settings.json` as **UTF-8 (no BOM)**. Reading UTF-8 bytes as UTF-16 mangled the text and broke `JSON.parse`; the write path would have corrupted the file. Replaced both with `ADODB.Stream`-based `readUtf8()` / `writeUtf8NoBom()` helpers, again mirroring `folder-picker.hta`. The backup-before-write step meant no settings files were harmed by the failed runs.
 
 ### Fixed — no longer deletes the sister Kivun Terminal (WSL) product's shortcut + right-click menu
 
