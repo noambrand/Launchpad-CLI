@@ -18,7 +18,7 @@ jobs:
     runs-on: windows-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Install NSIS
         run: choco install nsis -y
@@ -36,7 +36,7 @@ jobs:
           Write-Output "Windows installer size: $((Get-Item ClaudeCode_Launchpad_CLI_Setup.exe).Length) bytes"
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: windows-installer
           path: ClaudeCode_Launchpad_CLI_Setup.exe
@@ -45,7 +45,7 @@ jobs:
     runs-on: macos-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Prepare scripts
         run: |
@@ -71,7 +71,7 @@ jobs:
           pkgutil --check-signature ClaudeCode_Launchpad_CLI_Setup_mac.pkg || true
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: mac-installer
           path: ClaudeCode_Launchpad_CLI_Setup_mac.pkg
@@ -81,16 +81,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Download Windows installer
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           name: windows-installer
           path: release-assets/
 
       - name: Download macOS installer
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           name: mac-installer
           path: release-assets/
