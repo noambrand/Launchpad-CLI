@@ -37,6 +37,15 @@ On first launch, Claude Code will ask for your account details or Anthropic API 
 
 ## Using ClaudeCode Launchpad CLI
 
+### Recommended: Pin it to your taskbar (Windows)
+
+Pin it once so you get a one-click blue Claude icon and never have to look for the shortcut on your desktop:
+
+1. Click **Start** and type: `ClaudeCode Launchpad CLI`
+2. Right-click the result and choose **Pin to taskbar**
+   - On Windows 11 you may need to click **More → Pin to taskbar**, or choose **Open file location** and then drag the icon onto the taskbar.
+3. Click the pinned blue icon any time to launch.
+
 ### Method 1: Default Launch
 
 Double-click the desktop shortcut "ClaudeCode Launchpad CLI" - opens Claude Code in your home folder.
