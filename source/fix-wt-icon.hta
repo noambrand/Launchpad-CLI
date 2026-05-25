@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <title>Fix Windows Terminal Icon - ClaudeCode Launchpad CLI</title>
+  <meta charset="utf-8">
+  <HTA:APPLICATION
+    ID="FixWTIcon"
+    APPLICATIONNAME="Fix Windows Terminal Icon"
+    BORDER="dialog"
+    BORDERSTYLE="normal"
+    CAPTION="yes"
+    MAXIMIZEBUTTON="no"
+    MINIMIZEBUTTON="no"
+    SCROLL="no"
+    SINGLEINSTANCE="yes"
+    SYSMENU="yes"
+    WINDOWSTATE="normal"
+  />
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      margin: 0;
+      padding: 20px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: #fff;
+    }
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+      background: rgba(255,255,255,0.95);
+      border-radius: 12px;
+      padding: 30px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+      color: #333;
+    }
+    h1 {
+      margin: 0 0 10px 0;
+      font-size: 24px;
+      color: #667eea;
+    }
+    .subtitle {
+      color: #666;
+      font-size: 14px;
+      margin-bottom: 20px;
+    }
+    .section {
+      background: #f8f9fa;
+      padding: 15px;
+      border-radius: 8px;
+      margin-bottom: 15px;
+      border-left: 4px solid #667eea;
+    }
+    .log {
+      background: #1e1e1e;
+      color: #d4d4d4;
+      padding: 15px;
+      border-radius: 6px;
+      font-family: 'Consolas', 'Courier New', monospace;
+      font-size: 13px;
+      max-height: 300px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+      margin: 15px 0;
+    }
+    button {
+      background: #667eea;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      margin-right: 10px;
+      transition: background 0.2s;
+    }
+    button:hover {
+      background: #5568d3;
+    }
+    button:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+    }
+    .success { color: #28a745; font-weight: bold; }
+    .error { color: #dc3545; font-weight: bold; }
+    .warning { color: #ffc107; font-weight: bold; }
+    .info { color: #17a2b8; font-weight: bold; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🔧 Windows Terminal Icon Fix</h1>
+    <div class="subtitle">ClaudeCode Launchpad CLI v2.6.6</div>
+
+    <div class="section">
+      <strong>Problem:</strong> Windows Terminal shows the generic black terminal icon instead of the blue Claude icon.
+      <br><br>
+      <strong>Solution:</strong> This tool will automatically update your Windows Terminal settings.json to use the correct icon path.
+    </div>
+
+    <div id="log" class="log">Ready to fix Windows Terminal icon...\n\nClick "Fix Icon Now" to start.</div>
+
+    <div style="margin-top: 20px;">
+      <button id="fixBtn" onclick="fixIcon()">Fix Icon Now</button>
+      <button onclick="window.close()">Close</button>
+    </div>
+  </div>
+
+  <script type="text/javascript">
+    var fso = new ActiveXObject("Scripting.FileSystemObject");
+    var shell = new ActiveXObject("WScript.Shell");
+    var logDiv = document.getElementById("log");
+
+    function log(message, type) {
+      var prefix = "";
+      var className = "";
+      if (type === "success") { prefix = "✅ "; className = "success"; }
+      else if (type === "error") { prefix = "❌ "; className = "error"; }
+      else if (type === "warning") { prefix = "⚠️  "; className = "warning"; }
+      else if (type === "info") { prefix = "ℹ️  "; className = "info"; }
+
+      var span = document.createElement("span");
+      if (className) span.className = className;
+      span.innerText = prefix + message + "\n";
+
+      logDiv.appendChild(span);
+      logDiv.scrollTop = logDiv.scrollHeight;
+    }
+
+    function fixIcon() {
+      var fixBtn = document.getElementById("fixBtn");
+      fixBtn.disabled = true;
+      logDiv.innerHTML = "";
+
+      log("Starting Windows Terminal icon fix...", "info");
+      log("");
+
+      // Find settings.json
+      var localAppData = shell.ExpandEnvironmentStrings("%LOCALAPPDATA%");
+      var wtSettingsPath = localAppData + "\\Packages\\Microsoft.WindowsTerminal_8wekyb3d8bbwe\\LocalState\\settings.json";
+
+      log("Looking for: " + wtSettingsPath);
+
+      if (!fso.FileExists(wtSettingsPath)) {
+        log("Windows Terminal settings.json not found!", "error");
+        log("");
+        log("Make sure Windows Terminal is installed.", "warning");
+        fixBtn.disabled = false;
+        return;
+      }
+
+      log("Found settings.json", "success");
+      log("");
+
+      // Create backup
+      var timestamp = getTimestamp();
+      var backupPath = wtSettingsPath + ".backup_" + timestamp;
+
+      try {
+        fso.CopyFile(wtSettingsPath, backupPath, true);
+        log("Backup created: " + backupPath, "success");
+        log("");
+      } catch (e) {
+        log("Failed to create backup: " + e.message, "error");
+        fixBtn.disabled = false;
+        return;
+      }
+
+      // Read settings.json (Windows Terminal writes UTF-8)
+      var jsonText;
+      try {
+        jsonText = readUtf8(wtSettingsPath);
+      } catch (e) {
+        log("Failed to read settings.json: " + e.message, "error");
+        fixBtn.disabled = false;
+        return;
+      }
+
+      // Parse JSON
+      var settings;
+      try {
+        settings = JSON.parse(jsonText);
+      } catch (e) {
+        log("Failed to parse JSON: " + e.message, "error");
+        log("Your settings.json may be malformed.", "warning");
+        fixBtn.disabled = false;
+        return;
+      }
+
+      log("Parsed JSON successfully", "success");
+      log("");
+
+      // Find and fix ClaudeCode Launchpad profiles.
+      // Use the EXPANDED literal absolute path, not "%LOCALAPPDATA%\..." — WT's
+      // tab-icon loader resolves env vars, but its window/taskbar-icon loader
+      // (microsoft/terminal#16233) does not reliably, leaving the taskbar button
+      // generic even when the tab icon is correct. A literal same-drive path is
+      // the configuration that loads on both.
+      var targetIcon = shell.ExpandEnvironmentStrings("%LOCALAPPDATA%") + "\\Kivun\\claude_icon.ico";
+      var profilesFound = 0;
+      var profilesFixed = 0;
+
+      if (settings.profiles && settings.profiles.list) {
+        for (var i = 0; i < settings.profiles.list.length; i++) {
+          var profile = settings.profiles.list[i];
+
+          // Match by source or name
+          if (profile.source === "ClaudeCodeLaunchpad" ||
+              (profile.name && profile.name.indexOf("ClaudeCode Launchpad") !== -1)) {
+
+            profilesFound++;
+            log("Found profile: " + profile.name, "info");
+
+            var currentIcon = profile.icon || "(none)";
+            log("  Current icon: " + currentIcon);
+
+            if (profile.icon !== targetIcon) {
+              profile.icon = targetIcon;
+              log("  Updated icon to: " + targetIcon, "success");
+              profilesFixed++;
+            } else {
+              log("  Icon already correct", "info");
+            }
+
+            log("");
+          }
+        }
+      }
+
+      if (profilesFound === 0) {
+        log("No ClaudeCode Launchpad profile found in settings.json", "warning");
+        log("");
+        log("This means:", "info");
+        log("• Windows Terminal hasn't materialized the profile yet");
+        log("• The profile might only exist in the fragment (which is correct)");
+        log("• The fragment-based profile should pick up the icon automatically");
+        log("");
+        log("Try this:");
+        log("1. Close ALL Windows Terminal windows");
+        log("2. Relaunch Windows Terminal");
+        log("3. Check if the icon appears on the taskbar");
+        fixBtn.disabled = false;
+        return;
+      }
+
+      // Save updated settings
+      if (profilesFixed > 0) {
+        try {
+          var updatedJson = JSON.stringify(settings, null, 4);
+          writeUtf8NoBom(wtSettingsPath, updatedJson); // WT expects UTF-8 (no BOM)
+
+          log("Saved updated settings.json", "success");
+          log("");
+          log("Fixed " + profilesFixed + " profile(s)", "success");
+          log("");
+          log("⚠️  IMPORTANT: Close ALL Windows Terminal windows and relaunch", "warning");
+          log("   (Windows Terminal only reloads settings on startup)");
+          log("");
+          log("Next steps:", "info");
+          log("1. Close ALL Windows Terminal windows (all tabs, all instances)");
+          log("2. Relaunch Windows Terminal");
+          log("3. Check the taskbar icon when minimized");
+          log("");
+          log("Note: the tab icon and the taskbar icon load via different code", "info");
+          log("paths in Windows Terminal. If the TAB shows the icon but the");
+          log("TASKBAR button stays generic, that is upstream bug terminal#16233.");
+          log("A same-drive literal icon path (what this tool just wrote) is the");
+          log("most reliable config; cross-drive paths are known to fail there.");
+
+        } catch (e) {
+          log("Failed to save settings.json: " + e.message, "error");
+          log("");
+          log("Restoring backup...", "warning");
+          try {
+            fso.CopyFile(backupPath, wtSettingsPath, true);
+            log("Backup restored", "success");
+          } catch (e2) {
+            log("Failed to restore backup: " + e2.message, "error");
+          }
+        }
+      } else {
+        log("No changes needed - all profiles already have correct icon", "info");
+      }
+
+      fixBtn.disabled = false;
+    }
+
+    function readUtf8(path) {
+      var stream = new ActiveXObject("ADODB.Stream");
+      stream.Type = 2; stream.Charset = "utf-8"; stream.Open();
+      stream.LoadFromFile(path);
+      var text = stream.ReadText();
+      stream.Close();
+      return text;
+    }
+
+    function writeUtf8NoBom(path, content) {
+      var stream = new ActiveXObject("ADODB.Stream");
+      stream.Type = 2; stream.Charset = "utf-8"; stream.Open();
+      stream.WriteText(content);
+      stream.Position = 0; stream.Type = 1; stream.Position = 3; // skip UTF-8 BOM
+      var outStream = new ActiveXObject("ADODB.Stream");
+      outStream.Type = 1; outStream.Open();
+      stream.CopyTo(outStream);
+      outStream.SaveToFile(path, 2); // adSaveCreateOverWrite
+      outStream.Close(); stream.Close();
+    }
+
+    function getTimestamp() {
+      var now = new Date();
+      var y = now.getFullYear();
+      var m = pad(now.getMonth() + 1);
+      var d = pad(now.getDate());
+      var h = pad(now.getHours());
+      var min = pad(now.getMinutes());
+      var s = pad(now.getSeconds());
+      return y + m + d + "_" + h + min + s;
+    }
+
+    function pad(n) {
+      return n < 10 ? "0" + n : "" + n;
+    }
+
+    // Size the window
+    window.resizeTo(700, 650);
+    window.moveTo((screen.width - 700) / 2, (screen.height - 650) / 2);
+  </script>
+</body>
+</html>

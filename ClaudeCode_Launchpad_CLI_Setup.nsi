@@ -5,7 +5,7 @@
 Unicode True
 
 !define PRODUCT_NAME "ClaudeCode Launchpad CLI"
-!define PRODUCT_VERSION "2.6.6"
+!define PRODUCT_VERSION "2.6.7"
 !define PRODUCT_PUBLISHER "Noam Brand"
 !define PRODUCT_WEB_SITE "https://github.com"
 !define PRODUCT_DESCRIPTION "Claude Code installer for Windows"
@@ -33,12 +33,12 @@ InstallDir "${INSTALL_DIR}"
 ShowInstDetails show
 
 ; Version info
-VIProductVersion "2.6.6.0"
+VIProductVersion "2.6.7.0"
 VIAddVersionKey "ProductName" "${PRODUCT_NAME}"
 VIAddVersionKey "ProductVersion" "${PRODUCT_VERSION}"
 VIAddVersionKey "CompanyName" "${PRODUCT_PUBLISHER}"
 VIAddVersionKey "FileDescription" "${PRODUCT_DESCRIPTION}"
-VIAddVersionKey "FileVersion" "2.6.6.0"
+VIAddVersionKey "FileVersion" "2.6.7.0"
 VIAddVersionKey "LegalCopyright" "(C) 2026 ${PRODUCT_PUBLISHER}"
 
 ; Modern UI Configuration
@@ -67,7 +67,7 @@ Page custom ConfigPage ConfigPageLeave
 
 ; Finish page
 !define MUI_FINISHPAGE_TITLE "${PRODUCT_NAME} Installation Complete!"
-!define MUI_FINISHPAGE_TEXT "${PRODUCT_NAME} has been installed successfully.$\r$\n$\r$\n${PRODUCT_DESCRIPTION}$\r$\n$\r$\nLaunch ${PRODUCT_NAME} using the desktop shortcut.$\r$\n$\r$\nYou will need an Anthropic API key to use Claude Code.$\r$\nGet one at: https://console.anthropic.com/"
+!define MUI_FINISHPAGE_TEXT "${PRODUCT_NAME} has been installed successfully.$\r$\n$\r$\n${PRODUCT_DESCRIPTION}$\r$\n$\r$\nTIP: Pin it to your taskbar for one-click access — click Start, type '${PRODUCT_NAME}', right-click the result and choose 'Pin to taskbar'. No need to hunt for the desktop icon.$\r$\n$\r$\nYou will need an Anthropic API key to use Claude Code.$\r$\nGet one at: https://console.anthropic.com/"
 !define MUI_FINISHPAGE_RUN
 !define MUI_FINISHPAGE_RUN_TEXT "Create Desktop Shortcut"
 !define MUI_FINISHPAGE_RUN_FUNCTION CreateDesktopShortcut
@@ -184,8 +184,10 @@ Section "!Core Components (Required)" SecCore
   File "source\statusline.mjs"
   File "source\configure-statusline.js"
   File "source\install.cmd"
+  File "source\fix-wt-icon.hta"
 
   ; Copy documentation
+  File "source\FIX_WT_ICON_README.txt"
   File "README.md"
   File "docs\QUICK_START.md"
   File "docs\CHANGELOG.md"
