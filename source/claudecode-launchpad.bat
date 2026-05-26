@@ -51,6 +51,14 @@ if exist "%~1" (
 
 :work_dir_done
 
+REM --- Tab title = the project folder name, so multiple tabs are
+REM     distinguishable. The WT profile sets suppressApplicationTitle:true,
+REM     so Claude can't overwrite this with its own "Claude Code" title.
+set "WT_TAB=!WORK_DIR!"
+if "!WT_TAB:~-1!"=="\" set "WT_TAB=!WT_TAB:~0,-1!"
+for %%I in ("!WT_TAB!") do set "WT_TAB=%%~nxI"
+if not defined WT_TAB set "WT_TAB=ClaudeCode Launchpad CLI"
+
 REM --- Verify Claude Code is installed ---
 set "CLAUDE_FOUND=0"
 where claude.cmd >nul 2>&1 && set "CLAUDE_FOUND=1"
@@ -76,8 +84,13 @@ REM --- Try Windows Terminal first ---
 where wt.exe >nul 2>&1
 if errorlevel 1 goto :fallback_cmd
 
-REM Launch WT calling self with --run (colors applied inside terminal)
-start "" wt.exe --maximized -p "ClaudeCode Launchpad CLI" -d "!WORK_DIR!" -- "!SCRIPT_DIR!claudecode-launchpad.bat" --run
+REM Launch WT calling self with --run (colors applied inside terminal).
+REM -w "ClaudeCodeLaunchpad" targets a named Windows Terminal window: the
+REM first launch creates it, and every later launch adds a NEW TAB to that
+REM same window instead of opening a separate window — so you can work on
+REM several projects side by side. --maximized only applies when the window
+REM is first created; it's ignored when a tab is added to an existing window.
+start "" wt.exe -w "ClaudeCodeLaunchpad" --maximized new-tab --title "!WT_TAB!" -p "ClaudeCode Launchpad CLI" -d "!WORK_DIR!" -- "!SCRIPT_DIR!claudecode-launchpad.bat" --run
 exit /b 0
 
 :fallback_cmd

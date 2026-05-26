@@ -124,13 +124,21 @@ if (list) {
       colorScheme: 'Noam',
       cursorShape: 'bar',
       scrollbarState: 'visible',
-      tabTitle: 'ClaudeCode Launchpad CLI',
+      // Lock the tab title so Claude can't overwrite it with "Claude Code";
+      // the launcher passes a per-tab --title with the project folder name.
+      suppressApplicationTitle: true,
     };
     for (const key of Object.keys(want)) {
       if (profile[key] !== want[key]) {
         profile[key] = want[key];
         changed = true;
       }
+    }
+    // Remove the old static tabTitle so the launcher's per-tab --title (the
+    // project folder name) is authoritative. Older installs had it pinned.
+    if ('tabTitle' in profile) {
+      delete profile.tabTitle;
+      changed = true;
     }
     // font is an object; set only if absent (don't stomp a user's custom font)
     if (!profile.font) {
