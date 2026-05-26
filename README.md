@@ -7,6 +7,16 @@
 </p>
 
 <p align="center">
+  <video src="https://github.com/noambrand/kivun-terminal/releases/download/v2.6.9/claudecode-launchpad_v2.6.9.mp4" width="700" controls muted playsinline></video>
+</p>
+
+<p align="center">
+  <em>📹 Demo: ClaudeCode Launchpad CLI - one-click install, folder picker, and launch -
+  <a href="https://github.com/noambrand/kivun-terminal/releases/download/v2.6.9/claudecode-launchpad_v2.6.9.mp4">download MP4 (2.2 MB)</a>
+  if your browser doesn't autoplay above.</em>
+</p>
+
+<p align="center">
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="MIT License"></a>
   <a href="https://github.com/noambrand/kivun-terminal/releases/latest"><img src="https://img.shields.io/github/v/release/noambrand/kivun-terminal?label=version&color=brightgreen&cb=v2.6.9" alt="Latest release"></a>
   <img src="https://img.shields.io/badge/platform-Windows%2010%2F11%20%7C%20macOS%2012%2B-lightgrey" alt="Platform">
