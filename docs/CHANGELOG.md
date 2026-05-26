@@ -1,5 +1,32 @@
 # Changelog
 
+## [2.6.9] - 2026-05-26
+
+### Added — open new projects as tabs in one window, named by project
+
+Launching ClaudeCode Launchpad always opened a brand-new Windows Terminal
+window. Now a second (and every later) launch opens a **new tab** in the same
+window, so you can work on multiple projects side by side.
+
+- `source/claudecode-launchpad.bat`: the Windows Terminal launch now targets a
+  named window — `wt.exe -w "ClaudeCodeLaunchpad" --maximized new-tab …` — so
+  the first launch creates the window and subsequent launches add tabs to it.
+  (`--maximized` only applies when the window is first created.)
+- **Each tab is named by its project folder** (e.g. `gvSIG`). The launcher
+  computes the folder basename and passes it as `--title`.
+- `suppressApplicationTitle: true` is now set on the `ClaudeCode Launchpad CLI`
+  Windows Terminal profile so Claude can't overwrite the tab title with its own
+  "Claude Code". Applied in both WT fragments and `source/apply-wt-settings.js`,
+  which also removes the old static `tabTitle` so the per-tab `--title` wins.
+
+### Release sweep
+
+- `ClaudeCode_Launchpad_CLI_Setup.nsi` — `PRODUCT_VERSION` 2.6.8 → 2.6.9;
+  `VIProductVersion` / `FileVersion` → 2.6.9.0.
+- `source/folder-picker.hta` — `FALLBACK_VERSION` → 2.6.9.
+- `README.md` — badge cachebusts `v2.6.8` → `v2.6.9`; picker.png alt-text bump.
+- `START_HERE.txt` — version bumped.
+
 ## [2.6.8] - 2026-05-25
 
 ### Hardened — upgrades no longer leave a stale "update available" banner
