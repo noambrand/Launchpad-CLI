@@ -1,5 +1,30 @@
 # Changelog
 
+## [2.6.10] - 2026-05-26
+
+### Fixed — picker model selection now reliably honors Sonnet/Haiku
+
+Selecting a non-default model (Sonnet/Haiku) in the picker's Advanced section
+could silently launch Opus anyway. The model `<label>` radios were implicitly
+associated with their `<input>` (no `for`/`id`), so under HTA's IE engine,
+clicking the label *text* (e.g. "Sonnet") did not check the underlying radio —
+`getRadioValue()` still returned the previously-checked `opus`, which is what
+got written to `config.txt` and launched.
+
+- `source/folder-picker.hta`: each model radio now has an explicit `id` with a
+  matching `<label for>`, plus an `onclick` that force-checks the radio via
+  `setRadioValue('flag-model', <value>)`. Clicking either the circle or the
+  label text now registers the choice. No behavior change to the default
+  (Opus remains the default); only deliberate picks are affected.
+
+### Changed — version bump
+
+- `ClaudeCode_Launchpad_CLI_Setup.nsi` — `PRODUCT_VERSION` 2.6.9 → 2.6.10;
+  `VIProductVersion` / `FileVersion` → 2.6.10.0.
+- `source/folder-picker.hta` — `FALLBACK_VERSION` → 2.6.10.
+- `README.md` — badge cachebusts `v2.6.9` → `v2.6.10`; picker.png alt-text bump.
+- `START_HERE.txt` — banner → v2.6.10.
+
 ## [2.6.9] - 2026-05-26
 
 ### Added — open new projects as tabs in one window, named by project

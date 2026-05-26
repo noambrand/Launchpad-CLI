@@ -466,7 +466,7 @@
   // Used only when the installer-written VERSION file is missing (e.g. a very
   // old install). Since v2.6.8 the installer writes $INSTDIR\VERSION, which is
   // the authoritative figure; keep this in sync at release time anyway.
-  var FALLBACK_VERSION = "2.6.9";
+  var FALLBACK_VERSION = "2.6.10";
   var ASSET_NAME_RE = /^ClaudeCode_Launchpad_CLI_Setup\.exe$/i;
 
   function readInstalledVersion() {
@@ -1348,10 +1348,10 @@
 
       <div class="lbl">Model:</div>
       <div class="radio-row">
-        <label><input type="radio" name="flag-model" value="opus" onclick="updateFlagPreview()" checked /> Opus <span style="color:#707070">(most capable)</span></label>
-        <label><input type="radio" name="flag-model" value="sonnet" onclick="updateFlagPreview()" /> Sonnet <span style="color:#707070">(balanced)</span></label>
-        <label><input type="radio" name="flag-model" value="haiku" onclick="updateFlagPreview()" /> Haiku <span style="color:#707070">(fastest)</span></label>
-        <label><input type="radio" name="flag-model" value="" onclick="updateFlagPreview()" /> Let Claude decide</label>
+        <label for="m-opus"><input type="radio" id="m-opus" name="flag-model" value="opus" onclick="setRadioValue('flag-model','opus');updateFlagPreview()" checked /> Opus <span style="color:#707070">(most capable)</span></label>
+        <label for="m-sonnet"><input type="radio" id="m-sonnet" name="flag-model" value="sonnet" onclick="setRadioValue('flag-model','sonnet');updateFlagPreview()" /> Sonnet <span style="color:#707070">(balanced)</span></label>
+        <label for="m-haiku"><input type="radio" id="m-haiku" name="flag-model" value="haiku" onclick="setRadioValue('flag-model','haiku');updateFlagPreview()" /> Haiku <span style="color:#707070">(fastest)</span></label>
+        <label for="m-auto"><input type="radio" id="m-auto" name="flag-model" value="" onclick="setRadioValue('flag-model','');updateFlagPreview()" /> Let Claude decide</label>
       </div>
 
       <div class="lbl">Conversation:</div>
