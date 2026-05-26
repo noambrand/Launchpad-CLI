@@ -1,4 +1,4 @@
-![ClaudeCode Launchpad CLI Demo](https://raw.githubusercontent.com/noambrand/kivun-terminal/main/claudecode_launchpad_GIF.gif)
+![ClaudeCode Launchpad CLI Demo](https://raw.githubusercontent.com/noambrand/kivun-terminal/main/claudecode-launchpad_v2.6.9.gif)
 
 ## Windows
 
