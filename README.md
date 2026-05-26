@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  <img src="claudecode_launchpad_GIF.gif" width="700" alt="ClaudeCode Launchpad CLI in action - installer wizard, terminal launch, status bar">
+  <img src="claudecode-launchpad_v2.6.9.gif" width="700" alt="ClaudeCode Launchpad CLI in action - installer wizard, terminal launch, status bar">
 </p>
 
 <p align="center">
