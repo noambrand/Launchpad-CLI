@@ -1,0 +1,43 @@
+name: Update Download Badge
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  update-badge:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Calculate total downloads
+        id: calc
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          BASE=750
+          LIVE=$(gh api repos/${{ github.repository }}/releases \
+            --paginate --jq '[.[].assets[].download_count] | add // 0')
+          TOTAL=$((BASE + LIVE))
+          echo "total=$TOTAL" >> "$GITHUB_OUTPUT"
+          echo "Base: $BASE  Live: $LIVE  Total: $TOTAL"
+
+      - name: Update badge in README
+        run: |
+          TOTAL="${{ steps.calc.outputs.total }}"
+          sed -i "s|/badge/downloads-[0-9]*%2B-blue|/badge/downloads-${TOTAL}%2B-blue|g" README.md
+          grep "downloads-" README.md
+
+      - name: Commit and push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add README.md
+          git diff --staged --quiet && echo "Badge unchanged, nothing to commit." && exit 0
+          git commit -m "chore(badge): update download count to ${{ steps.calc.outputs.total }}+ [skip ci]"
+          git push
