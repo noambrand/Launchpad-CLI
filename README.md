@@ -21,7 +21,7 @@
   <a href="https://github.com/noambrand/kivun-terminal/releases/latest"><img src="https://img.shields.io/github/v/release/noambrand/kivun-terminal?label=version&color=brightgreen&cb=v2.6.11" alt="Latest release"></a>
   <img src="https://img.shields.io/badge/platform-Windows%2010%2F11%20%7C%20macOS%2012%2B-lightgrey" alt="Platform">
   <img src="https://img.shields.io/badge/languages-24%2B-orange" alt="24+ Languages">
-  <a href="https://github.com/noambrand/kivun-terminal/releases/latest"><img src="https://img.shields.io/github/downloads/noambrand/kivun-terminal/total?label=downloads&color=blue&cb=v2.6.11" alt="Total Downloads"></a>
+
 </p>
 
 <h3 align="center">Zero-to-Claude in 1 minute. Installer, status bar, and launcher for Claude Code on Windows & macOS.</h3>
