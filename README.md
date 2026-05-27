@@ -23,6 +23,7 @@
   <img src="https://img.shields.io/badge/languages-24%2B-orange" alt="24+ Languages">
   <a href="https://github.com/noambrand/kivun-terminal/stargazers"><img src="https://img.shields.io/github/stars/noambrand/kivun-terminal?style=flat&color=yellow" alt="GitHub Stars"></a>
   <img src="https://img.shields.io/github/last-commit/noambrand/kivun-terminal?label=last%20commit&color=brightgreen" alt="Last Commit">
+  <img src="https://img.shields.io/badge/downloads-750%2B-blue" alt="Total Downloads">
 
 </p>
 
