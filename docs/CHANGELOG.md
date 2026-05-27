@@ -1,5 +1,31 @@
 # Changelog
 
+## [2.6.11] - 2026-05-27
+
+### Fixed — picker always opens with Opus as the default model
+
+The Default profile now never persists the model selection. Previously, if a
+user launched with Sonnet, the Default profile saved `model: "sonnet"` and the
+picker would silently open on Sonnet next time — even though the user never
+asked for Sonnet to be the permanent default.
+
+- `captureDialogToProfile`: when saving the Default profile, always writes
+  `"opus"` for the model field regardless of what was selected at Launch time.
+- `applyProfileToDialog`: when loading the Default profile, always sets the
+  model radio to Opus regardless of what is stored.
+- Named project profiles are unaffected and continue to remember their own
+  model as an explicit per-project choice.
+- Applied to both `source/folder-picker.hta` (Windows) and
+  `kivun-terminal-wsl/payload/folder-picker.hta` (WSL).
+
+### Changed — version bump
+
+- `ClaudeCode_Launchpad_CLI_Setup.nsi` — `PRODUCT_VERSION` 2.6.10 → 2.6.11;
+  `VIProductVersion` / `FileVersion` → 2.6.11.0.
+- `source/folder-picker.hta` — `FALLBACK_VERSION` → 2.6.11.
+- `README.md` — badge cachebusts `v2.6.10` → `v2.6.11`; picker.png alt-text bump.
+- `START_HERE.txt` — banner → v2.6.11.
+
 ## [2.6.10] - 2026-05-26
 
 ### Fixed — picker model selection now reliably honors Sonnet/Haiku

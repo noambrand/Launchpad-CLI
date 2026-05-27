@@ -466,7 +466,7 @@
   // Used only when the installer-written VERSION file is missing (e.g. a very
   // old install). Since v2.6.8 the installer writes $INSTDIR\VERSION, which is
   // the authoritative figure; keep this in sync at release time anyway.
-  var FALLBACK_VERSION = "2.6.10";
+  var FALLBACK_VERSION = "2.6.11";
   var ASSET_NAME_RE = /^ClaudeCode_Launchpad_CLI_Setup\.exe$/i;
 
   function readInstalledVersion() {
@@ -1089,7 +1089,10 @@
 
   function captureDialogToProfile(target) {
     target.folder      = (document.getElementById("path").value || "").replace(/^\s+|\s+$/g, "");
-    target.model       = getRadioValue("flag-model");
+    // Default profile never persists the model — it always resets to opus on
+    // open so the user is never surprised by a stale Sonnet/Haiku choice.
+    // Named project profiles remember their model as an explicit per-project choice.
+    target.model       = (target.name === "Default") ? "opus" : getRadioValue("flag-model");
     target.conv        = getRadioValue("flag-conv");
     target.customFlags = (document.getElementById("flag-custom").value || "").replace(/^\s+|\s+$/g, "");
     target.startupCmds = document.getElementById("startup-cmds").value || "";
@@ -1098,7 +1101,8 @@
 
   function applyProfileToDialog(p) {
     document.getElementById("path").value         = p.folder || "";
-    setRadioValue("flag-model", p.model || "opus");
+    // Default profile always shows Opus — model is not persisted there.
+    setRadioValue("flag-model", (p.name === "Default") ? "opus" : (p.model || "opus"));
     setRadioValue("flag-conv", p.conv || "");
     document.getElementById("flag-custom").value  = p.customFlags || "";
     document.getElementById("startup-cmds").value = p.startupCmds || "";
