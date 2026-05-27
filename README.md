@@ -21,6 +21,8 @@
   <a href="https://github.com/noambrand/kivun-terminal/releases/latest"><img src="https://img.shields.io/github/v/release/noambrand/kivun-terminal?label=version&color=brightgreen&cb=v2.6.11" alt="Latest release"></a>
   <img src="https://img.shields.io/badge/platform-Windows%2010%2F11%20%7C%20macOS%2012%2B-lightgrey" alt="Platform">
   <img src="https://img.shields.io/badge/languages-24%2B-orange" alt="24+ Languages">
+  <a href="https://github.com/noambrand/kivun-terminal/stargazers"><img src="https://img.shields.io/github/stars/noambrand/kivun-terminal?style=flat&color=yellow" alt="GitHub Stars"></a>
+  <img src="https://img.shields.io/github/last-commit/noambrand/kivun-terminal?label=last%20commit&color=brightgreen" alt="Last Commit">
 
 </p>
 
