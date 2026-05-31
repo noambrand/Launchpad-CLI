@@ -162,7 +162,7 @@ Claude Code defaults to 1 line. The installer sets `"lines": 2` in `~/.claude/se
 
 ## Still stuck?
 
-Open an issue at [github.com/noambrand/kivun-terminal/issues](https://github.com/noambrand/kivun-terminal/issues) with:
+Open an issue at [github.com/noambrand/launchpad-cli/issues](https://github.com/noambrand/launchpad-cli/issues) with:
 
 - Your OS and version
 - The error message or screenshot

@@ -24,8 +24,8 @@ FILE INFORMATION:
 
 PROJECT DETAILS:
 - Project: ClaudeCode Launchpad CLI
-- GitHub Repository: https://github.com/noambrand/kivun-terminal
-- Release: https://github.com/noambrand/kivun-terminal/releases/tag/v2.4.0
+- GitHub Repository: https://github.com/noambrand/launchpad-cli
+- Release: https://github.com/noambrand/launchpad-cli/releases/tag/v2.4.0
 - License: MIT (open source)
 - Purpose: Legitimate NSIS installer for Claude Code CLI toolkit
 
@@ -63,7 +63,7 @@ Please review this file and add it to your whitelist/trusted files database to p
 CONTACT:
 - Project Maintainer: Noam Brand
 - GitHub: @noambrand
-- Repository: https://github.com/noambrand/kivun-terminal
+- Repository: https://github.com/noambrand/launchpad-cli
 
 I have attached the file compressed in ZIP format for your analysis. The complete source code including the NSIS build script is available in the GitHub repository.
 

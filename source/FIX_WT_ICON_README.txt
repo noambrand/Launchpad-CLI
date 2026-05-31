@@ -110,5 +110,5 @@ KNOWN LIMITATIONS:
     but may differ slightly from your current formatting.
 
 SUPPORT:
-  GitHub: https://github.com/noambrand/kivun-terminal/issues
+  GitHub: https://github.com/noambrand/launchpad-cli/issues
   Related: v2.6.6 release notes (CHANGELOG.md)
