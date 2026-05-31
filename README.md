@@ -18,11 +18,11 @@
 
 <p align="center">
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="MIT License"></a>
-  <a href="https://github.com/noambrand/launchpad-cli/releases/latest"><img src="https://img.shields.io/github/v/release/noambrand/launchpad-cli?label=version&color=brightgreen&cb=v2.6.11" alt="Latest release"></a>
+  <a href="https://github.com/noambrand/launchpad-cli/releases/latest"><img src="https://img.shields.io/github/v/release/noambrand/launchpad-cli?label=version&color=brightgreen&cb=v2.6.11-lc" alt="Latest release"></a>
   <img src="https://img.shields.io/badge/platform-Windows%2010%2F11%20%7C%20macOS%2012%2B-lightgrey" alt="Platform">
   <img src="https://img.shields.io/badge/languages-24%2B-orange" alt="24+ Languages">
-  <a href="https://github.com/noambrand/launchpad-cli/stargazers"><img src="https://img.shields.io/github/stars/noambrand/launchpad-cli?style=flat&color=yellow" alt="GitHub Stars"></a>
-  <img src="https://img.shields.io/github/last-commit/noambrand/launchpad-cli?label=last%20commit&color=brightgreen" alt="Last Commit">
+  <a href="https://github.com/noambrand/launchpad-cli/stargazers"><img src="https://img.shields.io/github/stars/noambrand/launchpad-cli?style=flat&color=yellow&cb=lc1" alt="GitHub Stars"></a>
+  <img src="https://img.shields.io/github/last-commit/noambrand/launchpad-cli?label=last%20commit&color=brightgreen&cb=lc1" alt="Last Commit">
   <img src="https://img.shields.io/badge/downloads-750%2B-blue" alt="Total Downloads">
 
 </p>
