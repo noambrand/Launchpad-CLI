@@ -71,7 +71,7 @@ The desktop shortcut opens this picker: pick a profile from the chip row at the 
 
 There are **two** projects in this family. Pick whichever fits how you work:
 
-|  | **Launchpad CLI** *(this repo)* | **[Kivun Terminal](https://github.com/noambrand/kivun-terminal-wsl)** |
+|  | **Launchpad CLI** *(this repo)* | **[Kivun Terminal wsl](https://github.com/noambrand/kivun-terminal-wsl)** |
 |---|---|---|
 | **Live status bar** (model, context %, usage) | ✅ | ✅ |
 | **Light-blue Kivun theme** | ✅ Windows Terminal | ✅ Konsole |
