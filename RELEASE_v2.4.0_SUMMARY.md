@@ -4,7 +4,7 @@
 
 **Version:** 2.4.0  
 **Release Date:** April 12, 2026  
-**GitHub Release:** https://github.com/noambrand/kivun-terminal/releases/tag/v2.4.0
+**GitHub Release:** https://github.com/noambrand/launchpad-cli/releases/tag/v2.4.0
 
 ---
 
@@ -136,7 +136,7 @@ This is **excellent** for an unsigned NSIS installer. Only AhnLab-V3 flags it (g
 | `ClaudeCode_Launchpad_CLI_Setup_mac.pkg` | 8.7KB | macOS | Script-only installer |
 | `kivun_terminal_Hebrew_2_0_2.mp4` | 11.7MB | Demo | Hebrew language demo video |
 
-**Download link:** https://github.com/noambrand/kivun-terminal/releases/latest
+**Download link:** https://github.com/noambrand/launchpad-cli/releases/latest
 
 ---
 

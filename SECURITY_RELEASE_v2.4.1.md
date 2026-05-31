@@ -122,7 +122,7 @@ trap - EXIT ERR INT TERM
 | `ClaudeCode_Launchpad_CLI_Setup_mac.pkg` | 8.7KB | macOS | Security fixes applied |
 | `kivun_terminal_Hebrew_2_0_2.mp4` | 11.7MB | Demo | Unchanged |
 
-**Download:** https://github.com/noambrand/kivun-terminal/releases/tag/v2.4.1
+**Download:** https://github.com/noambrand/launchpad-cli/releases/tag/v2.4.1
 
 ---
 
@@ -225,10 +225,10 @@ trap - EXIT ERR INT TERM
 
 ## References
 
-- **Release:** https://github.com/noambrand/kivun-terminal/releases/tag/v2.4.1
+- **Release:** https://github.com/noambrand/launchpad-cli/releases/tag/v2.4.1
 - **Security Review:** `SECURITY_REVIEW_v2.4.0.md`
 - **Changelog:** `docs/CHANGELOG.md`
-- **Repository:** https://github.com/noambrand/kivun-terminal
+- **Repository:** https://github.com/noambrand/launchpad-cli
 
 ---
 

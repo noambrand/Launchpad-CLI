@@ -1,4 +1,4 @@
-![ClaudeCode Launchpad CLI Demo](https://raw.githubusercontent.com/noambrand/kivun-terminal/main/claudecode-launchpad_v2.6.9.gif)
+![ClaudeCode Launchpad CLI Demo](https://raw.githubusercontent.com/noambrand/launchpad-cli/main/claudecode-launchpad_v2.6.9.gif)
 
 ## Windows
 
@@ -53,4 +53,4 @@
 
 You'll need a Claude account or API key. Claude will ask for it on first launch.
 
-See [CHANGELOG](https://github.com/noambrand/kivun-terminal/blob/main/docs/CHANGELOG.md) for full history.
+See [CHANGELOG](https://github.com/noambrand/launchpad-cli/blob/main/docs/CHANGELOG.md) for full history.

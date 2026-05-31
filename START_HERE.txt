@@ -45,7 +45,7 @@ PROBLEMS?
 
   → See docs/QUICK_START.md for setup details
   → See docs/CHANGELOG.md for version history
-  → Report issues: https://github.com/noambrand/kivun-terminal/issues
+  → Report issues: https://github.com/noambrand/launchpad-cli/issues
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
