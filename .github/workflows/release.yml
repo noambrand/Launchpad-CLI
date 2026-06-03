@@ -122,7 +122,21 @@ jobs:
         run: |
           TAG="${{ github.ref_name }}"
           [ -z "$TAG" ] && TAG="${{ inputs.tag }}"
+          VERSION="${TAG#v}"
           sed "s/TAG_PLACEHOLDER/$TAG/g" .github/RELEASE_TEMPLATE.md > release-notes.md
+          # Fill the "What's new" placeholder with this version's CHANGELOG
+          # section (plain-English), so the section is never left empty.
+          awk -v ver="$VERSION" '
+            $0 ~ "^## \\["ver"\\]" { f=1; next }
+            /^## \[/ { if (f) exit }
+            f { print }
+          ' docs/CHANGELOG.md > /tmp/whatsnew.md
+          if [ ! -s /tmp/whatsnew.md ]; then
+            echo "See the [CHANGELOG](https://github.com/noambrand/launchpad-cli/blob/main/docs/CHANGELOG.md) for details." > /tmp/whatsnew.md
+          fi
+          awk 'FNR==NR { a[++n]=$0; next }
+               /<!-- Fill in release-specific changes here -->/ { for (i=1;i<=n;i++) print a[i]; next }
+               { print }' /tmp/whatsnew.md release-notes.md > release-notes.tmp && mv release-notes.tmp release-notes.md
           # Append auto-generated changelog from git
           echo "" >> release-notes.md
           echo "## Commits since last release" >> release-notes.md
@@ -143,7 +157,8 @@ jobs:
 
           # Check if release already exists
           if gh release view "$TAG" >/dev/null 2>&1; then
-            echo "Release $TAG exists — uploading assets (overwriting duplicates)..."
+            echo "Release $TAG exists — refreshing notes and assets..."
+            gh release edit "$TAG" --notes-file release-notes.md
             gh release upload "$TAG" release-assets/* --clobber
           else
             echo "Creating release $TAG..."
