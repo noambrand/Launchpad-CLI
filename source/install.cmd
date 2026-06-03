@@ -16,6 +16,14 @@ set "GIT_URL=https://github.com/git-for-windows/git/releases/download/v%GIT_VERS
 set "TEMP_DIR=%TEMP%\ClaudeCodeSetup"
 set "EXIT_CODE=0"
 
+REM --- Persistent logs (per-user, survive the run so a failed install leaves
+REM     evidence on disk). KIVUN_LOG gets this script's own output; NODE_MSI_LOG
+REM     gets msiexec's verbose log when Node.js is installed. ---
+set "KIVUN_DIR=%LOCALAPPDATA%\Kivun"
+set "KIVUN_LOG=%KIVUN_DIR%\install-log.txt"
+set "NODE_MSI_LOG=%KIVUN_DIR%\node-msi.log"
+if not exist "%KIVUN_DIR%" mkdir "%KIVUN_DIR%" 2>nul
+
 REM --- Parse Arguments ---
 set "DO_NODE=0"
 set "DO_GIT=0"
@@ -41,14 +49,18 @@ if "!USE_CURL!"=="0" echo [INFO] curl.exe not found. Will use winget as fallback
 REM --- Create temp directory ---
 mkdir "%TEMP_DIR%" 2>nul
 
-REM --- Dispatch to subroutines ---
-if "!DO_NODE!"=="1" call :install_node
+REM --- Dispatch to subroutines (each phase's output is appended to KIVUN_LOG
+REM     so a failure always leaves a log on disk; NSI runs this with a hidden
+REM     console, so nothing useful was visible before). ---
+echo.>> "%KIVUN_LOG%"
+echo ===== %DATE% %TIME% :: install.cmd %* =====>> "%KIVUN_LOG%"
+if "!DO_NODE!"=="1" call :install_node >> "%KIVUN_LOG%" 2>&1
 if not "!EXIT_CODE!"=="0" goto :cleanup
-if "!DO_GIT!"=="1" call :install_git
+if "!DO_GIT!"=="1" call :install_git >> "%KIVUN_LOG%" 2>&1
 if not "!EXIT_CODE!"=="0" goto :cleanup
-if "!DO_CLAUDE!"=="1" call :install_claude
+if "!DO_CLAUDE!"=="1" call :install_claude >> "%KIVUN_LOG%" 2>&1
 if not "!EXIT_CODE!"=="0" goto :cleanup
-if "!DO_WT!"=="1" call :install_wt
+if "!DO_WT!"=="1" call :install_wt >> "%KIVUN_LOG%" 2>&1
 
 :cleanup
 rmdir /s /q "%TEMP_DIR%" 2>nul
@@ -68,10 +80,16 @@ if "!USE_CURL!"=="1" (
     echo [DOWNLOAD] Node.js v%NODE_VERSION%...
     curl.exe -L -o "%TEMP_DIR%\node-setup.msi" "%NODE_URL%" --progress-bar
     if not errorlevel 1 (
-        echo [INSTALL] Node.js v%NODE_VERSION% ^(silent^)...
-        msiexec /i "%TEMP_DIR%\node-setup.msi" /qn /norestart
-        if errorlevel 1 (
-            echo [ERROR] Node.js MSI install failed.
+        echo [INSTALL] Node.js v%NODE_VERSION% ^(elevated, silent^)...
+        REM Node's MSI is per-machine and needs admin. This installer runs
+        REM per-user, so a plain "msiexec /qn" returns 1603 (Error 1925).
+        REM install-node-elevated.js triggers a single UAC prompt for msiexec
+        REM and writes a verbose MSI log to NODE_MSI_LOG.
+        cscript.exe //Nologo //B "%~dp0install-node-elevated.js" "%TEMP_DIR%\node-setup.msi" "%NODE_MSI_LOG%"
+        set "MSI_RC=!errorlevel!"
+        if not "!MSI_RC!"=="0" (
+            echo [ERROR] Node.js MSI install failed ^(code !MSI_RC!^). Log: "%NODE_MSI_LOG%"
+            if "!MSI_RC!"=="1223" echo         You declined the administrator ^(UAC^) prompt. Node.js needs admin to install.
             set "EXIT_CODE=1"
             goto :eof
         )
@@ -203,9 +221,18 @@ REM   Refresh PATH from registry (picks up
 REM   changes made by MSI/EXE installers)
 REM ============================================
 :refresh_path
+REM APPEND the registry Path values to the EXISTING PATH rather than replacing
+REM it. The registry system Path is a REG_EXPAND_SZ, and "reg query" returns it
+REM UNEXPANDED (literal %SystemRoot%\system32 ...). Replacing PATH with that
+REM dropped C:\Windows\System32 off the search path, so curl.exe / where.exe
+REM stopped working after the first refresh (broke the Claude Code step).
+REM Keeping the current PATH first preserves System32; the appended registry
+REM entries bring in newly-installed dirs (e.g. C:\Program Files\nodejs, which
+REM is stored literally so it resolves fine).
 set "SYS_PATH="
 set "USR_PATH="
 for /f "tokens=2*" %%A in ('reg query "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Environment" /v Path 2^>nul') do set "SYS_PATH=%%B"
 for /f "tokens=2*" %%A in ('reg query "HKCU\Environment" /v Path 2^>nul') do set "USR_PATH=%%B"
-if defined SYS_PATH if defined USR_PATH set "PATH=!SYS_PATH!;!USR_PATH!"
+if defined SYS_PATH set "PATH=!PATH!;!SYS_PATH!"
+if defined USR_PATH set "PATH=!PATH!;!USR_PATH!"
 goto :eof

@@ -1,5 +1,83 @@
 # Changelog
 
+## [2.6.12] - 2026-06-03
+
+### Fixed — Node.js install failed with exit code 1 (MSI 1603 / Error 1925)
+
+On a clean PC the installer aborted the Node.js step with "exit code: 1". The
+verbose MSI log showed the real cause:
+
+```
+Error 1925. You do not have sufficient privileges to complete this
+installation for all users of the machine.
+... success or error status: 1603
+```
+
+Node's official MSI installs **per-machine** (`C:\Program Files\nodejs`), which
+needs elevation. The Launchpad installer deliberately runs **per-user**
+(`RequestExecutionLevel user`, since v2.6.4), so calling `msiexec /qn`
+non-elevated could never succeed — it returned 1603 and `install.cmd` exited 1.
+
+- New `source/install-node-elevated.js`: installs the Node MSI via a single UAC
+  elevation prompt (`ShellExecute "runas"`), staying silent (`/qn /norestart`)
+  and writing a verbose MSI log. It captures the real msiexec exit code through
+  a sentinel file (absolute, invoking-user path, so it also works under
+  over-the-shoulder UAC) and reports a distinct code when the user declines the
+  prompt. The rest of the installer stays per-user — only msiexec elevates, and
+  Node's install location does not depend on which account approves UAC.
+- `source/install.cmd` `:install_node` now calls the helper instead of a bare
+  `msiexec /qn`, and surfaces the failure code and log path on error.
+- `source/install.cmd` now appends every phase's output to
+  `%LOCALAPPDATA%\Kivun\install-log.txt`, and the Node MSI verbose log to
+  `%LOCALAPPDATA%\Kivun\node-msi.log`, so a failed install always leaves
+  evidence on disk (previously nothing was logged — NSI runs the script with a
+  hidden console).
+- `ClaudeCode_Launchpad_CLI_Setup.nsi`: bundles the new helper and, on Node
+  failure, points the user at both log files and reminds them to approve the
+  UAC prompt.
+
+### Fixed — Claude Code step failed with "'curl.exe' is not recognized"
+
+Exposed by the new install log on a real test PC: the Node.js step now succeeds,
+but the Claude Code step then failed to download because `curl.exe` was suddenly
+"not recognized" — even though curl had just worked for the Node download.
+
+Root cause: `:refresh_path` **replaced** `PATH` with the raw registry `Path`
+values. The system `Path` is a `REG_EXPAND_SZ`, and `reg query` returns it
+**unexpanded** (literal `%SystemRoot%\system32;...`). cmd doesn't re-expand
+those, so `C:\Windows\System32` effectively fell off `PATH` and `curl.exe` /
+`where.exe` stopped resolving. The Node step was unaffected only because it uses
+curl *before* the first `refresh_path`; the Claude step calls `refresh_path`
+first.
+
+- `source/install.cmd` `:refresh_path` now **appends** the registry entries to
+  the existing (correctly expanded) `PATH` instead of replacing it — System32
+  stays, and newly-installed dirs (e.g. `C:\Program Files\nodejs`, stored
+  literally) are still picked up.
+
+### Fixed — launcher falsely reported "Claude Code not found" right after install
+
+On the same test PC, Claude's native installer placed `claude.exe` in
+`%USERPROFILE%\.local\bin` and noted that dir "is not in your PATH" yet. The
+launcher's `where claude` check would then fail and abort with
+"Claude Code not found" (plus outdated `npm install` advice) even though Claude
+was installed — because a shortcut-spawned shell keeps the old PATH until the
+user logs out/in.
+
+- `source/claudecode-launchpad.bat`: adds `%USERPROFILE%\.local\bin` to `PATH`
+  (when `claude.exe` is there) at the top of the script, so both the initial
+  launch and the Windows Terminal relaunch find Claude immediately — no reboot
+  required. Also corrected the not-found message (point to the installer /
+  claude.ai/download and the log-out/in hint, not `npm`).
+
+### Changed — version bump
+
+- `ClaudeCode_Launchpad_CLI_Setup.nsi` — `PRODUCT_VERSION` 2.6.11 → 2.6.12;
+  `VIProductVersion` / `FileVersion` → 2.6.12.0.
+- `source/folder-picker.hta` — `FALLBACK_VERSION` → 2.6.12.
+- `README.md` — badge cachebust `v2.6.11` → `v2.6.12`; picker.png alt-text bump.
+- `START_HERE.txt` — banner → v2.6.12.
+
 ## [2.6.11] - 2026-05-27
 
 ### Fixed — picker always opens with Opus as the default model

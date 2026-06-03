@@ -5,7 +5,7 @@
 Unicode True
 
 !define PRODUCT_NAME "ClaudeCode Launchpad CLI"
-!define PRODUCT_VERSION "2.6.11"
+!define PRODUCT_VERSION "2.6.12"
 !define PRODUCT_PUBLISHER "Noam Brand"
 !define PRODUCT_WEB_SITE "https://github.com"
 !define PRODUCT_DESCRIPTION "Claude Code installer for Windows"
@@ -33,12 +33,12 @@ InstallDir "${INSTALL_DIR}"
 ShowInstDetails show
 
 ; Version info
-VIProductVersion "2.6.11.0"
+VIProductVersion "2.6.12.0"
 VIAddVersionKey "ProductName" "${PRODUCT_NAME}"
 VIAddVersionKey "ProductVersion" "${PRODUCT_VERSION}"
 VIAddVersionKey "CompanyName" "${PRODUCT_PUBLISHER}"
 VIAddVersionKey "FileDescription" "${PRODUCT_DESCRIPTION}"
-VIAddVersionKey "FileVersion" "2.6.11.0"
+VIAddVersionKey "FileVersion" "2.6.12.0"
 VIAddVersionKey "LegalCopyright" "(C) 2026 ${PRODUCT_PUBLISHER}"
 
 ; Modern UI Configuration
@@ -91,7 +91,7 @@ Var ConfigTerminalColor
 
 ; Pre-install warning: remind users to finish active CLI sessions
 Function .onInit
-  MessageBox MB_OKCANCEL|MB_ICONEXCLAMATION \
+  MessageBox MB_OKCANCEL|MB_ICONINFORMATION \
     "Before installing ${PRODUCT_NAME}:$\r$\n$\r$\nIf you have any active Claude Code or terminal (CLI) sessions running, it is strongly advised to finish your work and close them now.$\r$\n$\r$\nThe installer may update Claude Code, Node.js, or Windows Terminal, which can interrupt running sessions and close terminal windows.$\r$\n$\r$\n  - Click OK to continue the installation.$\r$\n  - Click Cancel to abort so you can save your work first." \
     /SD IDOK IDOK continueInstall
   Abort
@@ -195,6 +195,7 @@ Section "!Core Components (Required)" SecCore
   File "source\statusline.mjs"
   File "source\configure-statusline.js"
   File "source\install.cmd"
+  File "source\install-node-elevated.js"
   File "source\fix-wt-icon.hta"
   File "source\close-launchers.js"
 
@@ -374,7 +375,7 @@ Section "!Install Node.js (Required)" SecNodeJS
   ${If} $0 == 10
     MessageBox MB_OK "Node.js could not be installed: neither curl nor winget available.$\n$\nPlease install Node.js manually from https://nodejs.org/"
   ${ElseIf} $0 != 0
-    MessageBox MB_OK "Node.js installation may have failed (exit code: $0).$\n$\nYou can install Node.js manually from https://nodejs.org/"
+    MessageBox MB_OK "Node.js installation may have failed (exit code: $0).$\n$\nNode.js needs administrator rights to install. If a UAC prompt appeared, make sure to approve it.$\n$\nLogs were saved to:$\n  $LOCALAPPDATA\Kivun\install-log.txt$\n  $LOCALAPPDATA\Kivun\node-msi.log$\n$\nYou can also install Node.js manually from https://nodejs.org/"
   ${EndIf}
 
   ; Verify
