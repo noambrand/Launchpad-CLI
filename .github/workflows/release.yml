@@ -95,8 +95,23 @@ jobs:
           name: mac-installer
           path: release-assets/
 
-      - name: Copy demo video
-        run: cp kivun_terminal_Hebrew_2_0_2.mp4 release-assets/
+      - name: Copy demo video (carry forward from a prior release if absent)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VID="kivun_terminal_Hebrew_2_0_2.mp4"
+          if [ -f "$VID" ]; then
+            cp "$VID" release-assets/
+          else
+            echo "Demo video not in repo — carrying it forward from a previous release..."
+            TAG="${{ github.ref_name }}"; [ -z "$TAG" ] && TAG="${{ inputs.tag }}"
+            for t in $(gh release list --limit 40 --json tagName --jq '.[].tagName'); do
+              [ "$t" = "$TAG" ] && continue
+              gh release download "$t" -p "$VID" -D release-assets/ 2>/dev/null && break || true
+            done
+          fi
+          # The "Verify all required assets" step below fails the build if the
+          # video is still missing — a release can never ship without it.
 
       - name: Verify all required assets exist
         run: |
