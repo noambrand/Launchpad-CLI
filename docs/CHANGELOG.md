@@ -1,5 +1,54 @@
 # Changelog
 
+## [2.6.14] - 2026-06-08
+
+### Fixed — root cause of the stalled/black Claude Code install (schannel + Anthropic's un-retried download)
+
+v2.6.13 made *our* download retry, but a test on a clean personal PC (no
+corporate proxy) showed the install still stalling on a silent black terminal,
+and `claude.exe` never landing in `%USERPROFILE%\.local\bin`. Reading Anthropic's
+actual installer chain (`claude.ai/install.cmd` → `bootstrap.cmd`) revealed the
+true root cause:
+
+- Windows' built-in `curl` uses the **schannel** TLS backend, which aborts large
+  HTTPS downloads from Cloudflare/HTTP-2 CDNs with `(56) missing close_notify` or
+  `(35) connection was reset` — it has no stream termination point and treats the
+  missing TLS close as a possible truncation attack.
+- Anthropic's `bootstrap.cmd` fetches the ~50 MB `claude.exe` with a **bare
+  `curl -fsSL` and no retry**, so that schannel reset kills the binary download.
+  We can't edit Anthropic's script.
+
+**Fix:** `source/install.cmd` now writes a `.curlrc` (forcing `http1.1` +
+`retry`/`ssl-no-revoke`) and points `CURL_HOME` at it. Forcing HTTP/1.1 gives
+every response a `Content-Length` terminator, so curl never waits on
+`close_notify`; the retries ride out transient resets. Because **child processes
+inherit `CURL_HOME`**, Anthropic's own `curl -fsSL` picks up the same resilience
+— fixing the binary download we don't control, without reimplementing it.
+Verified on Windows 11 (curl 8.18.0 Schannel): the same `curl -fsSL` that failed
+now completes against `downloads.claude.ai`. `CURL_HOME` is set only inside the
+installer's process, so the user's own curl is unchanged afterward.
+
+### Changed — install experience no longer looks frozen
+
+The Claude step downloads a ~50 MB binary, but every phase's output was
+redirected to the log file, so the installer console sat **black and silent** for
+minutes and read as a freeze (the reported confusion).
+
+- `source/install.cmd` now prints clean, user-facing milestones to the screen via
+  a new `:say` helper (e.g. `[Claude Code] Downloading and installing Claude
+  (~50 MB). This can take a minute or two — please don't close this window...`,
+  then `[Claude Code] Installed.`), while the noisy curl/winget/msiexec output
+  still goes only to `%LOCALAPPDATA%\Kivun\install-log.txt`. Each line is written
+  to both screen and log.
+
+### Changed — version bump
+
+- `ClaudeCode_Launchpad_CLI_Setup.nsi` — `PRODUCT_VERSION` 2.6.13 → 2.6.14;
+  `VIProductVersion` / `FileVersion` → 2.6.14.0.
+- `source/folder-picker.hta` — `FALLBACK_VERSION` → 2.6.14.
+- `README.md` — badge cachebust `v2.6.13` → `v2.6.14`; picker.png alt-text bump.
+- `START_HERE.txt` — banner → v2.6.14.
+
 ## [2.6.13] - 2026-06-08
 
 ### Fixed — Claude Code step failed on networks that break curl ("installation may have failed")

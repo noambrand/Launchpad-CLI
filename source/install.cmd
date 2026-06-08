@@ -5,7 +5,7 @@ setlocal enabledelayedexpansion
 REM ============================================
 REM   ClaudeCode Launchpad CLI - Dependency Installer
 REM   Uses curl.exe (built-in Windows 10 1803+)
-REM   Falls back to winget if curl unavailable
+REM   Falls back to winget / certutil if curl is unavailable or blocked
 REM ============================================
 
 REM --- Version Pins (update these for new releases) ---
@@ -23,6 +23,34 @@ set "KIVUN_DIR=%LOCALAPPDATA%\Kivun"
 set "KIVUN_LOG=%KIVUN_DIR%\install-log.txt"
 set "NODE_MSI_LOG=%KIVUN_DIR%\node-msi.log"
 if not exist "%KIVUN_DIR%" mkdir "%KIVUN_DIR%" 2>nul
+
+REM --- Robust curl config (ROOT-CAUSE FIX for the "installation may have failed"
+REM     dialog). Windows' built-in curl uses the schannel TLS backend, which
+REM     aborts large HTTPS downloads from CDNs (Cloudflare / HTTP-2) with
+REM     "(56) schannel: server closed abruptly (missing close_notify)" or
+REM     "(35) Send failure: Connection was reset" — schannel has no HTTP
+REM     termination point for the stream and treats the missing TLS close as a
+REM     possible truncation attack. Forcing HTTP/1.1 gives every response a
+REM     Content-Length terminator (so curl never depends on close_notify), and
+REM     the retries ride out transient resets.
+REM
+REM     We publish this through CURL_HOME, which curl reads a .curlrc from. That
+REM     means not only OUR curl calls but ALSO Anthropic's bootstrap.cmd — which
+REM     fetches the ~50 MB claude.exe with a bare `curl -fsSL` and has NO retry
+REM     of its own — inherit the same resilience, because child processes
+REM     inherit CURL_HOME. This is the difference between the native Claude
+REM     install stalling mid-download and completing cleanly. CURL_HOME is only
+REM     set inside this script's process (setlocal), so the user's own curl is
+REM     unaffected after install.
+set "CURL_HOME=%KIVUN_DIR%"
+> "%KIVUN_DIR%\.curlrc" (
+    echo http1.1
+    echo retry = 5
+    echo retry-all-errors
+    echo retry-delay = 2
+    echo ssl-no-revoke
+    echo connect-timeout = 30
+)
 
 REM --- Parse Arguments ---
 set "DO_NODE=0"
@@ -44,23 +72,26 @@ goto :parse_args
 REM --- Check for curl.exe ---
 set "USE_CURL=0"
 where curl.exe >nul 2>&1 && set "USE_CURL=1"
-if "!USE_CURL!"=="0" echo [INFO] curl.exe not found. Will use winget as fallback.
+if "!USE_CURL!"=="0" call :say "[INFO] curl.exe not found. Will use winget / certutil as fallback."
 
 REM --- Create temp directory ---
 mkdir "%TEMP_DIR%" 2>nul
 
-REM --- Dispatch to subroutines (each phase's output is appended to KIVUN_LOG
-REM     so a failure always leaves a log on disk; NSI runs this with a hidden
-REM     console, so nothing useful was visible before). ---
+REM --- Header line in the persistent log ---
 echo.>> "%KIVUN_LOG%"
 echo ===== %DATE% %TIME% :: install.cmd %* =====>> "%KIVUN_LOG%"
-if "!DO_NODE!"=="1" call :install_node >> "%KIVUN_LOG%" 2>&1
+
+REM --- Dispatch to subroutines. Each subroutine prints clean, user-facing
+REM     milestones to the screen via :say while sending the noisy command
+REM     output (curl meters, winget spinners, msiexec) only to the log, so the
+REM     installer console never looks like a frozen black window. ---
+if "!DO_NODE!"=="1" call :install_node
 if not "!EXIT_CODE!"=="0" goto :cleanup
-if "!DO_GIT!"=="1" call :install_git >> "%KIVUN_LOG%" 2>&1
+if "!DO_GIT!"=="1" call :install_git
 if not "!EXIT_CODE!"=="0" goto :cleanup
-if "!DO_CLAUDE!"=="1" call :install_claude >> "%KIVUN_LOG%" 2>&1
+if "!DO_CLAUDE!"=="1" call :install_claude
 if not "!EXIT_CODE!"=="0" goto :cleanup
-if "!DO_WT!"=="1" call :install_wt >> "%KIVUN_LOG%" 2>&1
+if "!DO_WT!"=="1" call :install_wt
 
 :cleanup
 rmdir /s /q "%TEMP_DIR%" 2>nul
@@ -70,91 +101,98 @@ REM ============================================
 REM   SUBROUTINES
 REM ============================================
 
+REM --- :say "message" — echo to the screen AND append to the log, so the user
+REM     sees progress live and the same line is preserved for diagnostics. The
+REM     leading-redirect form avoids a trailing digit in the message being
+REM     mistaken for a stream handle. ---
+:say
+echo %~1
+>>"%KIVUN_LOG%" echo %~1
+goto :eof
+
 :install_node
 where node.exe >nul 2>&1
 if not errorlevel 1 (
-    echo [SKIP] Node.js already installed.
+    call :say "[Node.js] Already installed - skipping."
     goto :eof
 )
 if "!USE_CURL!"=="1" (
-    echo [DOWNLOAD] Node.js v%NODE_VERSION%...
-    curl.exe -L -o "%TEMP_DIR%\node-setup.msi" "%NODE_URL%" --progress-bar
+    call :say "[Node.js] Downloading v%NODE_VERSION% (~30 MB), please wait..."
+    curl.exe -L -o "%TEMP_DIR%\node-setup.msi" "%NODE_URL%" >> "%KIVUN_LOG%" 2>&1
     if not errorlevel 1 (
-        echo [INSTALL] Node.js v%NODE_VERSION% ^(elevated, silent^)...
+        call :say "[Node.js] Installing - a Windows admin prompt will appear, please approve it..."
         REM Node's MSI is per-machine and needs admin. This installer runs
         REM per-user, so a plain "msiexec /qn" returns 1603 (Error 1925).
         REM install-node-elevated.js triggers a single UAC prompt for msiexec
         REM and writes a verbose MSI log to NODE_MSI_LOG.
-        cscript.exe //Nologo //B "%~dp0install-node-elevated.js" "%TEMP_DIR%\node-setup.msi" "%NODE_MSI_LOG%"
+        cscript.exe //Nologo //B "%~dp0install-node-elevated.js" "%TEMP_DIR%\node-setup.msi" "%NODE_MSI_LOG%" >> "%KIVUN_LOG%" 2>&1
         set "MSI_RC=!errorlevel!"
         if not "!MSI_RC!"=="0" (
-            echo [ERROR] Node.js MSI install failed ^(code !MSI_RC!^). Log: "%NODE_MSI_LOG%"
-            if "!MSI_RC!"=="1223" echo         You declined the administrator ^(UAC^) prompt. Node.js needs admin to install.
+            call :say "[Node.js] ERROR: install failed (code !MSI_RC!). Log: %NODE_MSI_LOG%"
+            if "!MSI_RC!"=="1223" call :say "[Node.js] You declined the administrator prompt. Node.js needs admin to install."
             set "EXIT_CODE=1"
             goto :eof
         )
         call :refresh_path
-        echo [OK] Node.js installed.
+        call :say "[Node.js] Installed."
         goto :eof
     )
-    echo [WARN] curl download failed. Trying winget...
+    call :say "[Node.js] Direct download failed. Trying winget..."
 )
 where winget.exe >nul 2>&1
 if errorlevel 1 (
-    echo [ERROR] Neither curl nor winget available. Cannot install Node.js.
-    echo         Install manually from https://nodejs.org/
+    call :say "[Node.js] ERROR: neither curl nor winget available. Install manually from https://nodejs.org/"
     set "EXIT_CODE=10"
     goto :eof
 )
-echo [INSTALL] Node.js via winget...
-cmd /c winget install OpenJS.NodeJS.LTS --accept-package-agreements --accept-source-agreements
+call :say "[Node.js] Installing via winget, please wait..."
+cmd /c winget install OpenJS.NodeJS.LTS --accept-package-agreements --accept-source-agreements >> "%KIVUN_LOG%" 2>&1
 call :refresh_path
 where node.exe >nul 2>&1
 if errorlevel 1 (
-    echo [WARN] node.exe not found in PATH after install. May need restart.
+    call :say "[Node.js] WARNING: not found in PATH yet - a restart may be needed."
 ) else (
-    echo [OK] Node.js installed.
+    call :say "[Node.js] Installed."
 )
 goto :eof
 
 :install_git
 where git.exe >nul 2>&1
 if not errorlevel 1 (
-    echo [SKIP] Git already installed.
+    call :say "[Git] Already installed - skipping."
     goto :eof
 )
 if "!USE_CURL!"=="1" (
-    echo [DOWNLOAD] Git v%GIT_VERSION%...
-    curl.exe -L -o "%TEMP_DIR%\git-setup.exe" "%GIT_URL%" --progress-bar
+    call :say "[Git] Downloading v%GIT_VERSION% (~60 MB), please wait..."
+    curl.exe -L -o "%TEMP_DIR%\git-setup.exe" "%GIT_URL%" >> "%KIVUN_LOG%" 2>&1
     if not errorlevel 1 (
-        echo [INSTALL] Git v%GIT_VERSION% ^(silent^)...
-        "%TEMP_DIR%\git-setup.exe" /VERYSILENT /NORESTART /NOCANCEL /SP- /CLOSEAPPLICATIONS /RESTARTAPPLICATIONS /COMPONENTS="icons,ext\reg\shellhere,assoc,assoc_sh"
+        call :say "[Git] Installing silently, please wait..."
+        "%TEMP_DIR%\git-setup.exe" /VERYSILENT /NORESTART /NOCANCEL /SP- /CLOSEAPPLICATIONS /RESTARTAPPLICATIONS /COMPONENTS="icons,ext\reg\shellhere,assoc,assoc_sh" >> "%KIVUN_LOG%" 2>&1
         if errorlevel 1 (
-            echo [ERROR] Git installer failed.
+            call :say "[Git] ERROR: installer failed. See %KIVUN_LOG%"
             set "EXIT_CODE=2"
             goto :eof
         )
         call :refresh_path
-        echo [OK] Git installed.
+        call :say "[Git] Installed."
         goto :eof
     )
-    echo [WARN] curl download failed. Trying winget...
+    call :say "[Git] Direct download failed. Trying winget..."
 )
 where winget.exe >nul 2>&1
 if errorlevel 1 (
-    echo [ERROR] Neither curl nor winget available. Cannot install Git.
-    echo         Install manually from https://git-scm.com/
+    call :say "[Git] ERROR: neither curl nor winget available. Install manually from https://git-scm.com/"
     set "EXIT_CODE=10"
     goto :eof
 )
-echo [INSTALL] Git via winget...
-cmd /c winget install Git.Git --accept-package-agreements --accept-source-agreements
+call :say "[Git] Installing via winget, please wait..."
+cmd /c winget install Git.Git --accept-package-agreements --accept-source-agreements >> "%KIVUN_LOG%" 2>&1
 call :refresh_path
 where git.exe >nul 2>&1
 if errorlevel 1 (
-    echo [WARN] git.exe not found in PATH after install. May need restart.
+    call :say "[Git] WARNING: not found in PATH yet - a restart may be needed."
 ) else (
-    echo [OK] Git installed.
+    call :say "[Git] Installed."
 )
 goto :eof
 
@@ -162,76 +200,77 @@ goto :eof
 call :refresh_path
 where claude.cmd >nul 2>&1
 if not errorlevel 1 (
-    echo [SKIP] Claude Code already installed.
+    call :say "[Claude Code] Already installed - skipping."
     goto :eof
 )
 where claude >nul 2>&1
 if not errorlevel 1 (
-    echo [SKIP] Claude Code already installed.
+    call :say "[Claude Code] Already installed - skipping."
     goto :eof
 )
+
 set "CLAUDE_INSTALLER=%TEMP_DIR%\claude-install.cmd"
 set "GOT_INSTALLER=0"
-echo [INSTALL] Claude Code via Anthropic native installer...
+call :say "[Claude Code] Fetching the official installer..."
 
-REM Attempt 1: curl with retries + revocation tolerance. The bare download died
-REM on real PCs behind a TLS-inspecting proxy/AV with schannel errors (curl 35
-REM "Connection was reset" / 56 "missing close_notify"). --retry-all-errors
-REM rides out transient resets; --ssl-no-revoke skips the CRL/OCSP checks such
-REM proxies frequently break.
+REM Step 1 - download Anthropic's small installer script. curl first (now with
+REM the robust .curlrc applied via CURL_HOME), then certutil via the OS HTTP
+REM stack as a backstop if curl is missing or blocked.
 if "!USE_CURL!"=="1" (
-    curl.exe -fsSL --retry 3 --retry-all-errors --retry-delay 2 --ssl-no-revoke -o "!CLAUDE_INSTALLER!" "https://claude.ai/install.cmd"
+    curl.exe -fsSL -o "!CLAUDE_INSTALLER!" "https://claude.ai/install.cmd" >> "%KIVUN_LOG%" 2>&1
     if not errorlevel 1 if exist "!CLAUDE_INSTALLER!" set "GOT_INSTALLER=1"
 )
-
-REM Attempt 2: certutil — uses the OS HTTP stack (WinINET / system proxy), the
-REM same path winget used successfully when curl was being reset on this network
-REM (see :install_node fallback). Built into every Windows; no PowerShell, no
-REM extra prerequisites.
 if "!GOT_INSTALLER!"=="0" (
-    echo [WARN] curl download failed. Trying certutil ^(OS HTTP stack^)...
+    call :say "[Claude Code] Primary download failed. Trying the built-in OS downloader..."
     del "!CLAUDE_INSTALLER!" 2>nul
-    certutil.exe -urlcache -split -f "https://claude.ai/install.cmd" "!CLAUDE_INSTALLER!" >nul 2>&1
+    certutil.exe -urlcache -split -f "https://claude.ai/install.cmd" "!CLAUDE_INSTALLER!" >> "%KIVUN_LOG%" 2>&1
     if not errorlevel 1 if exist "!CLAUDE_INSTALLER!" set "GOT_INSTALLER=1"
 )
-
 if "!GOT_INSTALLER!"=="0" (
-    echo [ERROR] Could not download Claude Code installer ^(curl + certutil both failed^).
-    echo         A proxy, firewall, or antivirus may be blocking the connection.
-    echo         Install manually from https://claude.ai/download
+    call :say "[Claude Code] ERROR: could not download the installer."
+    call :say "[Claude Code] Check your internet connection, then install manually from https://claude.ai/download"
     set "EXIT_CODE=3"
     goto :eof
 )
-cmd /c "!CLAUDE_INSTALLER!"
+
+REM Step 2 - run it. This is the long part: Anthropic's bootstrap downloads the
+REM ~50 MB native claude.exe. Its own curl inherits our robust .curlrc via
+REM CURL_HOME, so the schannel reset that used to stall this is now retried /
+REM avoided. Tell the user clearly that it takes a moment so a quiet pause never
+REM reads as a freeze.
+call :say "[Claude Code] Downloading and installing Claude (~50 MB)."
+call :say "[Claude Code] This can take a minute or two - please don't close this window..."
+cmd /c "!CLAUDE_INSTALLER!" >> "%KIVUN_LOG%" 2>&1
 if errorlevel 1 (
-    echo [ERROR] Claude Code installation failed.
+    call :say "[Claude Code] ERROR: installation failed. See %KIVUN_LOG%"
+    call :say "[Claude Code] You can install manually from https://claude.ai/download"
     set "EXIT_CODE=3"
     goto :eof
 )
 call :refresh_path
-echo [OK] Claude Code installed.
+call :say "[Claude Code] Installed."
 goto :eof
 
 :install_wt
 where wt.exe >nul 2>&1
 if not errorlevel 1 (
-    echo [SKIP] Windows Terminal already installed.
+    call :say "[Windows Terminal] Already installed - skipping."
     goto :eof
 )
-REM WT is an MSIX/Store package — winget is the only automated method
+REM WT is an MSIX/Store package - winget is the only automated method
 where winget.exe >nul 2>&1
 if errorlevel 1 (
-    echo [WARN] winget not available. Install Windows Terminal from the Microsoft Store.
+    call :say "[Windows Terminal] winget not available. Install it from the Microsoft Store."
     set "EXIT_CODE=4"
     goto :eof
 )
-echo [INSTALL] Windows Terminal via winget...
-cmd /c winget install Microsoft.WindowsTerminal --accept-package-agreements --accept-source-agreements
+call :say "[Windows Terminal] Installing via winget, please wait..."
+cmd /c winget install Microsoft.WindowsTerminal --accept-package-agreements --accept-source-agreements >> "%KIVUN_LOG%" 2>&1
 if errorlevel 1 (
-    echo [WARN] winget install failed. Install Windows Terminal from the Microsoft Store.
+    call :say "[Windows Terminal] winget install failed. Install it from the Microsoft Store."
     set "EXIT_CODE=4"
 ) else (
-    echo [OK] Windows Terminal installed.
+    call :say "[Windows Terminal] Installed."
 )
 goto :eof
 
