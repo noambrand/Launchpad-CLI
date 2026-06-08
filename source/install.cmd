@@ -170,20 +170,39 @@ if not errorlevel 1 (
     echo [SKIP] Claude Code already installed.
     goto :eof
 )
-if "!USE_CURL!"=="0" (
-    echo [ERROR] curl.exe not found. Cannot install Claude Code.
+set "CLAUDE_INSTALLER=%TEMP_DIR%\claude-install.cmd"
+set "GOT_INSTALLER=0"
+echo [INSTALL] Claude Code via Anthropic native installer...
+
+REM Attempt 1: curl with retries + revocation tolerance. The bare download died
+REM on real PCs behind a TLS-inspecting proxy/AV with schannel errors (curl 35
+REM "Connection was reset" / 56 "missing close_notify"). --retry-all-errors
+REM rides out transient resets; --ssl-no-revoke skips the CRL/OCSP checks such
+REM proxies frequently break.
+if "!USE_CURL!"=="1" (
+    curl.exe -fsSL --retry 3 --retry-all-errors --retry-delay 2 --ssl-no-revoke -o "!CLAUDE_INSTALLER!" "https://claude.ai/install.cmd"
+    if not errorlevel 1 if exist "!CLAUDE_INSTALLER!" set "GOT_INSTALLER=1"
+)
+
+REM Attempt 2: certutil — uses the OS HTTP stack (WinINET / system proxy), the
+REM same path winget used successfully when curl was being reset on this network
+REM (see :install_node fallback). Built into every Windows; no PowerShell, no
+REM extra prerequisites.
+if "!GOT_INSTALLER!"=="0" (
+    echo [WARN] curl download failed. Trying certutil ^(OS HTTP stack^)...
+    del "!CLAUDE_INSTALLER!" 2>nul
+    certutil.exe -urlcache -split -f "https://claude.ai/install.cmd" "!CLAUDE_INSTALLER!" >nul 2>&1
+    if not errorlevel 1 if exist "!CLAUDE_INSTALLER!" set "GOT_INSTALLER=1"
+)
+
+if "!GOT_INSTALLER!"=="0" (
+    echo [ERROR] Could not download Claude Code installer ^(curl + certutil both failed^).
+    echo         A proxy, firewall, or antivirus may be blocking the connection.
     echo         Install manually from https://claude.ai/download
     set "EXIT_CODE=3"
     goto :eof
 )
-echo [INSTALL] Claude Code via Anthropic native installer...
-curl.exe -fsSL -o "%TEMP_DIR%\claude-install.cmd" "https://claude.ai/install.cmd"
-if errorlevel 1 (
-    echo [ERROR] Failed to download Claude Code installer.
-    set "EXIT_CODE=3"
-    goto :eof
-)
-cmd /c "%TEMP_DIR%\claude-install.cmd"
+cmd /c "!CLAUDE_INSTALLER!"
 if errorlevel 1 (
     echo [ERROR] Claude Code installation failed.
     set "EXIT_CODE=3"

@@ -1,5 +1,44 @@
 # Changelog
 
+## [2.6.13] - 2026-06-08
+
+### Fixed — Claude Code step failed on networks that break curl ("installation may have failed")
+
+On a real test PC the installer finished Node.js fine but then popped
+"Claude Code installation may have failed." The new install log
+(`%LOCALAPPDATA%\Kivun\install-log.txt`) pinned the cause precisely:
+
+```
+curl: (35) Send failure: Connection was reset          <- Node download
+curl: (56) schannel: server closed abruptly (missing close_notify)   <- Claude download
+[ERROR] Failed to download Claude Code installer.
+```
+
+Both curl downloads were being mangled by a TLS-inspecting proxy/antivirus on
+that network. Node survived because `:install_node` falls back to **winget**
+(which uses the OS HTTP stack); the Claude step had **no fallback** — a single
+curl failure aborted it with exit code 3, which is what the dialog reports.
+
+- `source/install.cmd` `:install_claude` is now resilient like the Node step:
+  - **curl** is retried with `--retry 3 --retry-all-errors --retry-delay 2`
+    (rides out transient resets/`close_notify`) and `--ssl-no-revoke` (skips the
+    CRL/OCSP checks such proxies frequently break).
+  - If curl still fails, it falls back to **`certutil`**, which downloads via the
+    OS HTTP stack (WinINET / system proxy) — the same path winget used
+    successfully on this network. Built into every Windows; no PowerShell, no
+    extra prerequisites.
+  - The no-curl case now also routes through certutil instead of failing
+    immediately, and the final error message points at a proxy/firewall/AV as
+    the likely blocker plus the manual https://claude.ai/download link.
+
+### Changed — version bump
+
+- `ClaudeCode_Launchpad_CLI_Setup.nsi` — `PRODUCT_VERSION` 2.6.12 → 2.6.13;
+  `VIProductVersion` / `FileVersion` → 2.6.13.0.
+- `source/folder-picker.hta` — `FALLBACK_VERSION` → 2.6.13.
+- `README.md` — badge cachebust `v2.6.12` → `v2.6.13`; picker.png alt-text bump.
+- `START_HERE.txt` — banner → v2.6.13.
+
 ## [2.6.12] - 2026-06-03
 
 ### Fixed — Node.js install failed with exit code 1 (MSI 1603 / Error 1925)
