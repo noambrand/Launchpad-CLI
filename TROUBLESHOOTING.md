@@ -96,6 +96,23 @@ The installer uses `curl.exe` (built-in on Windows 10 1803+) to download Node.js
 3. **curl missing** - on very old Windows 10 builds (before 1803), curl may not exist. The installer falls back to winget automatically
 4. **Manual install** - if all else fails, install [Node.js](https://nodejs.org/) and [Git](https://git-scm.com/) manually, then re-run the installer (it will detect them and skip)
 
+### Antivirus or SmartScreen flags the installer (false positive)
+
+The installer is **not code-signed yet**, so Windows SmartScreen may show
+*"Windows protected your PC"*, and some antivirus (e.g. McAfee) may warn or
+block a step. This is a **false positive**:
+
+- Launchpad CLI is **open source (MIT)** - the [full source](https://github.com/noambrand/launchpad-cli), including the NSIS script and `source/install.cmd`, is public and auditable.
+- It installs **only official tools** from official sources: Node.js (winget / nodejs.org), Git (winget / git-scm.com), Windows Terminal (Microsoft Store), and Claude Code via **[Anthropic's official installer](https://claude.ai/install.cmd)**.
+- It deliberately avoids the techniques antivirus watches for: **no `certutil`/`bitsadmin` downloads**, and it prefers Microsoft-signed **winget** (which handles its own trusted elevation) over script-driven UAC.
+
+What to do:
+
+1. **SmartScreen:** click **More info → Run anyway**.
+2. **Antivirus blocked a step:** allow `ClaudeCode_Launchpad_CLI_Setup.exe` (and the install step), or temporarily turn off real-time scanning for the install, then re-run. The installer is resilient and will skip whatever already succeeded.
+3. **McAfee Web Protection blocking `claude.ai`:** if the log (`%LOCALAPPDATA%\Kivun\install-log.txt`) shows `curl: (6) Could not resolve host: claude.ai`, your antivirus is blocking the domain - allow `claude.ai`, or install Claude manually from <https://claude.ai/download> (the installer will then detect it and skip).
+4. **Verify it yourself:** upload the downloaded `.exe` to [VirusTotal](https://www.virustotal.com/) (the SHA256 is shown on the release page) to confirm it's clean.
+
 ---
 
 ## macOS

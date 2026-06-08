@@ -1,5 +1,57 @@
 # Changelog
 
+## [2.6.15] - 2026-06-08
+
+### Fixed — removed the antivirus-flagged fallback (McAfee "terminated a suspicious app")
+
+A fresh test PC showed McAfee blocking the install with a "Threat Blocked /
+terminated a suspicious app" popup. The install log named the culprit:
+
+```
+[Claude Code] Primary download failed. Trying the built-in OS downloader...
+The system cannot execute the specified program.    <- certutil terminated by McAfee
+```
+
+The `certutil -urlcache -split` fallback added in v2.6.13 is a well-known
+malware download technique (a "LOLBin"), so McAfee terminates it on sight — the
+fallback itself was the suspicious-looking action.
+
+- `source/install.cmd` **no longer uses `certutil` (or any LOLBin) to download.**
+  The Claude step relies on curl, which now carries the robust `.curlrc`
+  (http1.1 + retry) from v2.6.14 and no longer needs a second downloader. If curl
+  genuinely can't reach `claude.ai` (often AV web-protection blocking the
+  domain — seen as `curl: (6) Could not resolve host: claude.ai`), it says so
+  plainly and points at the manual installer instead of running a flagged tool.
+
+### Changed — prefer Microsoft-signed winget over script-driven elevation
+
+To stop the installer from *looking* like privilege-escalation malware:
+
+- `source/install.cmd` now installs Node.js and Git via **winget first** —
+  winget is Microsoft-signed and handles its own elevation through a trusted
+  process. The official-MSI path that uses our `cscript`/`ShellExecute "runas"`
+  elevation helper (`install-node-elevated.js`) is now only a fallback for PCs
+  without winget, instead of the default. Same for Windows Terminal (already
+  winget-only).
+
+### Added — antivirus / SmartScreen reassurance for users
+
+So a false-positive warning doesn't read as "this is malware":
+
+- `README.md`, `TROUBLESHOOTING.md`, and the release-notes template now explain
+  that the unsigned installer may trip SmartScreen/McAfee, why it's a false
+  positive (open-source, official tools only, no LOLBin tricks), how to proceed
+  (More info → Run anyway / allow `claude.ai`), and how to verify the file on
+  VirusTotal. Code-signing is the durable fix and is tracked separately.
+
+### Changed — version bump
+
+- `ClaudeCode_Launchpad_CLI_Setup.nsi` — `PRODUCT_VERSION` 2.6.14 → 2.6.15;
+  `VIProductVersion` / `FileVersion` → 2.6.15.0.
+- `source/folder-picker.hta` — `FALLBACK_VERSION` → 2.6.15.
+- `README.md` — badge cachebust `v2.6.14` → `v2.6.15`; picker.png alt-text bump.
+- `START_HERE.txt` — banner → v2.6.15.
+
 ## [2.6.14] - 2026-06-08
 
 ### Fixed — root cause of the stalled/black Claude Code install (schannel + Anthropic's un-retried download)

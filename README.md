@@ -18,7 +18,7 @@
 
 <p align="center">
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="MIT License"></a>
-  <a href="https://github.com/noambrand/launchpad-cli/releases/latest"><img src="https://img.shields.io/github/v/release/noambrand/launchpad-cli?label=version&color=brightgreen&cb=v2.6.14-lc" alt="Latest release"></a>
+  <a href="https://github.com/noambrand/launchpad-cli/releases/latest"><img src="https://img.shields.io/github/v/release/noambrand/launchpad-cli?label=version&color=brightgreen&cb=v2.6.15-lc" alt="Latest release"></a>
   <img src="https://img.shields.io/badge/platform-Windows%2010%2F11%20%7C%20macOS%2012%2B-lightgrey" alt="Platform">
   <img src="https://img.shields.io/badge/languages-24%2B-orange" alt="24+ Languages">
   <a href="https://github.com/noambrand/launchpad-cli/stargazers"><img src="https://img.shields.io/github/stars/noambrand/launchpad-cli?style=flat&color=yellow&cb=lc1" alt="GitHub Stars"></a>
@@ -62,7 +62,7 @@
 ### Here's the picker you'll get
 
 <p align="center">
-  <img src="picker.png" alt="ClaudeCode Launchpad CLI folder picker (v2.6.14) — folder selection up top, an Advanced options toggle that hides model / flags / startup slash-commands / env-vars by default, and a yellow 'Update available' banner that checks GitHub Releases on launch and offers a one-click Download button" width="780">
+  <img src="picker.png" alt="ClaudeCode Launchpad CLI folder picker (v2.6.15) — folder selection up top, an Advanced options toggle that hides model / flags / startup slash-commands / env-vars by default, and a yellow 'Update available' banner that checks GitHub Releases on launch and offers a one-click Download button" width="780">
 </p>
 
 The desktop shortcut opens this picker: pick a profile from the chip row at the top (or `+ New` to save the current setup as a named profile — folder + model + flags + startup commands + env vars), type/paste a Windows path or browse the tree, optionally pick a model (Opus / Sonnet / Haiku), tap chips for common options (Respond in Hebrew, High effort, Auto-accept file edits, Read-only, Don't fail if Opus is busy, Confirm before changes), and add startup slash commands like `/voicemode:converse` that get typed into Claude after it opens.
@@ -98,6 +98,8 @@ There are **two** projects in this family. Pick whichever fits how you work:
 2. Run as Administrator - the wizard auto-detects what's already installed
 3. Double-click the **"ClaudeCode Launchpad CLI"** desktop shortcut
 4. Start coding with Claude
+
+> **SmartScreen / antivirus note:** the installer isn't code-signed yet, so Windows SmartScreen may show *"Windows protected your PC"* (click **More info → Run anyway**) and some antivirus (e.g. McAfee) may warn. This is a **false positive**. Launchpad CLI is open-source (MIT) with [auditable source](https://github.com/noambrand/launchpad-cli), installs only official tools (Node.js, Git, Windows Terminal, and Claude via [Anthropic's official installer](https://claude.ai/install.cmd)), and deliberately avoids the download/elevation tricks antivirus watches for. You can scan the file yourself on [VirusTotal](https://www.virustotal.com/). More detail in [TROUBLESHOOTING](TROUBLESHOOTING.md#antivirus-or-smartscreen-flags-the-installer-false-positive).
 
 ### macOS
 

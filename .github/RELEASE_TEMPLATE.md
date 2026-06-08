@@ -8,6 +8,8 @@
 
 > **Note:** The installer may close open terminal windows during setup. Save your work before running.
 
+> **SmartScreen / antivirus:** this installer isn't code-signed yet, so SmartScreen may say *"Windows protected your PC"* (click **More info → Run anyway**) and some antivirus (e.g. McAfee) may flag it — a known **false positive**. Launchpad CLI is open-source (MIT) and installs only official tools, with no `certutil`/`bitsadmin` download tricks. See [TROUBLESHOOTING](https://github.com/noambrand/launchpad-cli/blob/main/TROUBLESHOOTING.md#antivirus-or-smartscreen-flags-the-installer-false-positive).
+
 ## macOS
 
 1. Download **ClaudeCode_Launchpad_CLI_Setup_mac.pkg** below
