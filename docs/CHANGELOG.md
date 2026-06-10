@@ -1,5 +1,18 @@
 # Changelog
 
+## [2.6.18] - 2026-06-10
+
+### Fixed — diagnostics tool: install-log section was broken by a batch parsing bug
+
+The v2.6.17 `launchpad-diagnostics.cmd` wrapped its install-log and Node-MSI-log
+sections in an `if ... (…) else (… echo (…))` block. cmd.exe mis-parses the
+parentheses *inside* the echoed text, so the compound statement errored with
+"`)` was unexpected at this time" — and that parse error fires regardless of which
+branch runs, which suppressed the **install-log dump** (the single most useful piece
+of diagnostic data). Rewritten with plain `if exist` / `if not exist` statements (no
+parenthesised blocks); the full report now generates cleanly (verified end-to-end:
+all 11 sections, zero parse errors).
+
 ## [2.6.17] - 2026-06-10
 
 ### Added — one-click Diagnostics & Problem Report tool (bundled + downloadable from the release)

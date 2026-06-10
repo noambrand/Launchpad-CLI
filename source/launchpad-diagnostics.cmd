@@ -75,11 +75,13 @@ tasklist 2>nul | findstr /i "mcafee mfe MsMpEng windefend avp avgnt egui avastsv
 
 >>"%RPT%" echo.
 >>"%RPT%" echo ===== [9] Install log =====
-if exist "%KDIR%\install-log.txt" (type "%KDIR%\install-log.txt" >>"%RPT%" 2>&1) else (>>"%RPT%" echo (no install-log.txt found yet))
+if not exist "%KDIR%\install-log.txt" >>"%RPT%" echo (no install-log.txt found yet)
+if exist "%KDIR%\install-log.txt" type "%KDIR%\install-log.txt" >>"%RPT%" 2>&1
 
 >>"%RPT%" echo.
 >>"%RPT%" echo ===== [10] Node MSI log =====
-if exist "%KDIR%\node-msi.log" (type "%KDIR%\node-msi.log" >>"%RPT%" 2>&1) else (>>"%RPT%" echo (none - normal unless the Node MSI fallback ran))
+if not exist "%KDIR%\node-msi.log" >>"%RPT%" echo (none - normal unless the Node MSI fallback ran)
+if exist "%KDIR%\node-msi.log" type "%KDIR%\node-msi.log" >>"%RPT%" 2>&1
 
 >>"%RPT%" echo.
 >>"%RPT%" echo ===== [11] Install folder listing =====
