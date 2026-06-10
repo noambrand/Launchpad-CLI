@@ -369,12 +369,12 @@ SectionEnd
 Section "!Install Node.js (Required)" SecNodeJS
   SectionIn RO  ; Read-only, cannot be deselected
 
-  DetailPrint "Installing Node.js via install.cmd (curl + winget fallback)..."
+  DetailPrint "Installing Node.js via install.cmd (winget, official installer fallback)..."
   ExecWait 'cmd /c "$INSTDIR\install.cmd" /node' $0
   DetailPrint "install.cmd /node exit code: $0"
 
   ${If} $0 == 10
-    MessageBox MB_OK "Node.js could not be installed: neither curl nor winget available.$\n$\nPlease install Node.js manually from https://nodejs.org/"
+    MessageBox MB_OK "Node.js could not be installed automatically: winget was missing or did not complete, and the official-installer download did not succeed.$\n$\nLog: $LOCALAPPDATA\Kivun\install-log.txt$\n$\nPlease install Node.js manually from https://nodejs.org/"
   ${ElseIf} $0 != 0
     MessageBox MB_OK "Node.js installation may have failed (exit code: $0).$\n$\nNode.js needs administrator rights to install. If a UAC prompt appeared, make sure to approve it.$\n$\nLogs were saved to:$\n  $LOCALAPPDATA\Kivun\install-log.txt$\n  $LOCALAPPDATA\Kivun\node-msi.log$\n$\nYou can also install Node.js manually from https://nodejs.org/"
   ${EndIf}
@@ -452,7 +452,7 @@ Section "Install Git (Optional)" SecGit
   DetailPrint "install.cmd /git exit code: $0"
 
   ${If} $0 == 10
-    MessageBox MB_OK "Git could not be installed: neither curl nor winget available.$\n$\nPlease install Git manually from https://git-scm.com/"
+    MessageBox MB_OK "Git could not be installed automatically: winget was missing or did not complete, and the official-installer download did not succeed.$\n$\nLog: $LOCALAPPDATA\Kivun\install-log.txt$\n$\nPlease install Git manually from https://git-scm.com/"
   ${ElseIf} $0 != 0
     DetailPrint "Git installation issue (exit code: $0)"
   ${EndIf}
