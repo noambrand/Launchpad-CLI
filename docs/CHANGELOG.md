@@ -1,5 +1,31 @@
 # Changelog
 
+## [2.6.17] - 2026-06-10
+
+### Added — one-click Diagnostics & Problem Report tool (bundled + downloadable from the release)
+
+When something doesn't work, users can now send a complete diagnostic report in
+one click instead of describing the problem from memory.
+
+- New **`launchpad-diagnostics.cmd`**: writes `Launchpad-Report.txt` to the Desktop
+  (and `%LOCALAPPDATA%\Kivun`) and opens it in Notepad. It captures the Launchpad +
+  Windows version, whether each launcher file is present (a **missing** one is the
+  tell-tale sign antivirus removed it), Claude Code / Node / Windows Terminal /
+  winget / Git detection, running antivirus, a Windows Defender quarantine hint,
+  and the install log. **No admin, no PowerShell, nothing is sent automatically** —
+  the user chooses whether to email it (noambbb@gmail.com) or attach it to a GitHub
+  issue.
+- Reachable two ways: **Start Menu → ClaudeCode Launchpad CLI → Diagnostics**, and —
+  crucially — as a **standalone download on the GitHub release page**, so a user
+  whose *install itself* failed (Defender quarantine, a hung step) and therefore has
+  no Start-Menu shortcut can still grab the tool and report back.
+
+### Fixed — docs no longer tell Windows users to "Run as Administrator"
+
+The installer has been per-user (no admin) since v2.6.4, but `START_HERE.txt` and
+`QUICK_START.md` still said to run it as Administrator. Corrected — double-clicking
+it normally is right; admin is only ever requested by Node's own MSI if needed.
+
 ## [2.6.16] - 2026-06-10
 
 ### Fixed — Windows Defender false-positive that quarantined the launcher (app wouldn't start)

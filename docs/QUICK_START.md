@@ -10,7 +10,7 @@ ClaudeCode Launchpad CLI is a Claude Code installer for Windows and macOS. It se
 
 > **Note:** The installer may close open terminal windows (Windows Terminal, cmd.exe) during setup- particularly when installing Git or Windows Terminal. Save your work in any open terminals before running the installer.
 
-1. Run `ClaudeCode_Launchpad_CLI_Setup.exe` as Administrator
+1. Double-click `ClaudeCode_Launchpad_CLI_Setup.exe` (no admin needed - it installs just for you)
 2. Follow the wizard:
    - Enter your name
    - Choose response language (English or Hebrew)
@@ -104,6 +104,14 @@ Key files:
 
 ## Troubleshooting
 
+### Something not working? Send a 1-click diagnostic report
+
+Run **Diagnostics** (Start Menu → ClaudeCode Launchpad CLI → Diagnostics), or — if the
+install failed and you have no shortcut — download **`launchpad-diagnostics.cmd`** from the
+[latest release](https://github.com/noambrand/launchpad-cli/releases/latest) and double-click it.
+It saves **`Launchpad-Report.txt`** to your Desktop and opens it in Notepad. No admin, no
+PowerShell, nothing is sent automatically. **Email it to noambbb@gmail.com** or attach it to a
+[GitHub issue](https://github.com/noambrand/launchpad-cli/issues).
 
 ### Windows Terminal not installed
 

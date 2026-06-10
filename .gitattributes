@@ -1,1 +1,8 @@
+# Windows batch/cmd scripts MUST stay CRLF or cmd.exe mis-parses them on the
+# end user's PC (the installer ships them verbatim). Force CRLF on checkout so
+# CI-built installers always carry correct line endings, regardless of the
+# committer's core.autocrlf setting.
+*.cmd text eol=crlf
+*.bat text eol=crlf
+
 mac/scripts/postinstall eol=lf

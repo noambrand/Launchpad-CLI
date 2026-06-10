@@ -4,6 +4,24 @@ Common issues and fixes for ClaudeCode Launchpad CLI.
 
 ---
 
+## 🆘 Something not working? Send a 1-click diagnostic report
+
+The fastest way to get help: run the **Diagnostics** tool and send us the report.
+
+- **Installed OK?** Start Menu → **ClaudeCode Launchpad CLI** → **Diagnostics**.
+- **Install failed / no shortcut?** Download **`launchpad-diagnostics.cmd`** from the
+  [latest release](https://github.com/noambrand/launchpad-cli/releases/latest) and double-click it.
+
+It writes **`Launchpad-Report.txt`** to your Desktop and opens it in Notepad, then you
+choose what to do with it. It captures your Launchpad + Windows version, which launcher
+files are present (a missing one usually means antivirus removed it), Claude / Node /
+Windows Terminal / winget detection, running antivirus, a Defender-quarantine hint, and
+the install log. **It needs no admin, runs no PowerShell, and sends nothing automatically.**
+
+**Email it to noambbb@gmail.com** or attach it to a [GitHub issue](https://github.com/noambrand/launchpad-cli/issues).
+
+---
+
 ## Status bar: customizing what shows on line 1 (v2.6.5+)
 
 `source/statusline.mjs` (internal v2.2) reads four optional environment variables:

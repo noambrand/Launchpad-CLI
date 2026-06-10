@@ -1,6 +1,6 @@
 ╔════════════════════════════════════════════════════════════╗
 ║                                                            ║
-║        ClaudeCode Launchpad CLI v2.6.16                     ║
+║        ClaudeCode Launchpad CLI v2.6.17                     ║
 ║        Windows & macOS Installer                           ║
 ║                                                            ║
 ╚════════════════════════════════════════════════════════════╝
@@ -11,7 +11,7 @@ INSTALLATION:
     Save your work in any open terminals before running the installer.
 
   Windows:
-    1. Double-click ClaudeCode_Launchpad_CLI_Setup.exe (Run as Administrator)
+    1. Double-click ClaudeCode_Launchpad_CLI_Setup.exe (no admin needed)
     2. Follow the wizard - choose your language, click Next
     3. The installer auto-detects what you have and skips it
 
@@ -43,6 +43,10 @@ DAILY USE:
 
 PROBLEMS?
 
+  → Run "Diagnostics" (Start Menu → ClaudeCode Launchpad CLI → Diagnostics),
+    or download launchpad-diagnostics.cmd from the release page and run it.
+    It saves Launchpad-Report.txt to your Desktop - email it to
+    noambbb@gmail.com so we can help. No admin, nothing is sent automatically.
   → See docs/QUICK_START.md for setup details
   → See docs/CHANGELOG.md for version history
   → Report issues: https://github.com/noambrand/launchpad-cli/issues

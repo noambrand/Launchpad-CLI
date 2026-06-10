@@ -95,6 +95,14 @@ jobs:
           name: mac-installer
           path: release-assets/
 
+      - name: Stage standalone diagnostics tool
+        run: |
+          # Ship the diagnostics tool as a downloadable release asset so a user
+          # whose install FAILED (and therefore has no Start-Menu shortcut) can
+          # still grab it from the release page, run it, and email us the report.
+          cp source/launchpad-diagnostics.cmd release-assets/
+          ls -la release-assets/
+
       - name: Copy demo video (carry forward from a prior release if absent)
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -119,6 +127,7 @@ jobs:
           for f in \
             release-assets/ClaudeCode_Launchpad_CLI_Setup.exe \
             release-assets/ClaudeCode_Launchpad_CLI_Setup_mac.pkg \
+            release-assets/launchpad-diagnostics.cmd \
             release-assets/kivun_terminal_Hebrew_2_0_2.mp4; do
             if [ ! -f "$f" ]; then
               echo "MISSING: $f"
