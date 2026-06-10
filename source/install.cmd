@@ -258,23 +258,31 @@ call :say "[Claude Code] Installed."
 goto :eof
 
 :install_wt
-where wt.exe >nul 2>&1
-if not errorlevel 1 (
-    call :say "[Windows Terminal] Already installed - skipping."
-    goto :eof
-)
-REM WT is an MSIX/Store package - winget is the only automated method
+REM Detect Windows Terminal robustly. `where wt.exe` MISSES it when the
+REM App-Execution-Alias dir (%LOCALAPPDATA%\Microsoft\WindowsApps) is not on
+REM this process's PATH - which happens when we are launched from the NSIS
+REM installer. On a PC that ALREADY had WT that made us fall through to a
+REM winget call that HUNG the whole installer. So also check the alias file.
+where wt.exe >nul 2>&1 && goto :wt_present
+if exist "%LOCALAPPDATA%\Microsoft\WindowsApps\wt.exe" goto :wt_present
+goto :wt_install
+:wt_present
+call :say "[Windows Terminal] Already installed - skipping."
+goto :eof
+:wt_install
+REM WT is an MSIX/Store package - winget is the only automated method. It is
+REM OPTIONAL: the launcher falls back to a plain console window when wt.exe is
+REM absent, so we NEVER fail the whole install over WT (and never hang on it).
 where winget.exe >nul 2>&1
 if errorlevel 1 (
-    call :say "[Windows Terminal] winget not available. Install it from the Microsoft Store."
-    set "EXIT_CODE=4"
+    call :say "[Windows Terminal] Not found; winget unavailable. Optional - get it from the Microsoft Store for the nicer terminal."
     goto :eof
 )
 call :say "[Windows Terminal] Installing via winget (Microsoft-trusted), please wait..."
-cmd /c winget install Microsoft.WindowsTerminal --accept-package-agreements --accept-source-agreements >> "%KIVUN_LOG%" 2>&1
+REM --disable-interactivity stops winget from ever waiting on a prompt (the hang).
+cmd /c winget install --id Microsoft.WindowsTerminal -e --disable-interactivity --accept-package-agreements --accept-source-agreements >> "%KIVUN_LOG%" 2>&1
 if errorlevel 1 (
-    call :say "[Windows Terminal] winget install failed. Install it from the Microsoft Store."
-    set "EXIT_CODE=4"
+    call :say "[Windows Terminal] Could not auto-install (optional) - get it from the Microsoft Store if you want it."
 ) else (
     call :say "[Windows Terminal] Installed."
 )

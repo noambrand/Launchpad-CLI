@@ -5,7 +5,7 @@
 Unicode True
 
 !define PRODUCT_NAME "ClaudeCode Launchpad CLI"
-!define PRODUCT_VERSION "2.6.15"
+!define PRODUCT_VERSION "2.6.16"
 !define PRODUCT_PUBLISHER "Noam Brand"
 !define PRODUCT_WEB_SITE "https://github.com"
 !define PRODUCT_DESCRIPTION "Claude Code installer for Windows"
@@ -33,12 +33,12 @@ InstallDir "${INSTALL_DIR}"
 ShowInstDetails show
 
 ; Version info
-VIProductVersion "2.6.15.0"
+VIProductVersion "2.6.16.0"
 VIAddVersionKey "ProductName" "${PRODUCT_NAME}"
 VIAddVersionKey "ProductVersion" "${PRODUCT_VERSION}"
 VIAddVersionKey "CompanyName" "${PRODUCT_PUBLISHER}"
 VIAddVersionKey "FileDescription" "${PRODUCT_DESCRIPTION}"
-VIAddVersionKey "FileVersion" "2.6.15.0"
+VIAddVersionKey "FileVersion" "2.6.16.0"
 VIAddVersionKey "LegalCopyright" "(C) 2026 ${PRODUCT_PUBLISHER}"
 
 ; Modern UI Configuration
@@ -182,7 +182,6 @@ Section "!Core Components (Required)" SecCore
   File "source\claude_icon.ico"
   File "source\config.txt"
   File "source\claudecode-launchpad.bat"
-  File "source\folder-picker-launcher.wsf"
   File "source\folder-picker.hta"
   File "source\write-path.js"
   File "source\write-startcmd.js"
@@ -300,7 +299,7 @@ Section "!Core Components (Required)" SecCore
 
   ; Create Start Menu shortcuts
   CreateDirectory "$SMPROGRAMS\${PRODUCT_NAME}"
-  CreateShortCut "$SMPROGRAMS\${PRODUCT_NAME}\${PRODUCT_NAME}.lnk" "wscript.exe" '"$INSTDIR\folder-picker-launcher.wsf"' "$INSTDIR\claude_icon.ico" 0 SW_SHOWNORMAL "" "${PRODUCT_DESCRIPTION}"
+  CreateShortCut "$SMPROGRAMS\${PRODUCT_NAME}\${PRODUCT_NAME}.lnk" "mshta.exe" '"$INSTDIR\folder-picker.hta"' "$INSTDIR\claude_icon.ico" 0 SW_SHOWNORMAL "" "${PRODUCT_DESCRIPTION}"
   CreateShortCut "$SMPROGRAMS\${PRODUCT_NAME}\Configuration.lnk" "notepad.exe" "$INSTDIR\config.txt" "" 0 SW_SHOWNORMAL "" "Configure language settings"
   CreateShortCut "$SMPROGRAMS\${PRODUCT_NAME}\Uninstall.lnk" "$INSTDIR\Uninstall.exe" "" "" 0 SW_SHOWNORMAL "" "Uninstall ${PRODUCT_NAME}"
 
@@ -321,7 +320,7 @@ Section "!Core Components (Required)" SecCore
   RMDir /r "$LOCALAPPDATA\Microsoft\Windows Terminal\Fragments\KivunTerminal"
 
   ; Create Desktop shortcut
-  CreateShortCut "$DESKTOP\ClaudeCode Launchpad CLI.lnk" "wscript.exe" '"$INSTDIR\folder-picker-launcher.wsf"' "$INSTDIR\claude_icon.ico" 0 SW_SHOWNORMAL "" "${PRODUCT_DESCRIPTION}"
+  CreateShortCut "$DESKTOP\ClaudeCode Launchpad CLI.lnk" "mshta.exe" '"$INSTDIR\folder-picker.hta"' "$INSTDIR\claude_icon.ico" 0 SW_SHOWNORMAL "" "${PRODUCT_DESCRIPTION}"
 
   ; Create SendTo shortcut
   CreateShortCut "$SENDTO\ClaudeCode Launchpad CLI.lnk" "$INSTDIR\claudecode-launchpad.bat" "" "$INSTDIR\claude_icon.ico" 0 SW_SHOWNORMAL "" "Open with ClaudeCode Launchpad CLI"
@@ -470,7 +469,7 @@ SectionEnd
 Function CreateDesktopShortcut
   ; Do NOT delete "$DESKTOP\Kivun Terminal.lnk" — that belongs to the
   ; separate WSL Kivun Terminal product. Only create our own shortcut.
-  CreateShortCut "$DESKTOP\ClaudeCode Launchpad CLI.lnk" "wscript.exe" '"$INSTDIR\folder-picker-launcher.wsf"' "$INSTDIR\claude_icon.ico" 0 SW_SHOWNORMAL "" "${PRODUCT_DESCRIPTION}"
+  CreateShortCut "$DESKTOP\ClaudeCode Launchpad CLI.lnk" "mshta.exe" '"$INSTDIR\folder-picker.hta"' "$INSTDIR\claude_icon.ico" 0 SW_SHOWNORMAL "" "${PRODUCT_DESCRIPTION}"
 FunctionEnd
 
 ; Uninstaller

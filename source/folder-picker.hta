@@ -466,7 +466,7 @@
   // Used only when the installer-written VERSION file is missing (e.g. a very
   // old install). Since v2.6.8 the installer writes $INSTDIR\VERSION, which is
   // the authoritative figure; keep this in sync at release time anyway.
-  var FALLBACK_VERSION = "2.6.15";
+  var FALLBACK_VERSION = "2.6.16";
   var ASSET_NAME_RE = /^ClaudeCode_Launchpad_CLI_Setup\.exe$/i;
 
   function readInstalledVersion() {
@@ -929,6 +929,19 @@
     try { writeStartupCmds(); } catch (e) {}
     try { writeEnvFile(); } catch (e) {}
     writePath(p);
+    // Launch the CLI directly from here. Previously a separate, wscript-run
+    // folder-picker-launcher.wsf did this after mshta exited - but Defender's
+    // ML flagged that script (a .wsf that runs mshta + a hidden .bat) as
+    // Trojan:Script/ObfusScript.A!ml, a false positive that QUARANTINED the app
+    // so it would not launch. mshta running THIS .hta is the picker UI itself,
+    // so starting the .bat from here keeps the same UX with no separately
+    // wscript-launched script file for the ML model to flag.
+    try {
+      var batPath = kivunDir + "\\claudecode-launchpad.bat";
+      if (fso.FileExists(batPath)) {
+        wshShell.Run("\"" + batPath + "\" \"READFILE\"", 0, false);
+      }
+    } catch (e) {}
     window.close();
   }
 

@@ -1,5 +1,32 @@
 # Changelog
 
+## [2.6.16] - 2026-06-10
+
+### Fixed — Windows Defender false-positive that quarantined the launcher (app wouldn't start)
+
+On a Windows 11 PC, Defender's machine-learning heuristic flagged
+`folder-picker-launcher.wsf` as `Trojan:Script/ObfusScript.A!ml` and quarantined
+it **plus the Start-Menu shortcut** — so the app couldn't launch at all. It was a
+false positive, but the script *pattern* (a `wscript`-run `.wsf` that runs
+`mshta` and then a hidden `.bat`) is what its ML associates with droppers.
+
+- Removed `folder-picker-launcher.wsf` entirely. The Start-Menu/Desktop shortcuts
+  now run **`mshta.exe folder-picker.hta`** directly (the picker UI itself), and
+  the HTA's Launch button starts `claudecode-launchpad.bat` from within — same
+  one-click UX, with no separately-launched script file for Defender's ML to flag.
+
+### Fixed — installer hung at the Windows Terminal step on PCs that already had it
+
+On a PC that already had Windows Terminal, `where wt.exe` didn't see it (the
+App-Execution-Alias dir isn't on the installer process's PATH), so install fell
+through to `winget install` — which **hung the whole installer**.
+
+- `install.cmd` now also checks `%LOCALAPPDATA%\Microsoft\WindowsApps\wt.exe`, so
+  an already-installed WT is detected and skipped. When WT really is missing, the
+  winget call uses `--disable-interactivity` (so it can never wait on a prompt)
+  and is **optional** — it never hangs or fails the install (the launcher falls
+  back to a plain console when WT is absent).
+
 ## [2.6.15] - 2026-06-08
 
 ### Fixed — removed the antivirus-flagged fallback (McAfee "terminated a suspicious app")
