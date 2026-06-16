@@ -590,6 +590,11 @@
   var resultFile = kivunDir + "\\kivun-workdir.txt";
   var startupFile = kivunDir + "\\kivun-claude-startcmd.txt";
   var envFile = kivunDir + "\\kivun-env.txt";
+  // One-shot per-launch flags the launcher applies once then deletes
+  // (currently the conversation choice --continue / --resume). Kept OUT of
+  // config.txt so right-click / direct launches never inherit it and crash a
+  // no-history folder with "No conversation found to continue".
+  var oneTimeFlagsFile = kivunDir + "\\kivun-claude-flags.txt";
   var profilesFile = kivunDir + "\\profiles.json";
   var configFile = installDir + "\\config.txt";
 
@@ -899,6 +904,18 @@
     writeUtf8NoBom(startupFile, cleaned.join("\n") + "\n");
   }
 
+  function writeOneTimeFlags() {
+    // The conversation choice (--continue / --resume) is a PER-LAUNCH decision.
+    // It is excluded from config.txt (see composeFlagsForConfig) so right-click
+    // "Open with..." launches don't inherit it and crash on a folder with no
+    // prior session. Instead write it to the one-shot sidecar the launcher
+    // reads, applies, and deletes on THIS launch only (claudecode-launchpad.bat
+    // :run_claude). No selection => remove any stale file so nothing is applied.
+    var conv = getRadioValue("flag-conv");
+    if (!conv) { deleteIfExists(oneTimeFlagsFile); return; }
+    writeUtf8NoBom(oneTimeFlagsFile, conv);
+  }
+
   function ok() {
     clearError();
     var p = document.getElementById("path").value;
@@ -929,6 +946,7 @@
     try { writeStartupCmds(); } catch (e) {}
     try { writeEnvFile(); } catch (e) {}
     writePath(p);
+    try { writeOneTimeFlags(); } catch (e) {}
     // Launch the CLI directly from here. Previously a separate, wscript-run
     // folder-picker-launcher.wsf did this after mshta exited - but Defender's
     // ML flagged that script (a .wsf that runs mshta + a hidden .bat) as
