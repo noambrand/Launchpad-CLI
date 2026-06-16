@@ -1,5 +1,22 @@
 # Changelog
 
+## [2.6.19] - 2026-06-16
+
+### Fixed — folder picker now applies the conversation choice (--continue / --resume) at launch
+
+The picker's **Continue last / Pick from history** radio was shown in the flag
+preview but **dropped at launch**. `composeFlagsForConfig()` deliberately keeps
+`--continue` / `--resume` out of `config.txt` so a right-click "Open with..."
+launch can't inherit them and crash a folder with no prior session
+("No conversation found to continue") — but nothing else wrote the choice, so the
+launcher's one-time-flags reader (`kivun-claude-flags.txt`) always saw an empty
+file. `folder-picker.hta` now writes the choice to that one-time sidecar in `ok()`
+(`writeOneTimeFlags`), which `claudecode-launchpad.bat :run_claude` applies to that
+single launch then deletes; a phase-1 guard clears a stale sidecar on any
+non-picker (right-click / direct) launch so it can never leak in. `config.txt`
+still excludes the conversation flags. Ports the kivun-terminal-wsl v1.4.34
+picker-resume fix to Launchpad's existing one-time-flags mechanism.
+
 ## [2.6.18] - 2026-06-10
 
 ### Fixed — diagnostics tool: install-log section was broken by a batch parsing bug
