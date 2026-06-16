@@ -61,6 +61,15 @@ if exist "%~1" (
 
 :work_dir_done
 
+REM --- One-shot resume flag hygiene -------------------------------------
+REM The folder picker writes the conversation choice (--continue / --resume)
+REM to kivun-claude-flags.txt, which :run_claude applies to THIS launch then
+REM deletes. Only a picker launch (arg READFILE) may carry it. On a right-click
+REM "Open with..." or direct launch, clear any stale file left by a picker run
+REM that never reached :run_claude, so it can't leak in and crash a no-history
+REM folder with "No conversation found to continue".
+if /i not "%~1"=="READFILE" del "%LOCALAPPDATA%\Kivun\kivun-claude-flags.txt" >nul 2>&1
+
 REM --- Tab title = the project folder name, so multiple tabs are
 REM     distinguishable. The WT profile sets suppressApplicationTitle:true,
 REM     so Claude can't overwrite this with its own "Claude Code" title.
