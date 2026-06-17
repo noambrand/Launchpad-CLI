@@ -1,5 +1,40 @@
 # Changelog
 
+## [2.6.20] - 2026-06-17
+
+### Fixed — picker no longer opens two Windows Terminal tabs per launch
+
+Launching from the desktop icon could open **two identical tabs** for the same
+folder. Instrumented logging proved the picker's `ok()` handler fired twice
+~0.3s apart (a double-click on **Launch**, or Enter-plus-click after a radio had
+focus), each running `claudecode-launchpad.bat READFILE` and adding its own
+`wt new-tab`. `folder-picker.hta` `ok()` now carries an **idempotency guard**
+(`window.__ccLaunched`): once a launch is committed, any second `ok()` returns
+immediately, so at most one tab opens regardless of how the launch was triggered.
+Validation failures (empty/missing folder) do not set the flag, so the user can
+still correct a bad path and retry. This was **not** a Windows Terminal
+`firstWindowPreference` / layout-restore issue.
+
+### Fixed — "Download" / "release notes" buttons in the update banner did nothing
+
+The update banner's **Download vX** and **release notes** links were silently
+rejected by the `isTrustedUpdateUrl()` security allowlist. The GitHub Releases
+API returns URLs with the repo's canonical casing
+(`github.com/noambrand/Launchpad-CLI/...`), but the allowlist compared them
+**case-sensitively** against the lower-cased `GITHUB_REPO`
+(`noambrand/launchpad-cli`), so no prefix ever matched and the click was a no-op.
+The comparison is now **case-insensitive** (GitHub org/repo names are
+case-insensitive); the original-cased URL is still what gets opened, and the
+`objects.githubusercontent.com` asset-CDN prefix is unchanged. Introduced by the
+`kivun-terminal -> launchpad-cli` reference lowercasing (a5ccbdf).
+
+### Fixed — installer now stamps the real version
+
+`ClaudeCode_Launchpad_CLI_Setup.nsi` `PRODUCT_VERSION` was left at `2.6.18`
+through the 2.6.19 release, so the installer wrote `2.6.18` to `$INSTDIR\VERSION`
+and the picker's "you have vX" banner under-reported. Bumped to `2.6.20`
+(`VIProductVersion` / `FileVersion` too).
+
 ## [2.6.19] - 2026-06-16
 
 ### Fixed — folder picker now applies the conversation choice (--continue / --resume) at launch

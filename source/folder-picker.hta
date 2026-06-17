@@ -466,7 +466,7 @@
   // Used only when the installer-written VERSION file is missing (e.g. a very
   // old install). Since v2.6.8 the installer writes $INSTDIR\VERSION, which is
   // the authoritative figure; keep this in sync at release time anyway.
-  var FALLBACK_VERSION = "2.6.18";
+  var FALLBACK_VERSION = "2.6.20";
   var ASSET_NAME_RE = /^ClaudeCode_Launchpad_CLI_Setup\.exe$/i;
 
   function readInstalledVersion() {
@@ -560,14 +560,22 @@
   // arbitrary download/run.
   function isTrustedUpdateUrl(url) {
     if (!url || typeof url !== "string") return false;
+    // GitHub org/repo names are case-insensitive, and the Releases API returns
+    // URLs with the repo's CANONICAL casing (noambrand/Launchpad-CLI), which did
+    // not match our lower-cased GITHUB_REPO under the old case-sensitive compare.
+    // That silently rejected every real Download / release-notes URL, so the
+    // button did nothing. Compare case-insensitively (host + repo only; the
+    // original-cased url is what we actually open in openUpdateUrl).
+    var u = url.toLowerCase();
+    var repo = GITHUB_REPO.toLowerCase();
     var prefixes = [
-      "https://github.com/" + GITHUB_REPO + "/",
-      "https://github.com/" + GITHUB_REPO,
-      "https://api.github.com/repos/" + GITHUB_REPO + "/",
+      "https://github.com/" + repo + "/",
+      "https://github.com/" + repo,
+      "https://api.github.com/repos/" + repo + "/",
       "https://objects.githubusercontent.com/"
     ];
     for (var i = 0; i < prefixes.length; i++) {
-      if (url.length >= prefixes[i].length && url.substr(0, prefixes[i].length) === prefixes[i]) {
+      if (u.length >= prefixes[i].length && u.substr(0, prefixes[i].length) === prefixes[i]) {
         return true;
       }
     }
@@ -918,6 +926,13 @@
 
   function ok() {
     clearError();
+    // Idempotency guard: a double-click on Launch, or Enter-plus-click after
+    // focusing a radio, can fire ok() twice ~0.3s apart, which launched the
+    // CLI twice and opened two identical Windows Terminal tabs. Once a launch
+    // is committed below we set window.__ccLaunched, so any second call here
+    // returns immediately. Validation failures below do NOT set it, so the
+    // user can still correct a bad path and retry.
+    if (window.__ccLaunched) { return; }
     var p = document.getElementById("path").value;
     if (p == null) p = "";
     p = p.replace(/^\s+|\s+$/g, "");
@@ -947,6 +962,9 @@
     try { writeEnvFile(); } catch (e) {}
     writePath(p);
     try { writeOneTimeFlags(); } catch (e) {}
+    // Commit the launch: from here on, treat this picker window as spent so a
+    // stray second ok() (double-click / Enter+click) cannot open a second tab.
+    window.__ccLaunched = true;
     // Launch the CLI directly from here. Previously a separate, wscript-run
     // folder-picker-launcher.wsf did this after mshta exited - but Defender's
     // ML flagged that script (a .wsf that runs mshta + a hidden .bat) as
