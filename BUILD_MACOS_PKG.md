@@ -19,6 +19,7 @@ cd /path/to/kivun-terminal
 # 2. Copy required files to mac/scripts/
 cp source/statusline.mjs mac/scripts/statusline.mjs
 cp source/configure-statusline.js mac/scripts/configure-statusline.js
+cp -R source/sounds mac/scripts/sounds
 
 # 3. Make postinstall executable
 chmod +x mac/scripts/postinstall
@@ -112,6 +113,7 @@ jobs:
         run: |
           cp source/statusline.mjs mac/scripts/
           cp source/configure-statusline.js mac/scripts/
+          cp -R source/sounds mac/scripts/sounds
           chmod +x mac/scripts/postinstall
       
       - name: Build pkg

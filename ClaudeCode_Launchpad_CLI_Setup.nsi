@@ -199,6 +199,11 @@ Section "!Core Components (Required)" SecCore
   File "source\fix-wt-icon.hta"
   File "source\close-launchers.js"
 
+  ; Copy the voice-alert sounds toolkit (bundled under $INSTDIR\sounds)
+  SetOutPath "$INSTDIR\sounds"
+  File /r "source\sounds\*.*"
+  SetOutPath "$INSTDIR"
+
   ; Copy documentation
   File "source\FIX_WT_ICON_README.txt"
   File "README.md"
@@ -426,6 +431,16 @@ Section "!Install Claude Code (Required)" SecClaudeCode
     DetailPrint "Statusline configured in Claude Code settings"
   ${Else}
     DetailPrint "WARNING: Could not configure statusline in settings (exit code: $0)"
+  ${EndIf}
+
+  ; Configure voice alerts (deploys to %USERPROFILE%\.claude\sounds and wires hooks)
+  DetailPrint "Configuring Claude Code voice alerts..."
+  nsExec::ExecToLog 'node "$INSTDIR\sounds\configure-sound-hooks.js"'
+  Pop $0
+  ${If} $0 == 0
+    DetailPrint "Voice alerts configured in Claude Code settings"
+  ${Else}
+    DetailPrint "WARNING: Could not configure voice alerts (exit code: $0)"
   ${EndIf}
 
   ; Apply Noam color scheme directly to WT settings (only when theme is enabled)

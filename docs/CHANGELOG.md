@@ -1,5 +1,26 @@
 # Changelog
 
+## [Unreleased]
+
+### Added — voice alerts (done / stuck / save) with a repeat reminder
+
+Claude Code now speaks short clips so you don't have to watch the screen: **done**
+when it finishes a turn, **stuck** when it's waiting on you, and **save** (on demand)
+when you must act by hand. While Claude is waiting, a quiet **nag** replays the stuck
+clip every couple of minutes until you respond, then disarms itself
+(`UserPromptSubmit` / `PostToolUse`); it is capped at 15 repeats so it can never run
+away. On by default; toggle with the **Sound ON/OFF** launchers or
+`node voice.js on|off`.
+
+Pure **Node.js** (the runtime the installer already provides) plus bundled `.wav`
+clips — no Python and **no PowerShell** (Windows playback uses the Windows Media
+Player COM via `cscript`, which keeps installers clear of antivirus heuristics);
+macOS uses `afplay`. The installer copies `source/sounds/` to `~/.claude/sounds/` and
+runs `configure-sound-hooks.js`, which idempotently merges the Stop / Notification /
+UserPromptSubmit / PostToolUse hooks into `~/.claude/settings.json` and preserves the
+user's on/off choice across upgrades. Wired into the Windows NSIS installer, the macOS
+`pkg` postinstall, and the three macOS build workflows.
+
 ## [2.6.20] - 2026-06-17
 
 ### Fixed — picker no longer opens two Windows Terminal tabs per launch

@@ -217,6 +217,20 @@ else
     log "WARNING: configure-statusline.js not found in package"
 fi
 
+# Configure voice alerts (deploys to ~/.claude/sounds and wires the hooks)
+SOUNDS_CONFIGURE="$(dirname "$0")/sounds/configure-sound-hooks.js"
+if [ -f "$SOUNDS_CONFIGURE" ]; then
+    log "Configuring Claude Code voice alerts..."
+    run_as_user "node '$SOUNDS_CONFIGURE'" 2>/dev/null
+    if [ $? -eq 0 ]; then
+        log "Voice alerts configured in Claude Code settings"
+    else
+        log "WARNING: Could not configure voice alerts"
+    fi
+else
+    log "WARNING: sounds/configure-sound-hooks.js not found in package"
+fi
+
 # --- Configuration File ---
 log "Creating configuration file..."
 CONFIG_DIR="$REAL_HOME/Library/Application Support/ClaudeCode-Launchpad"
