@@ -4,7 +4,8 @@
 //   node voice.js on            -> enable all alerts
 //   node voice.js off           -> silence all alerts (and stop any nag)
 //   node voice.js status        -> print current settings
-//   node voice.js every <min>   -> set the nag repeat interval, in minutes
+//   node voice.js repeat on|off -> turn the repeat reminder on/off (OFF by default)
+//   node voice.js every <min>   -> set the repeat interval (also turns repeat on)
 //   node voice.js test [name]   -> play a clip now (default: done)
 'use strict';
 const fs = require('fs');
@@ -25,9 +26,9 @@ function save(d) {
 }
 function status() {
   const d = load();
-  console.log('Voice alerts: ' + (d.enabled === false ? 'OFF' : 'ON'));
-  console.log('Nag repeat:   every ' + (d.repeat_minutes || 2) + ' minute(s)');
-  console.log('Folder:       ' + DIR);
+  console.log('Voice alerts:    ' + (d.enabled === false ? 'OFF' : 'ON'));
+  console.log('Repeat reminder: ' + (d.repeat_enabled === true ? 'ON (every ' + (d.repeat_minutes || 2) + ' min)' : 'OFF'));
+  console.log('Folder:          ' + DIR);
 }
 
 function main() {
@@ -44,12 +45,29 @@ function main() {
       require('./reminder.js').disarm();
     } catch (_) {}
     console.log('Voice alerts OFF.');
+  } else if (cmd === 'repeat') {
+    const v = (process.argv[3] || '').toLowerCase();
+    if (v === 'on') {
+      d.repeat_enabled = true;
+      save(d);
+      console.log('Repeat reminder ON (every ' + (d.repeat_minutes || 2) + ' min).');
+    } else if (v === 'off') {
+      d.repeat_enabled = false;
+      save(d);
+      try {
+        require('./reminder.js').disarm();
+      } catch (_) {}
+      console.log('Repeat reminder OFF.');
+    } else {
+      console.log('Usage: node voice.js repeat on|off');
+    }
   } else if (cmd === 'every' && process.argv[3]) {
     const n = parseInt(process.argv[3], 10);
     if (!isNaN(n) && n > 0) {
       d.repeat_minutes = n;
+      d.repeat_enabled = true; // setting an interval means you want the reminder on
       save(d);
-      console.log('Nag now repeats every ' + n + ' minute(s).');
+      console.log('Repeat reminder ON, every ' + n + ' minute(s).');
     } else {
       console.log('Give a number of minutes, e.g.  node voice.js every 3');
     }

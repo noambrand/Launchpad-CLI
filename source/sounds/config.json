@@ -1,4 +1,5 @@
 {
   "enabled": true,
+  "repeat_enabled": false,
   "repeat_minutes": 2
 }

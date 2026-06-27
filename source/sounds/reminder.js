@@ -32,6 +32,11 @@ function cfg() {
 function enabled() {
   return cfg().enabled !== false;
 }
+// The repeat reminder is OFF by default — only an explicit "repeat_enabled": true
+// (or `voice.js repeat on`) arms it, so users are never nagged unless they opt in.
+function repeatEnabled() {
+  return cfg().repeat_enabled === true;
+}
 function intervalMs() {
   const env = process.env.REMIND_INTERVAL;
   if (env && !isNaN(parseFloat(env))) return Math.max(1, parseFloat(env)) * 1000;
@@ -50,7 +55,7 @@ function newToken() {
 }
 
 function arm() {
-  if (!enabled()) return;
+  if (!enabled() || !repeatEnabled()) return;
   const token = newToken();
   try {
     fs.writeFileSync(LOCK, token);

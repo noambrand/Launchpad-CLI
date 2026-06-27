@@ -15,12 +15,17 @@ PowerShell, no extra installs.
 
 Each is a `.wav` in this folder. Swap a voice by replacing the file of the same name.
 
-## The repeat reminder (the "nag")
+## The repeat reminder (the "nag") — OFF by default
 
-When Claude stops to wait for you, it also starts a quiet background **nag** that
-replays the *stuck* clip every couple of minutes until you come back. It stops the
-instant you type a prompt (`UserPromptSubmit`) or Claude runs its next tool
-(`PostToolUse`). A hard cap of 15 repeats means it can never nag forever.
+Optionally, when Claude is waiting it can **repeat** the *stuck* clip every couple of
+minutes until you come back, then stop the instant you type a prompt
+(`UserPromptSubmit`) or Claude runs its next tool (`PostToolUse`); a hard cap of 15
+repeats means it can never nag forever.
+
+This repeat is **off by default** (a sound that keeps repeating can annoy). You still
+hear the single *stuck* alert once each time Claude waits — only the repeating is
+opt-in. Turn it on with `node voice.js repeat on` (or set `"repeat_enabled": true` in
+`config.json`); turn it off again with `node voice.js repeat off`.
 
 ## How playback works per platform
 
@@ -42,14 +47,16 @@ Double-click in this folder:
 ```
 node voice.js on
 node voice.js off
-node voice.js every 3        # nag every 3 minutes
+node voice.js repeat on       # turn the repeat reminder on (off by default)
+node voice.js repeat off      # turn it back off
+node voice.js every 3         # repeat every 3 minutes (also turns it on)
 node voice.js status
 node voice.js test stuck
 ```
 
-Settings live in `config.json` (`enabled`, `repeat_minutes`) and are re-read on every
-play, so changes apply immediately. The hooks themselves load only when Claude Code
-starts, so a fresh install takes effect in the next session.
+Settings live in `config.json` (`enabled`, `repeat_enabled`, `repeat_minutes`) and are
+re-read on every play, so changes apply immediately. The hooks themselves load only
+when Claude Code starts, so a fresh install takes effect in the next session.
 
 ## Files
 

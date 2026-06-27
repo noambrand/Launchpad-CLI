@@ -6,11 +6,11 @@
 
 Claude Code now speaks short clips so you don't have to watch the screen: **done**
 when it finishes a turn, **stuck** when it's waiting on you, and **save** (on demand)
-when you must act by hand. While Claude is waiting, a quiet **nag** replays the stuck
-clip every couple of minutes until you respond, then disarms itself
-(`UserPromptSubmit` / `PostToolUse`); it is capped at 15 repeats so it can never run
-away. On by default; toggle with the **Sound ON/OFF** launchers or
-`node voice.js on|off`.
+when you must act by hand. The three sounds are **on by default**; toggle them with the
+**Sound ON/OFF** launchers or `node voice.js on|off`. Optionally, a repeat reminder can
+re-play the stuck clip every couple of minutes while Claude waits, then disarms on
+`UserPromptSubmit` / `PostToolUse` (capped at 15 repeats). The repeat is **off by
+default** so users are never nagged unless they opt in (`node voice.js repeat on`).
 
 Pure **Node.js** (the runtime the installer already provides) plus bundled `.wav`
 clips — no Python and **no PowerShell** (Windows playback uses the Windows Media
