@@ -5,29 +5,38 @@ screen. Bundled with the installer and wired up automatically. Pure **Node.js** 
 runtime the installer already sets up) plus the bundled `.wav` clips — no Python, no
 PowerShell, no extra installs.
 
-## The three sounds
+## The four alerts (and when each fires)
 
-| Sound | When it plays | Hook |
-|-------|---------------|------|
-| **done**  | Claude finishes a turn | `Stop` |
-| **permission** | Claude is waiting on **you to grant permission or answer** (blocked, not done) | `Notification` |
-| **save**  | **Manual intervention** — you must go do something by hand. Played on demand | none |
+| Alert | Plays when | Hook (event) |
+|-------|-----------|--------------|
+| **done** | Claude finishes a turn — your turn now | `Stop` |
+| **permission** | The numbered **1. Yes / 2. No** confirm appears and you must pick | `PermissionRequest` |
+| **waiting** | Claude has been waiting on you (~60s idle / you stepped away) | `Notification` (idle only) |
+| **save** | You must go do something by hand (manual intervention) | on-demand (Claude runs it) |
 
-These are **three distinct recordings**: permission (*permission*) and manual intervention
-(*save*) are different situations and never share a clip. Each is a `.wav` in this
-folder. Swap a voice by replacing the file of the same name.
+`permission` fires **only** on a real interactive confirm — never on an auto-approved
+tool. `waiting` is filtered to the idle notification (`matcher: "idle_prompt"`), so it
+never fires just because a permission prompt appeared (that's `permission`'s job). This
+matters: an earlier version put the permission clip on `Notification`, which also fires
+on idle, so it announced "permission required" when none was needed.
 
-## The repeat reminder (the "nag") — OFF by default
+## Regular vs Funny mode
 
-Optionally, when Claude is waiting it can **repeat** the *permission* clip every couple of
-minutes until you come back, then stop the instant you type a prompt
-(`UserPromptSubmit`) or Claude runs its next tool (`PostToolUse`); a hard cap of 15
-repeats means it can never nag forever.
+Every alert has two recordings — a plain one and a joke one:
 
-This repeat is **off by default** (a sound that keeps repeating can annoy). You still
-hear the single *permission* alert once each time Claude waits — only the repeating is
-opt-in. Turn it on with `node voice.js repeat on` (or set `"repeat_enabled": true` in
-`config.json`); turn it off again with `node voice.js repeat off`.
+| Alert | Regular says | Funny says |
+|-------|--------------|------------|
+| done | "Done." | "Done. I'll pretend that took effort." |
+| permission | "Permission required." | "Permission needed. I'm about to run a command I have feelings about." |
+| waiting | "Attention required." | "Waiting for you. I've been very patient." |
+| save | "Manual intervention." | "About to delete things. Last chance to press escape." |
+
+Clips live in `regular/<name>.wav` and `funny/<name>.wav`; `config.json` `"mode"`
+selects the set and `play.js` falls back `funny → regular → flat`, so a missing funny
+clip never goes silent. Switch any time (applies immediately):
+
+- Double-click **Regular Sounds ON** / **Funny Sounds ON**
+- or `node voice.js mode regular|funny`
 
 ## How playback works per platform
 
@@ -37,42 +46,52 @@ opt-in. Turn it on with `node voice.js repeat on` (or set `"repeat_enabled": tru
 | macOS    | `afplay` | Built in |
 | Linux / WSL | `paplay` then `aplay` (best effort) | **Stub.** Real audio from WSL needs WSLg/PulseAudio; silent otherwise |
 
-## Turn it on/off and tune it
+## The repeat reminder — OFF by default
 
-Double-click in this folder:
+When you've gone idle, an optional reminder repeats the **waiting** clip every couple
+of minutes until you respond (capped at 15). It is **off by default** so you are never
+nagged. Turn it on with `node voice.js repeat on`; off with `node voice.js repeat off`.
+It stops the instant you type a prompt (`UserPromptSubmit`) or Claude runs its next
+tool (`PostToolUse`).
 
-- **Sound ON** / **Sound OFF** — enable or silence everything (and stop any nag)
-- **Test Sounds** — play all three clips and show current settings
+## Controls
 
-(`.cmd` files on Windows, `.command` files on macOS.) Or from a terminal:
+Double-click in this folder (`.cmd` on Windows, `.command` on macOS), or run the command:
 
+| File | Command | Does |
+|------|---------|------|
+| **Sound ON** | `voice.js on` | enable all alerts |
+| **Sound OFF** | `voice.js off` | silence everything + stop any nag |
+| **Regular Sounds ON** | `voice.js mode regular` | use the plain clips |
+| **Funny Sounds ON** | `voice.js mode funny` | use the joke clips |
+| **Test Sounds** | — | play all four alerts in the current mode |
+| — | `voice.js repeat on\|off` | repeat reminder (off by default) |
+| — | `voice.js status` | show current settings |
+
+## config.json
+
+```json
+{ "enabled": true, "mode": "regular", "repeat_enabled": false, "repeat_minutes": 2 }
 ```
-node voice.js on
-node voice.js off
-node voice.js repeat on       # turn the repeat reminder on (off by default)
-node voice.js repeat off      # turn it back off
-node voice.js every 3         # repeat every 3 minutes (also turns it on)
-node voice.js status
-node voice.js test permission
-```
 
-Settings live in `config.json` (`enabled`, `repeat_enabled`, `repeat_minutes`) and are
-re-read on every play, so changes apply immediately. The hooks themselves load only
-when Claude Code starts, so a fresh install takes effect in the next session.
+`enabled`, `mode`, and `repeat_*` are re-read on every play, so they apply
+**immediately**. The hooks themselves load only when Claude Code starts, so a fresh
+install takes effect in the next session.
 
 ## Files
 
 | File | Role |
 |------|------|
-| `play.js`  | Plays one clip: `node play.js done\|permission\|save` |
+| `play.js` | Plays one alert: `node play.js done\|permission\|waiting\|save` |
 | `play.vbs` | Windows player used by `play.js` (no PowerShell) |
-| `reminder.js` | The nag: `arm` / `disarm` / internal `wait` |
-| `voice.js` | On/off and tuning controls |
-| `configure-sound-hooks.js` | Merges the hooks into `~/.claude/settings.json` (idempotent) |
-| `config.json` | `enabled` + `repeat_minutes` |
-| `*.wav` | The voice clips |
-| `Sound *.cmd` / `*.command` | Double-click launchers |
+| `reminder.js` | The repeat reminder: `arm` / `disarm` / internal `wait` |
+| `voice.js` | All controls (on/off, mode, repeat, status, test) |
+| `configure-sound-hooks.js` | Deploys to `~/.claude/sounds` and merges the hooks (idempotent) |
+| `config.json` | `enabled` + `mode` + `repeat_enabled` + `repeat_minutes` |
+| `regular/`, `funny/` | The two clip sets (`done/permission/waiting/save.wav`) |
+| `*.cmd` / `*.command` | Double-click launchers |
 
-The installer copies this whole folder to `~/.claude/sounds/` and runs
-`node configure-sound-hooks.js` once to wire the hooks. Re-running that command is safe
-— it replaces only its own hooks and leaves every other setting untouched.
+The installer copies this whole folder (including `regular/` and `funny/`) to
+`~/.claude/sounds/` and runs `node configure-sound-hooks.js` once to wire the hooks.
+Re-running that command is safe — it replaces only its own hooks and leaves every other
+setting untouched.

@@ -2,25 +2,32 @@
 
 ## [Unreleased]
 
-### Added — voice alerts (done / permission / save) with a repeat reminder
+### Added — voice alerts (done / permission / waiting / save), regular or funny
 
-Claude Code now speaks short clips so you don't have to watch the screen: **done**
-when it finishes a turn, **permission** when it's waiting on you to approve or answer,
-and **save** (on demand) when you must act by hand. The three sounds are **on by
-default**; toggle them with the **Sound ON/OFF** launchers or `node voice.js on|off`.
-Optionally, a repeat reminder can re-play the permission clip every couple of minutes
-while Claude waits, then disarms on `UserPromptSubmit` / `PostToolUse` (capped at 15
-repeats). The repeat is **off by default** so users are never nagged unless they opt
-in (`node voice.js repeat on`).
+Claude Code now speaks short clips so you don't have to watch the screen, each bound to
+the event that actually means it:
+
+- **done** — Claude finished a turn (`Stop`)
+- **permission** — the numbered **1. Yes / 2. No** confirm appears (`PermissionRequest`,
+  interactive prompts only — never auto-approved tools)
+- **waiting** — Claude has been waiting on you / ~60s idle (`Notification` with
+  `matcher: "idle_prompt"`, so it never fires just because a permission prompt appeared)
+- **save** — manual intervention, act by hand (on-demand)
+
+Each alert has two recordings — a plain one and a joke one. Switch with the **Regular /
+Funny Sounds ON** launchers or `node voice.js mode regular|funny`; clips live under
+`regular/` and `funny/` with a `funny → regular → flat` fallback. An optional repeat
+reminder (off by default) re-plays the *waiting* clip every couple of minutes once
+you've gone idle, disarming on `UserPromptSubmit` / `PostToolUse` (capped at 15).
 
 Pure **Node.js** (the runtime the installer already provides) plus bundled `.wav`
-clips — no Python and **no PowerShell** (Windows playback uses the Windows Media
-Player COM via `cscript`, which keeps installers clear of antivirus heuristics);
-macOS uses `afplay`. The installer copies `source/sounds/` to `~/.claude/sounds/` and
-runs `configure-sound-hooks.js`, which idempotently merges the Stop / Notification /
-UserPromptSubmit / PostToolUse hooks into `~/.claude/settings.json` and preserves the
-user's on/off choice across upgrades. Wired into the Windows NSIS installer, the macOS
-`pkg` postinstall, and the three macOS build workflows.
+clips — no Python and **no PowerShell** (Windows playback uses the Windows Media Player
+COM via `cscript`, which keeps installers clear of antivirus heuristics); macOS uses
+`afplay`. The installer copies `source/sounds/` (both clip sets) to `~/.claude/sounds/`
+and runs `configure-sound-hooks.js`, which idempotently merges the
+Stop / PermissionRequest / Notification / UserPromptSubmit / PostToolUse hooks and
+preserves the user's settings across upgrades. Wired into the Windows NSIS installer,
+the macOS `pkg` postinstall, and the three macOS build workflows.
 
 ## [2.6.20] - 2026-06-17
 

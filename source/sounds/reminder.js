@@ -1,12 +1,12 @@
 #!/usr/bin/env node
 // reminder.js - the repeating "you're needed" nag for Claude Code.
 //
-//   node reminder.js arm      -> start nagging (replays permission.wav every N min)
+//   node reminder.js arm      -> start nagging (replays the 'waiting' clip every N min)
 //   node reminder.js disarm   -> stop nagging
 //   node reminder.js wait T   -> internal: the detached waiter loop (token T)
 //
 // `arm` writes a fresh token to .nag.lock and spawns a DETACHED background Node
-// process that sleeps one interval, plays the permission clip, and repeats. `disarm`
+// process that sleeps one interval, plays the 'waiting' clip, and repeats. `disarm`
 // deletes the lock so the waiter exits at its next check. Re-arming overwrites the
 // token, so any older waiter sees a mismatch and quietly dies (only one nag lives).
 //
@@ -98,7 +98,7 @@ async function wait(token) {
     if (!enabled()) break;
     if (readToken() !== token) break; // disarmed, or a newer nag took over
     try {
-      const wav = player && player.clip('permission');
+      const wav = player && player.clip('waiting');
       if (wav) player.play(wav);
     } catch (_) {
       /* ignore */

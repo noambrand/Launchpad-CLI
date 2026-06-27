@@ -1,12 +1,14 @@
 #!/usr/bin/env node
 // voice.js - turn the Claude Code voice alerts on/off and tune them.
 //
-//   node voice.js on            -> enable all alerts
-//   node voice.js off           -> silence all alerts (and stop any nag)
-//   node voice.js status        -> print current settings
-//   node voice.js repeat on|off -> turn the repeat reminder on/off (OFF by default)
-//   node voice.js every <min>   -> set the repeat interval (also turns repeat on)
-//   node voice.js test [name]   -> play a clip now (default: done)
+//   node voice.js on              -> enable all alerts
+//   node voice.js off             -> silence all alerts (and stop any nag)
+//   node voice.js mode regular    -> use the plain/professional clips
+//   node voice.js mode funny      -> use the joke clips
+//   node voice.js status          -> print current settings
+//   node voice.js repeat on|off   -> turn the repeat reminder on/off (OFF by default)
+//   node voice.js every <min>     -> set the repeat interval (also turns repeat on)
+//   node voice.js test [name]     -> play a clip now (default: done)
 'use strict';
 const fs = require('fs');
 const path = require('path');
@@ -27,6 +29,7 @@ function save(d) {
 function status() {
   const d = load();
   console.log('Voice alerts:    ' + (d.enabled === false ? 'OFF' : 'ON'));
+  console.log('Mode:            ' + String(d.mode || 'regular').toUpperCase());
   console.log('Repeat reminder: ' + (d.repeat_enabled === true ? 'ON (every ' + (d.repeat_minutes || 2) + ' min)' : 'OFF'));
   console.log('Folder:          ' + DIR);
 }
@@ -45,6 +48,15 @@ function main() {
       require('./reminder.js').disarm();
     } catch (_) {}
     console.log('Voice alerts OFF.');
+  } else if (cmd === 'mode') {
+    const m = (process.argv[3] || '').toLowerCase();
+    if (m === 'regular' || m === 'funny') {
+      d.mode = m;
+      save(d);
+      console.log('Mode set to ' + m.toUpperCase() + '.');
+    } else {
+      console.log('Usage: node voice.js mode regular|funny');
+    }
   } else if (cmd === 'repeat') {
     const v = (process.argv[3] || '').toLowerCase();
     if (v === 'on') {
@@ -75,12 +87,12 @@ function main() {
     const name = process.argv[3] || 'done';
     try {
       const player = require('./play.js');
-      const wav = player.clip(name);
+      const wav = player.resolve(name);
       if (wav) {
         player.play(wav);
-        console.log('Played ' + name + '.wav');
+        console.log('Played ' + name + ' (' + player.mode() + ' mode).');
       } else {
-        console.log('No clip named ' + name + '.wav');
+        console.log('No clip named ' + name);
       }
     } catch (_) {
       console.log('Could not play ' + name + '.wav');
