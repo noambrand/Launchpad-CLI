@@ -10,10 +10,12 @@ PowerShell, no extra installs.
 | Sound | When it plays | Hook |
 |-------|---------------|------|
 | **done**  | Claude finishes a turn | `Stop` |
-| **stuck** | Claude is waiting for you (permission or input) | `Notification` |
-| **save**  | You must act by hand — Claude plays this on demand | none |
+| **stuck** | Claude is waiting on **you to grant permission or answer** (blocked, not done) | `Notification` |
+| **save**  | **Manual intervention** — you must go do something by hand. Played on demand | none |
 
-Each is a `.wav` in this folder. Swap a voice by replacing the file of the same name.
+These are **three distinct recordings**: permission (*stuck*) and manual intervention
+(*save*) are different situations and never share a clip. Each is a `.wav` in this
+folder. Swap a voice by replacing the file of the same name.
 
 ## The repeat reminder (the "nag") — OFF by default
 
