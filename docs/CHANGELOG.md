@@ -1,5 +1,20 @@
 # Changelog
 
+## [2.7.1] - 2026-06-27
+
+### Added — voice-alert trigger log (`alerts.log`)
+
+`play.js` now records one line per alert to `alerts.log` in the sounds folder: **when**
+it fired, **which** project/session triggered it, **why** (the hook event plus the tool
+or idle message), and **which** `.wav` actually played. Open it with the new **View
+Alert Log** launcher or `node voice.js log`.
+
+This makes a phantom "permission" sound diagnosable at a glance — a real one logs
+`event=PermissionRequest`, while a stale-session ghost (a window opened before the hooks
+were wired) logs `event=Notification`. Logging never throws and self-trims to the last
+2000 lines. `play.js` now also runs `main()` only when invoked directly, so requiring it
+from `reminder.js` / `voice.js` no longer fires (or logs) a stray play.
+
 ## [2.7.0] - 2026-06-27
 
 ### Added — voice alerts (done / permission / waiting / save), regular or funny

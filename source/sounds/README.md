@@ -59,6 +59,22 @@ nagged. Turn it on with `node voice.js repeat on`; off with `node voice.js repea
 It stops the instant you type a prompt (`UserPromptSubmit`) or Claude runs its next
 tool (`PostToolUse`).
 
+## Trigger log — `alerts.log` (debug "why did I hear that?")
+
+Every time a sound *would* fire, `play.js` appends one line to `alerts.log` in this
+folder — even when sound is OFF. Open it with **View Alert Log** (or `node voice.js
+log`). Each line shows **when**, **which project/session**, **why** (which hook event),
+and **which .wav** ran:
+
+```
+2026-06-27 21:22 | alert=permission | event=PermissionRequest | type=default | wav=regular\permission.wav | why=tool=Bash: npm install foo | project=VBAConverter | session=node-AAA | path=...
+```
+
+**Spot a *fake* permission alert:** a real one reads `event=PermissionRequest`. If you
+ever see `alert=permission | event=Notification`, that line came from an **old session**
+started before the hooks were wired (hooks load only at startup) — restart that Claude
+window and it stops. The log self-trims to the last 2000 lines.
+
 ## Controls
 
 Double-click in this folder (`.cmd` on Windows, `.command` on macOS), or run the command:
@@ -70,6 +86,7 @@ Double-click in this folder (`.cmd` on Windows, `.command` on macOS), or run the
 | **Regular Sounds ON** | `voice.js mode regular` | use the plain clips |
 | **Funny Sounds ON** | `voice.js mode funny` | use the joke clips |
 | **Test Sounds** | — | play all four alerts in the current mode |
+| **View Alert Log** | `voice.js log` | open `alerts.log` — when/why each sound fired |
 | — | `voice.js repeat on\|off` | repeat reminder (off by default) |
 | — | `voice.js status` | show current settings |
 
@@ -94,6 +111,7 @@ install takes effect in the next session.
 | `configure-sound-hooks.js` | Deploys to `~/.claude/sounds` and merges the hooks (idempotent) |
 | `config.json` | `enabled` + `mode` + `repeat_enabled` + `repeat_minutes` |
 | `regular/`, `funny/` | The two clip sets (`done/permission/waiting/save.wav`) |
+| `alerts.log` | Trigger log — auto-created at runtime; when/why each alert fired |
 | `*.cmd` / `*.command` | Double-click launchers |
 
 The installer copies this whole folder (including `regular/` and `funny/`) to
