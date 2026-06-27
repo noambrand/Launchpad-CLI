@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased]
+## [2.7.0] - 2026-06-27
 
 ### Added — voice alerts (done / permission / waiting / save), regular or funny
 
