@@ -466,7 +466,7 @@
   // Used only when the installer-written VERSION file is missing (e.g. a very
   // old install). Since v2.6.8 the installer writes $INSTDIR\VERSION, which is
   // the authoritative figure; keep this in sync at release time anyway.
-  var FALLBACK_VERSION = "2.7.2";
+  var FALLBACK_VERSION = "2.7.3";
   var ASSET_NAME_RE = /^ClaudeCode_Launchpad_CLI_Setup\.exe$/i;
 
   function readInstalledVersion() {
@@ -605,6 +605,16 @@
   var oneTimeFlagsFile = kivunDir + "\\kivun-claude-flags.txt";
   var profilesFile = kivunDir + "\\profiles.json";
   var configFile = installDir + "\\config.txt";
+
+  // Voice-alert ("Sound alerts") controls. The live config the alert scripts
+  // read is %USERPROFILE%\.claude\sounds\config.json — the SAME file both the
+  // Node (play.js/voice.js) and Python readers honour, and it is re-read on
+  // every play, so writing it here applies IMMEDIATELY (no session restart;
+  // hooks load at startup, but these switches do not). soundCfg is the parsed
+  // config, or null when voice alerts aren't installed for this user.
+  var soundsDir = wshShell.ExpandEnvironmentStrings("%USERPROFILE%") + "\\.claude\\sounds";
+  var soundCfgFile = soundsDir + "\\config.json";
+  var soundCfg = null;
 
   // v1.4.0: profiles state. profiles.json is now the source of truth for
   // CLAUDE_FLAGS / model / conv / startup commands / env vars; config.txt
@@ -1336,6 +1346,99 @@
     updateFlagPreview();
   }
 
+  // ---- Voice alerts (Sound alerts) ------------------------------------
+  // Inline equivalent of the Sound ON/OFF, Regular/Funny and repeat .cmd
+  // controls — direct read/write of ~/.claude/sounds/config.json. Findings
+  // (wav/CLAUDE.md): config.json is the single source of truth, re-read on
+  // every play (so changes apply instantly), and repeat_minutes is capped at
+  // 15. Every handler is wrapped never-to-throw so a sound write can never
+  // break the picker or the launch.
+
+  function clampSoundMinutes(v) {
+    var n = parseInt(v, 10);
+    if (isNaN(n) || n < 1) n = 2;
+    if (n > 15) n = 15;   // the system ignores anything above 15 minutes
+    return n;
+  }
+
+  function loadSoundConfig() {
+    soundCfg = null;
+    try {
+      if (!fso.FileExists(soundCfgFile)) return;
+      var c = JSON.parse(readUtf8(soundCfgFile));
+      if (!c || typeof c !== "object") return;
+      // Normalize the four known switches but keep the parsed object itself,
+      // so any other keys (present or future) survive the write-back below.
+      c.enabled = (c.enabled !== false);
+      c.mode = (c.mode === "funny") ? "funny" : "regular";
+      c.repeat_enabled = (c.repeat_enabled === true);
+      c.repeat_minutes = clampSoundMinutes(c.repeat_minutes);
+      soundCfg = c;
+    } catch (e) { soundCfg = null; }
+  }
+
+  function saveSoundConfig() {
+    if (!soundCfg) return;
+    try { writeUtf8NoBom(soundCfgFile, JSON.stringify(soundCfg, null, 2)); } catch (e) {}
+  }
+
+  function applySoundConfigToUI() {
+    var block = document.getElementById("sound-block");
+    var na = document.getElementById("sound-na");
+    if (!soundCfg) {
+      if (block) block.style.display = "none";
+      if (na) na.style.display = "block";
+      return;
+    }
+    if (block) block.style.display = "block";
+    if (na) na.style.display = "none";
+    setRadioValue("snd-enabled", soundCfg.enabled ? "on" : "off");
+    setRadioValue("snd-mode", soundCfg.mode);
+    var rep = document.getElementById("snd-repeat");
+    if (rep) rep.checked = soundCfg.repeat_enabled;
+    var mins = document.getElementById("snd-minutes");
+    if (mins) mins.value = soundCfg.repeat_minutes;
+  }
+
+  function flashSoundStatus() {
+    var s = document.getElementById("snd-status");
+    if (!s) return;
+    s.className = "status saved";
+    s.innerText = "✓ saved";
+    try { setTimeout(function () { try { s.innerText = ""; s.className = "status"; } catch (_) {} }, 1400); } catch (_) {}
+  }
+
+  function onSoundEnabledChange() {
+    if (!soundCfg) return;
+    soundCfg.enabled = (getRadioValue("snd-enabled") === "on");
+    saveSoundConfig(); flashSoundStatus();
+  }
+  function onSoundModeChange() {
+    if (!soundCfg) return;
+    soundCfg.mode = (getRadioValue("snd-mode") === "funny") ? "funny" : "regular";
+    saveSoundConfig(); flashSoundStatus();
+  }
+  function onSoundRepeatChange() {
+    if (!soundCfg) return;
+    var rep = document.getElementById("snd-repeat");
+    soundCfg.repeat_enabled = !!(rep && rep.checked);
+    saveSoundConfig(); flashSoundStatus();
+  }
+  function onSoundMinutesChange() {
+    if (!soundCfg) return;
+    var mins = document.getElementById("snd-minutes");
+    var n = clampSoundMinutes(mins ? mins.value : 2);
+    soundCfg.repeat_minutes = n;
+    if (mins && ("" + mins.value) !== ("" + n)) mins.value = n;  // reflect clamp
+    saveSoundConfig(); flashSoundStatus();
+  }
+  function testSounds() {
+    try {
+      var cmd = soundsDir + "\\Test Sounds.cmd";
+      if (fso.FileExists(cmd)) { wshShell.Run("\"" + cmd + "\"", 1, false); }
+    } catch (e) {}
+  }
+
   function init() {
     try {
       deleteIfExists(startupFile);   // start each session fresh
@@ -1346,6 +1449,8 @@
       var active = getActiveProfile();
       currentDialogProfile = active.name;
       applyProfileToDialog(active);
+      loadSoundConfig();
+      applySoundConfigToUI();
       autoSizeToContent();
       var p = document.getElementById("path");
       if (p && p.focus) p.focus();
@@ -1459,6 +1564,40 @@
       <textarea id="env-vars" rows="3" onkeyup="updateFlagPreview()" placeholder="KEY=VAL, one per line. Lines starting with # are ignored.&#10;e.g.&#10;ANTHROPIC_API_KEY=sk-ant-...&#10;DEBUG=1"></textarea>
     </div>
     <div class="flag-help">Per-profile environment variables passed into the Claude session. Values are masked in the preview by default for screenshot safety — click <b>👁 show values</b> above to reveal.</div>
+  </div>
+
+  <div class="option" style="margin-top:12px">
+    <div class="opt-label"><span class="opt-num">6</span> 🔊 Sound alerts (voice):</div>
+    <div id="sound-na" class="flag-help" style="display:none">Voice alerts aren't installed for this user yet, so there's nothing to configure here. (They install automatically the first time you launch.)</div>
+    <div id="sound-block" style="display:none">
+      <div class="flag-grid">
+        <div class="lbl">Sounds:</div>
+        <div class="radio-row">
+          <label><input type="radio" name="snd-enabled" value="on" onclick="onSoundEnabledChange()" /> On</label>
+          <label><input type="radio" name="snd-enabled" value="off" onclick="onSoundEnabledChange()" /> Off</label>
+        </div>
+
+        <div class="lbl">Voice pack:</div>
+        <div class="radio-row">
+          <label><input type="radio" name="snd-mode" value="regular" onclick="onSoundModeChange()" /> Regular</label>
+          <label><input type="radio" name="snd-mode" value="funny" onclick="onSoundModeChange()" /> Funny <span style="color:#707070">(playful phrasing)</span></label>
+        </div>
+
+        <div class="lbl">Repeat reminder:</div>
+        <div class="check-row">
+          <label><input type="checkbox" id="snd-repeat" onclick="onSoundRepeatChange()" /> Remind me again every</label>
+          <input type="text" id="snd-minutes" value="2" onchange="onSoundMinutesChange()" style="width:46px; padding:6px 8px; font-size:13px;" />
+          <span>minutes <span style="color:#707070">(max 15)</span></span>
+        </div>
+
+        <div class="lbl"></div>
+        <div>
+          <button type="button" onclick="testSounds()" title="Play the four alerts (done, permission, waiting, save) in the selected voice pack">▶ Test Sounds</button>
+          <span class="status" id="snd-status" style="margin-left:10px;"></span>
+        </div>
+      </div>
+      <div class="flag-help">These are <b>global</b> settings — one switch for every folder, profile, and session (not per-profile like the options above). Changes save the moment you click and apply immediately — no restart needed.</div>
+    </div>
   </div>
 
   </div><!-- /advanced-body -->
