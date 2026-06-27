@@ -2,15 +2,16 @@
 
 ## [Unreleased]
 
-### Added — voice alerts (done / stuck / save) with a repeat reminder
+### Added — voice alerts (done / permission / save) with a repeat reminder
 
 Claude Code now speaks short clips so you don't have to watch the screen: **done**
-when it finishes a turn, **stuck** when it's waiting on you, and **save** (on demand)
-when you must act by hand. The three sounds are **on by default**; toggle them with the
-**Sound ON/OFF** launchers or `node voice.js on|off`. Optionally, a repeat reminder can
-re-play the stuck clip every couple of minutes while Claude waits, then disarms on
-`UserPromptSubmit` / `PostToolUse` (capped at 15 repeats). The repeat is **off by
-default** so users are never nagged unless they opt in (`node voice.js repeat on`).
+when it finishes a turn, **permission** when it's waiting on you to approve or answer,
+and **save** (on demand) when you must act by hand. The three sounds are **on by
+default**; toggle them with the **Sound ON/OFF** launchers or `node voice.js on|off`.
+Optionally, a repeat reminder can re-play the permission clip every couple of minutes
+while Claude waits, then disarms on `UserPromptSubmit` / `PostToolUse` (capped at 15
+repeats). The repeat is **off by default** so users are never nagged unless they opt
+in (`node voice.js repeat on`).
 
 Pure **Node.js** (the runtime the installer already provides) plus bundled `.wav`
 clips — no Python and **no PowerShell** (Windows playback uses the Windows Media

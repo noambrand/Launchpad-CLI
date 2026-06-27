@@ -64,9 +64,9 @@ settings.hooks = settings.hooks || {};
 
 // done when Claude finishes a turn
 settings.hooks.Stop.push({ hooks: [node('play.js', 'done')] });
-// stuck + start the repeating nag when Claude is waiting for the user
+// permission + (optionally) start the repeating nag when Claude is waiting on the user
 settings.hooks.Notification.push({
-  hooks: [node('play.js', 'stuck'), node('reminder.js', 'arm')],
+  hooks: [node('play.js', 'permission'), node('reminder.js', 'arm')],
 });
 // stop the nag the moment the user responds...
 settings.hooks.UserPromptSubmit.push({ hooks: [node('reminder.js', 'disarm')] });

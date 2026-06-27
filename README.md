@@ -133,10 +133,10 @@ Short spoken clips so you don't have to watch the screen. Set up automatically a
 | Sound | When it plays |
 |-------|---------------|
 | **done**  | Claude finishes a turn |
-| **stuck** | Claude is waiting for you (permission or input) |
-| **save**  | Claude needs you to act by hand (played on demand) |
+| **permission** | Claude is waiting for you to grant permission or answer |
+| **save**  | Manual intervention — you must go do something by hand (played on demand) |
 
-Optionally, a **repeat reminder** can re-play the "stuck" clip every couple of minutes
+Optionally, a **repeat reminder** can re-play the "permission" clip every couple of minutes
 while Claude waits, stopping the moment you respond. It's **off by default** (a
 repeating sound can get annoying); turn it on with `node ~/.claude/sounds/voice.js
 repeat on`. Playback uses Windows Media Player on Windows (no PowerShell) and `afplay`

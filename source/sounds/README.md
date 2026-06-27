@@ -10,22 +10,22 @@ PowerShell, no extra installs.
 | Sound | When it plays | Hook |
 |-------|---------------|------|
 | **done**  | Claude finishes a turn | `Stop` |
-| **stuck** | Claude is waiting on **you to grant permission or answer** (blocked, not done) | `Notification` |
+| **permission** | Claude is waiting on **you to grant permission or answer** (blocked, not done) | `Notification` |
 | **save**  | **Manual intervention** — you must go do something by hand. Played on demand | none |
 
-These are **three distinct recordings**: permission (*stuck*) and manual intervention
+These are **three distinct recordings**: permission (*permission*) and manual intervention
 (*save*) are different situations and never share a clip. Each is a `.wav` in this
 folder. Swap a voice by replacing the file of the same name.
 
 ## The repeat reminder (the "nag") — OFF by default
 
-Optionally, when Claude is waiting it can **repeat** the *stuck* clip every couple of
+Optionally, when Claude is waiting it can **repeat** the *permission* clip every couple of
 minutes until you come back, then stop the instant you type a prompt
 (`UserPromptSubmit`) or Claude runs its next tool (`PostToolUse`); a hard cap of 15
 repeats means it can never nag forever.
 
 This repeat is **off by default** (a sound that keeps repeating can annoy). You still
-hear the single *stuck* alert once each time Claude waits — only the repeating is
+hear the single *permission* alert once each time Claude waits — only the repeating is
 opt-in. Turn it on with `node voice.js repeat on` (or set `"repeat_enabled": true` in
 `config.json`); turn it off again with `node voice.js repeat off`.
 
@@ -53,7 +53,7 @@ node voice.js repeat on       # turn the repeat reminder on (off by default)
 node voice.js repeat off      # turn it back off
 node voice.js every 3         # repeat every 3 minutes (also turns it on)
 node voice.js status
-node voice.js test stuck
+node voice.js test permission
 ```
 
 Settings live in `config.json` (`enabled`, `repeat_enabled`, `repeat_minutes`) and are
@@ -64,7 +64,7 @@ when Claude Code starts, so a fresh install takes effect in the next session.
 
 | File | Role |
 |------|------|
-| `play.js`  | Plays one clip: `node play.js done\|stuck\|save` |
+| `play.js`  | Plays one clip: `node play.js done\|permission\|save` |
 | `play.vbs` | Windows player used by `play.js` (no PowerShell) |
 | `reminder.js` | The nag: `arm` / `disarm` / internal `wait` |
 | `voice.js` | On/off and tuning controls |
