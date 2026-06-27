@@ -9,10 +9,15 @@ PowerShell, no extra installs.
 
 | Alert | Plays when | Hook (event) |
 |-------|-----------|--------------|
-| **done** | Claude finishes a turn — your turn now | `Stop` |
+| **done** | Claude has genuinely finished the task — nothing left to do | on-demand (Claude runs it) |
 | **permission** | The numbered **1. Yes / 2. No** confirm appears and you must pick | `PermissionRequest` |
 | **waiting** | Claude has been waiting on you (~60s idle / you stepped away) | `Notification` (idle only) |
 | **save** | You must go do something by hand (manual intervention) | on-demand (Claude runs it) |
+
+`done` and `save` are **on-demand**: Claude plays them itself when it has truly finished
+or needs you to act by hand. They are **not** tied to a hook — in particular not to
+`Stop`, which fires at the end of *every* turn (not at true task completion), so wiring
+`done` there made it announce on every turn.
 
 `permission` fires **only** on a real interactive confirm — never on an auto-approved
 tool. `waiting` is filtered to the idle notification (`matcher: "idle_prompt"`), so it

@@ -4,10 +4,11 @@
 
 ### Added — voice alerts (done / permission / waiting / save), regular or funny
 
-Claude Code now speaks short clips so you don't have to watch the screen, each bound to
-the event that actually means it:
+Claude Code now speaks short clips so you don't have to watch the screen, each tied to
+the moment that actually means it:
 
-- **done** — Claude finished a turn (`Stop`)
+- **done** — on-demand; the assistant plays it when it has genuinely finished (not on
+  `Stop`, which fires at the end of every turn, not at true task completion)
 - **permission** — the numbered **1. Yes / 2. No** confirm appears (`PermissionRequest`,
   interactive prompts only — never auto-approved tools)
 - **waiting** — Claude has been waiting on you / ~60s idle (`Notification` with
@@ -25,9 +26,9 @@ clips — no Python and **no PowerShell** (Windows playback uses the Windows Med
 COM via `cscript`, which keeps installers clear of antivirus heuristics); macOS uses
 `afplay`. The installer copies `source/sounds/` (both clip sets) to `~/.claude/sounds/`
 and runs `configure-sound-hooks.js`, which idempotently merges the
-Stop / PermissionRequest / Notification / UserPromptSubmit / PostToolUse hooks and
-preserves the user's settings across upgrades. Wired into the Windows NSIS installer,
-the macOS `pkg` postinstall, and the three macOS build workflows.
+PermissionRequest / Notification / UserPromptSubmit / PostToolUse hooks (done and save
+stay on-demand) and preserves the user's settings across upgrades. Wired into the Windows
+NSIS installer, the macOS `pkg` postinstall, and the three macOS build workflows.
 
 ## [2.6.20] - 2026-06-17
 

@@ -6,10 +6,12 @@
 //      preserved across upgrades so the user's choices survive.
 //   2. Merges the hooks into ~/.claude/settings.json, idempotently — re-running
 //      replaces only OUR hooks and leaves every other setting untouched:
-//        Stop            -> done       (Claude finished a turn)
 //        PermissionRequest -> permission (the numbered confirm; interactive only)
 //        Notification(idle) -> waiting + arm the (off-by-default) repeat reminder
 //        UserPromptSubmit / PostToolUse -> disarm the reminder
+//      'done' and 'save' are intentionally NOT bound to any event — they are on-demand
+//      (the assistant plays them). 'Stop' fires at the end of every turn, not at true
+//      task completion, so binding 'done' there made it announce on every turn.
 //
 // Usage: node configure-sound-hooks.js
 //   Run it from the bundled copy; it deploys into ~/.claude/sounds and wires the
@@ -73,8 +75,11 @@ settings.hooks = settings.hooks || {};
   }
 );
 
-// done — Claude finished a turn (your turn)
-settings.hooks.Stop.push({ hooks: [node('play.js', 'done')] });
+// NOTE: 'done' and 'save' are on-demand only — the assistant runs `node play.js done` /
+// `node play.js save` when it has genuinely finished or needs you to act by hand. They are
+// deliberately NOT wired to a hook: 'Stop' fires at the end of EVERY turn, not at true task
+// completion, so binding 'done' there made it announce constantly. 'Stop' is still purged
+// above, so upgrading from an older build that wired it removes that stale hook.
 // permission — the numbered confirm; fires only on a real interactive prompt
 settings.hooks.PermissionRequest.push({ hooks: [node('play.js', 'permission')] });
 // waiting — ~60s idle / you stepped away; also arms the (off-by-default) repeat reminder.
@@ -87,6 +92,16 @@ settings.hooks.Notification.push({
 settings.hooks.UserPromptSubmit.push({ hooks: [node('reminder.js', 'disarm')] });
 // ...or as soon as Claude runs another tool
 settings.hooks.PostToolUse.push({ matcher: '', hooks: [node('reminder.js', 'disarm')] });
+
+// Drop any event we emptied (e.g. Stop, now that 'done' is on-demand) so we never leave a
+// bare "Stop": [] behind. Events we still use keep their freshly-pushed groups; any other
+// hooks the user had on these events were preserved by the "ours"-only filter above.
+['Stop', 'PermissionRequest', 'Notification', 'UserPromptSubmit', 'PostToolUse'].forEach(
+  (ev) => {
+    if (Array.isArray(settings.hooks[ev]) && settings.hooks[ev].length === 0)
+      delete settings.hooks[ev];
+  }
+);
 
 fs.writeFileSync(settingsFile, JSON.stringify(settings, null, 2) + '\n');
 console.log('Voice alerts installed -> ' + destDir);
