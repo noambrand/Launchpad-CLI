@@ -16,6 +16,7 @@ jobs:
           chmod +x mac/scripts/postinstall
           cp source/statusline.mjs mac/scripts/statusline.mjs
           cp source/configure-statusline.js mac/scripts/configure-statusline.js
+          cp -R source/sounds mac/scripts/sounds
 
       - name: Build .pkg
         run: |

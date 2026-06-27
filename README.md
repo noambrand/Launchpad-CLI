@@ -125,6 +125,30 @@ A two-line live status bar at the bottom of every session:
 | **Tokens** | Combined input + output tokens this session |
 | **Session / Weekly** | Usage limit % with countdown to reset |
 
+## Voice Alerts
+
+Short spoken clips so you don't have to watch the screen. Set up automatically and
+**on by default** — each tied to the event that actually means it:
+
+| Alert | Plays when | Event |
+|-------|-----------|-------|
+| **done** | Claude finishes a turn (your turn) | `Stop` |
+| **permission** | The numbered **1. Yes / 2. No** confirm appears | `PermissionRequest` (real prompts only — never auto-approved tools) |
+| **waiting** | Claude has been waiting on you (~60s idle) | `Notification` (idle only) |
+| **save** | Manual intervention — act by hand | on-demand |
+
+**Regular or Funny mode** — every alert has a plain recording and a joke one (e.g. done:
+*"Done."* vs *"Done. I'll pretend that took effort."*). Switch with **Regular Sounds ON** /
+**Funny Sounds ON** or `node ~/.claude/sounds/voice.js mode regular|funny`.
+
+An optional **repeat reminder** (off by default) re-plays the *waiting* clip every couple
+of minutes once you've gone idle, until you respond. Playback uses Windows Media Player on
+Windows (no PowerShell) and `afplay` on macOS — no Python, no extra installs.
+
+Controls: double-click **Sound ON/OFF**, **Regular/Funny Sounds ON**, **Test Sounds** in
+`~/.claude/sounds/`, or `node ~/.claude/sounds/voice.js on|off|mode <m>|repeat on|off|status`.
+Full details: `~/.claude/sounds/README.md`.
+
 ## Tech Stack
 
 | Component | Technology | Purpose |
