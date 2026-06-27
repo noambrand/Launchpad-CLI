@@ -1,5 +1,20 @@
 # Changelog
 
+## [2.7.4] - 2026-06-28
+
+### Fixed — "permission" alert no longer fires for questions / plan approval
+
+The voice alert wired to the `PermissionRequest` hook was playing the **"permission required"**
+clip for **every** interactive prompt — including `AskUserQuestion` (multiple-choice question
+boxes) and `ExitPlanMode` (plan approval), which aren't real "allow this tool?" requests. That
+made it sound like permission was needed when nothing tool-related was being asked.
+
+`play.js` now reads the hook's `tool_name` and, when a `permission` event is actually an
+`AskUserQuestion` or `ExitPlanMode` prompt, plays the gentler **"waiting"** clip instead. The
+**"permission"** clip now means only a genuine tool-permission request (e.g. a file edit or a
+command). The hook payload is read once and reused for both reclassification and the trigger
+log, so `alerts.log` records the reclassified alert while still showing the real tool.
+
 ## [2.7.3] - 2026-06-28
 
 ### Added — voice-alert controls in the folder picker

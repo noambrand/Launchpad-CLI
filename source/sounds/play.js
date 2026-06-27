@@ -119,9 +119,9 @@ function trimLog() {
 }
 
 // played = the .wav path that ran, or a reason string like "(sound OFF ...)".
-function logEvent(name, played) {
+function logEvent(name, played, ctx) {
   try {
-    const ctx = hookContext();
+    if (!ctx) ctx = hookContext();
     const event = ctx.hook_event_name || 'on-demand';
     // notification_type carries 'idle_prompt'/'permission_prompt'; permission_mode on PermissionRequest.
     const ntype = ctx.notification_type || ctx.permission_mode || '-';
@@ -141,11 +141,21 @@ function logEvent(name, played) {
 
 function main() {
   if (process.argv.length < 3) return;
-  const name = process.argv[2];
+  let name = process.argv[2];
+  // Read the hook payload ONCE (stdin can only be read once) and reuse it for
+  // both reclassification and logging.
+  const ctx = hookContext();
+  // A 'permission' hook that is really an AskUserQuestion or ExitPlanMode prompt
+  // is not a true allow-this-tool request — play the gentler 'waiting' clip so
+  // "permission required" only ever means a real tool permission.
+  if (name === 'permission' &&
+      (ctx.tool_name === 'AskUserQuestion' || ctx.tool_name === 'ExitPlanMode')) {
+    name = 'waiting';
+  }
   const wav = resolve(name);
-  if (!wav) return logEvent(name, '(no matching clip)');
-  if (!enabled()) return logEvent(name, '(sound OFF - not played: ' + path.basename(wav) + ')');
-  logEvent(name, wav);
+  if (!wav) return logEvent(name, '(no matching clip)', ctx);
+  if (!enabled()) return logEvent(name, '(sound OFF - not played: ' + path.basename(wav) + ')', ctx);
+  logEvent(name, wav, ctx);
   play(wav);
 }
 
