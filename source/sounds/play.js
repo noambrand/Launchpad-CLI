@@ -67,16 +67,96 @@ function play(wav) {
   }
 }
 
-function main() {
-  if (process.argv.length < 3 || !enabled()) return;
-  const wav = resolve(process.argv[2]);
-  if (wav) play(wav);
+// --- Trigger log -----------------------------------------------------------------
+// Append one line per fire to alerts.log so you can see WHEN/WHY a sound played,
+// WHICH project/session triggered it, and WHICH .wav ran — the debug trail for a
+// phantom alert. Never throws (logging can never break a hook); self-trims to 2000.
+const LOG = path.join(DIR, 'alerts.log');
+const LOG_MAX_LINES = 2000;
+
+function hookContext() {
+  // Claude Code pipes a JSON payload to stdin for hook-driven calls. Read it only when
+  // stdin is piped (never on a console / double-click), so we never block on a tty.
+  try {
+    if (process.stdin.isTTY) return {};
+    const data = fs.readFileSync(0, 'utf8');
+    return data && data.trim() ? JSON.parse(data) : {};
+  } catch (_) {
+    return {};
+  }
 }
 
-try {
-  main();
-} catch (_) {
-  /* never throw */
+function whyDetail(ctx) {
+  // PermissionRequest carries tool_name + tool_input; Notification carries message.
+  const bits = [];
+  if (ctx.tool_name) {
+    const ti = ctx.tool_input && typeof ctx.tool_input === 'object' ? ctx.tool_input : {};
+    const arg = ti.command || ti.file_path || ti.path || '';
+    bits.push('tool=' + ctx.tool_name + (arg ? ': ' + String(arg).slice(0, 60) : ''));
+  }
+  if (ctx.message) bits.push('msg=' + ctx.message);
+  return bits.length ? bits.join(' ; ') : '-';
+}
+
+function stamp() {
+  const d = new Date();
+  const p = (n) => String(n).padStart(2, '0');
+  return (
+    d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate()) +
+    ' ' + p(d.getHours()) + ':' + p(d.getMinutes()) + ':' + p(d.getSeconds())
+  );
+}
+
+function trimLog() {
+  try {
+    const parts = fs.readFileSync(LOG, 'utf8').split('\n');
+    if (parts.length - 1 > LOG_MAX_LINES) {
+      fs.writeFileSync(LOG, parts.slice(parts.length - 1 - LOG_MAX_LINES).join('\n'));
+    }
+  } catch (_) {
+    /* ignore */
+  }
+}
+
+// played = the .wav path that ran, or a reason string like "(sound OFF ...)".
+function logEvent(name, played) {
+  try {
+    const ctx = hookContext();
+    const event = ctx.hook_event_name || 'on-demand';
+    // notification_type carries 'idle_prompt'/'permission_prompt'; permission_mode on PermissionRequest.
+    const ntype = ctx.notification_type || ctx.permission_mode || '-';
+    const projPath = ctx.cwd || process.env.CLAUDE_PROJECT_DIR || process.cwd();
+    const session = String(ctx.session_id || '-').slice(0, 8);
+    const wav = path.isAbsolute(String(played)) ? path.relative(DIR, played) : played;
+    const line =
+      stamp() + ' | alert=' + name + ' | event=' + event + ' | type=' + ntype +
+      ' | wav=' + wav + ' | why=' + whyDetail(ctx) + ' | project=' + path.basename(projPath) +
+      ' | session=' + session + ' | path=' + projPath + '\n';
+    fs.appendFileSync(LOG, line);
+    trimLog();
+  } catch (_) {
+    /* logging must never break a hook */
+  }
+}
+
+function main() {
+  if (process.argv.length < 3) return;
+  const name = process.argv[2];
+  const wav = resolve(name);
+  if (!wav) return logEvent(name, '(no matching clip)');
+  if (!enabled()) return logEvent(name, '(sound OFF - not played: ' + path.basename(wav) + ')');
+  logEvent(name, wav);
+  play(wav);
+}
+
+// Run only when invoked directly (node play.js <name>). When reminder.js / voice.js
+// require() this module, main() must NOT fire — that would read stdin and log spuriously.
+if (require.main === module) {
+  try {
+    main();
+  } catch (_) {
+    /* never throw */
+  }
 }
 // `clip` kept as an alias of resolve for callers (reminder.js).
 module.exports = { play, resolve, clip: resolve, mode, enabled };

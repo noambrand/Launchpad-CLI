@@ -9,6 +9,7 @@
 //   node voice.js repeat on|off   -> turn the repeat reminder on/off (OFF by default)
 //   node voice.js every <min>     -> set the repeat interval (also turns repeat on)
 //   node voice.js test [name]     -> play a clip now (default: done)
+//   node voice.js log             -> open the trigger log (alerts.log)
 'use strict';
 const fs = require('fs');
 const path = require('path');
@@ -96,6 +97,33 @@ function main() {
       }
     } catch (_) {
       console.log('Could not play ' + name + '.wav');
+    }
+  } else if (cmd === 'log') {
+    const logPath = path.join(DIR, 'alerts.log');
+    let size = 0;
+    try {
+      size = fs.statSync(logPath).size;
+    } catch (_) {}
+    if (!size) {
+      console.log('No alerts logged yet. Trigger a sound, then open this again.');
+      console.log('Log file: ' + logPath);
+    } else {
+      const { spawn } = require('child_process');
+      const opener =
+        process.platform === 'win32' ? 'notepad' : process.platform === 'darwin' ? 'open' : 'xdg-open';
+      const showTail = () => {
+        try {
+          console.log(fs.readFileSync(logPath, 'utf8').split('\n').slice(-40).join('\n'));
+        } catch (_) {}
+      };
+      try {
+        const child = spawn(opener, [logPath], { stdio: 'ignore', detached: true, windowsHide: true });
+        child.on('error', showTail); // no GUI opener (e.g. headless) -> print the tail
+        child.unref();
+        console.log('Opening alert log: ' + logPath);
+      } catch (_) {
+        showTail();
+      }
     }
   } else {
     status();
