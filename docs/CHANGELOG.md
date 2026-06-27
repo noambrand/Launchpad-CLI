@@ -1,5 +1,23 @@
 # Changelog
 
+## [2.7.3] - 2026-06-28
+
+### Added — voice-alert controls in the folder picker
+
+The picker now has a **🔊 Sound alerts (voice)** section (under **Advanced options**) so you
+can manage the voice alerts without hunting for the `.cmd` files in `~/.claude/sounds`:
+
+- **Sounds: On / Off**, **Voice pack: Regular / Funny**, and a **Repeat reminder** toggle
+  with a minutes box (clamped to the system's 15-minute maximum).
+- **▶ Test Sounds** plays the four alerts (done / permission / waiting / save) in the
+  selected pack.
+
+The controls read and write `~/.claude/sounds/config.json` directly — the same file the
+alert scripts read, re-read on every play — so changes **apply immediately, no restart**.
+These are **global** settings (one switch for every folder, profile and session), unlike the
+per-profile options above them. Every handler is wrapped never-to-throw, and the section
+hides itself with a clear note when voice alerts aren't installed yet.
+
 ## [2.7.2] - 2026-06-28
 
 ### Fixed — installer is now fully idempotent (no duplicate sound hooks)
