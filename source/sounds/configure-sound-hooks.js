@@ -61,11 +61,14 @@ const node = (script, arg) => ({
   async: true,
 });
 
-// A group is "ours" if any of its commands invokes our play.js / reminder.js.
+// A group is "ours" if any command invokes our sound scripts — the Node play.js /
+// reminder.js, OR a legacy Python notify.py / reminder.py from an earlier hand-install.
+// Purging BOTH makes this idempotent: repeat installs (and a Python->Node switch) always
+// collapse to a single Node hook set instead of stacking duplicates that double every alert.
 const isOurs = (group) =>
   Array.isArray(group.hooks) &&
   group.hooks.some(
-    (h) => typeof h.command === 'string' && /\/(play|reminder)\.js"/.test(h.command)
+    (h) => typeof h.command === 'string' && /[\\/](play|reminder|notify)\.(js|py)"/.test(h.command)
   );
 
 settings.hooks = settings.hooks || {};
