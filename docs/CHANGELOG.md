@@ -1,5 +1,28 @@
 # Changelog
 
+## [2.7.6] - 2026-06-29
+
+### Fixed — "Continue last conversation" no longer closes the tab on a fresh folder
+
+If you chose **Continue last** in the picker (or pinned `CLAUDE_FLAGS=--continue` in
+`config.txt`) and then launched a folder with **no previous conversation**, Claude Code
+printed *"No conversation found to continue"* and exited immediately — and because the whole
+Windows Terminal tab is that single `claude` call, the tab closed on its own, looking like the
+launcher never opened.
+
+- `claudecode-launchpad.bat` now detects that fast failure and **automatically reopens a fresh
+  Claude session** with the resume flag stripped, so you land in a working session instead of a
+  vanished tab. The retry runs once; a real session you worked in and then quit lasts longer
+  than the 10-second guard and is never retried. Affects `--continue`/`-c` and `--resume`/`-r`.
+
+### Fixed — upgrading no longer wipes your `config.txt`
+
+Previous builds rewrote `config.txt` on **every** install, silently resetting your language,
+theme, `CLAUDE_FLAGS` and `STARTUP_CMD` to the wizard defaults each time you upgraded. The
+installer now **only generates `config.txt` on a first install** and **preserves your existing
+one on upgrade**. Your saved picker profiles (`profiles.json` — the folders/combos you saved)
+were already kept across an install-over-install upgrade and remain untouched.
+
 ## [2.7.5] - 2026-06-28
 
 ### Changed — clearer "turn off all voice alerts" guidance
