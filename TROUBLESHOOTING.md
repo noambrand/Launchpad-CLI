@@ -101,6 +101,26 @@ Right-click the shortcut > Properties > verify the target points to:
 %LOCALAPPDATA%\Kivun\claudecode-launchpad.bat
 ```
 
+### "Continue last conversation" closed the tab / it opened and shut by itself
+
+If you picked **Continue last** in the picker (or set `CLAUDE_FLAGS=--continue` in
+`config.txt`) and opened a folder that had **no earlier conversation**, Claude Code
+printed *"No conversation found to continue"* and exited at once — and because the
+whole terminal tab is that single `claude` call, the tab closed on its own.
+
+**Fixed in v2.7.6+:** the launcher now detects this and **opens a fresh session
+instead** (you'll see a short "No previous conversation found — starting fresh"
+note). Nothing to do on your side. A real conversation you worked in and closed is
+never affected.
+
+### Did upgrading reset my settings?
+
+**No (v2.7.6+).** Installing a newer version **keeps your existing `config.txt`** —
+your language, theme, `CLAUDE_FLAGS` and `STARTUP_CMD` are preserved. Your saved
+picker profiles (the folders/combos you saved) are kept too. Only a brand-new, first
+install generates a fresh `config.txt` from the wizard choices. (Older builds rewrote
+`config.txt` on every install — that's fixed.)
+
 ### Right-click context menu missing
 
 Re-run the installer as Administrator. The context menu entry is added to the registry during installation.
