@@ -1,0 +1,97 @@
+name: Static lint (Windows launcher + installer)
+
+# Fast, no-Windows-needed grep checks that keep the v2.7.6 fixes from silently
+# regressing:
+#   - claudecode-launchpad.bat: "Continue last" on a folder with no prior
+#     conversation must reopen a FRESH session instead of closing the tab.
+#   - the NSI installer must PRESERVE an existing config.txt on upgrade (only a
+#     first install generates one from the wizard).
+# Mirrors the philosophy of kivun-terminal-wsl's validate-launcher-windows.yml:
+# the bugs these guard burned real users once; greps make them un-droppable.
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'source/claudecode-launchpad.bat'
+      - 'ClaudeCode_Launchpad_CLI_Setup.nsi'
+      - '.github/workflows/static-lint-windows.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'source/claudecode-launchpad.bat'
+      - 'ClaudeCode_Launchpad_CLI_Setup.nsi'
+      - '.github/workflows/static-lint-windows.yml'
+
+jobs:
+  static-lint:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify every label referenced via goto/call exists
+        run: |
+          set -eu
+          BAT=source/claudecode-launchpad.bat
+          mapfile -t labels < <(grep -oE '^:[a-zA-Z_][a-zA-Z0-9_]*' "$BAT" | sed 's/^://' | sort -u)
+          mapfile -t refs   < <(grep -oiE '(goto|call) :[a-zA-Z_][a-zA-Z0-9_]*' "$BAT" | awk '{print $2}' | sed 's/^://' | sort -u)
+          fail=0
+          for ref in "${refs[@]}"; do
+            found=0
+            for lbl in "${labels[@]}"; do [ "$ref" = "$lbl" ] && { found=1; break; }; done
+            [ "$found" -eq 0 ] && { echo "FAIL: label :$ref referenced but not defined in $BAT"; fail=1; }
+          done
+          [ "$fail" -eq 0 ] && echo "PASS: all label refs resolve"
+          exit $fail
+
+      - name: Verify v2.7.6 resume -> open-fresh fallback invariants (.bat)
+        run: |
+          set -eu
+          BAT=source/claudecode-launchpad.bat
+          # The fix: when FINAL_FLAGS asks to resume (--continue/-c/--resume/-r) but
+          # the folder has no prior conversation, claude exits at once and the WT tab
+          # would close. The launcher must detect that fast failure and reopen FRESH.
+          grep -q '^:launch_claude' "$BAT" \
+            || (echo "FAIL: :launch_claude helper missing — resume retry can't run claude twice"; exit 1)
+          grep -q '^:now_seconds' "$BAT" \
+            || (echo "FAIL: :now_seconds helper missing — no elapsed-time guard"; exit 1)
+          grep -q 'set "RESUMING=' "$BAT" \
+            || (echo "FAIL: RESUMING detection removed — failed resume no longer noticed"; exit 1)
+          grep -q 'set "FRESH_FLAGS=' "$BAT" \
+            || (echo "FAIL: FRESH_FLAGS strip removed — no fresh fallback"; exit 1)
+          # The strip must remove the long-form resume flags.
+          grep -q 'FRESH_FLAGS:--continue=' "$BAT" \
+            || (echo "FAIL: --continue is not stripped for the fresh retry"; exit 1)
+          grep -q 'FRESH_FLAGS:--resume=' "$BAT" \
+            || (echo "FAIL: --resume is not stripped for the fresh retry"; exit 1)
+          # The retry must be gated on resume + non-zero exit + the time guard, then
+          # call :launch_claude again with the stripped flags.
+          grep -q 'if defined RESUMING if not "!CC_RC!"=="0" if !CC_ELAPSED! lss' "$BAT" \
+            || (echo "FAIL: retry not gated on RESUMING + non-zero exit + elapsed-time guard"; exit 1)
+          awk '/if defined RESUMING/{b=1} b{print} b&&/^exit \/b 0/{exit}' "$BAT" | grep -q 'call :launch_claude "!FRESH_FLAGS!"' \
+            || (echo "FAIL: fresh retry never re-invokes :launch_claude with stripped flags"; exit 1)
+          echo "PASS: .bat reopens a fresh session after a failed resume (time-guarded)"
+
+      - name: Verify v2.7.6 installer config.txt preservation on upgrade (NSI)
+        run: |
+          set -eu
+          NSI=ClaudeCode_Launchpad_CLI_Setup.nsi
+          # The installer used to rewrite config.txt on EVERY install, wiping the
+          # user's language/theme/CLAUDE_FLAGS/STARTUP_CMD on each upgrade. It must
+          # capture whether config.txt existed BEFORE install and only generate a
+          # fresh one on a FIRST install.
+          grep -q '^Var ConfigExisted' "$NSI" \
+            || (echo "FAIL: \$ConfigExisted flag removed — upgrade-vs-first-install no longer distinguished"; exit 1)
+          grep -q 'StrCpy \$ConfigExisted "1"' "$NSI" \
+            || (echo "FAIL: NSI never records that config.txt pre-existed (upgrade detection gone)"; exit 1)
+          # The generate block must be skipped (config preserved) when it pre-existed.
+          grep -q 'Preserving existing config.txt' "$NSI" \
+            || (echo "FAIL: NSI no longer preserves an existing config.txt on upgrade"; exit 1)
+          grep -q '\${If} \$ConfigExisted == "1"' "$NSI" \
+            || (echo "FAIL: NSI does not guard the config regenerate on \$ConfigExisted (settings wipe is back)"; exit 1)
+          # The template copy must also be first-install-only so it can't clobber.
+          grep -q '\${If} \$ConfigExisted == "0"' "$NSI" \
+            || (echo "FAIL: NSI template config copy is not first-install-only — could overwrite user config"; exit 1)
+          echo "PASS: installer preserves an existing config.txt on upgrade, generates only on first install"
