@@ -136,9 +136,25 @@ The installer uses `curl.exe` (built-in on Windows 10 1803+) to download Node.js
 
 ### Antivirus or SmartScreen flags the installer (false positive)
 
-The installer is **not code-signed yet**, so Windows SmartScreen may show
-*"Windows protected your PC"*, and some antivirus (e.g. McAfee) may warn or
-block a step. This is a **false positive**:
+The installer is **not code-signed yet**, so Windows SmartScreen may warn at
+**download** time, again at **run** time (*"Windows protected your PC"*), and some
+antivirus (e.g. McAfee) may warn or block a step. This is a **false positive**.
+
+> **Why a NEW version gets flagged when the old one didn't:** SmartScreen trust is
+> tied to the exact file. Every new release is a brand-new `.exe`, so it starts with
+> **zero download reputation** until enough people have fetched it — even though the
+> previous version downloaded fine. This is normal for unsigned apps and clears on
+> its own over time (or once we code-sign / submit it to Microsoft).
+
+**If the browser blocks the DOWNLOAD** ("…isn't commonly downloaded" / "blocked"):
+
+- **Microsoft Edge:** open **Downloads** (Ctrl+J) → the blocked item → **⋯** → **Keep**
+  → **Keep anyway**.
+- **Chrome:** **Downloads** → on the blocked item, click **Keep** (or **Keep anyway**).
+
+Then proceed with the run-time steps below.
+
+Why this is safe:
 
 - Launchpad CLI is **open source (MIT)** - the [full source](https://github.com/noambrand/launchpad-cli), including the NSIS script and `source/install.cmd`, is public and auditable.
 - It installs **only official tools** from official sources: Node.js (winget / nodejs.org), Git (winget / git-scm.com), Windows Terminal (Microsoft Store), and Claude Code via **[Anthropic's official installer](https://claude.ai/install.cmd)**.
