@@ -215,9 +215,61 @@ if exist "%LOCALAPPDATA%\Kivun\kivun-claude-startcmd.txt" (
 )
 
 REM --- Launch Claude Code ---
-if defined LANG_PROMPT (
-    claude !FINAL_FLAGS! --append-system-prompt "!LANG_PROMPT!"
-) else (
-    claude !FINAL_FLAGS!
+REM Resume-flag safety net (v2.7.6): if FINAL_FLAGS asks to resume a previous
+REM conversation (--continue / -c / --resume / -r) but THIS folder has no prior
+REM session, Claude prints "No conversation found to continue" and exits at
+REM once. Because the whole Windows Terminal tab is this single `claude` call,
+REM the tab then closes on its own — to the user it looks like the launcher
+REM "didn't open". We detect that FAST non-zero exit (Claude never became an
+REM interactive session) and reopen a FRESH session with the resume flag
+REM stripped, so the user lands in a working session instead of a vanished tab.
+REM The retry runs at most once; a real session the user worked in and quit
+REM lasts longer than the 10-second guard and is never retried.
+set "RESUMING="
+echo " !FINAL_FLAGS! " | findstr /i /r /c:" --continue " /c:" -c " /c:" --resume " /c:" -r " >nul 2>&1 && set "RESUMING=1"
+
+call :now_seconds CC_T0
+call :launch_claude "!FINAL_FLAGS!"
+set "CC_RC=!ERRORLEVEL!"
+call :now_seconds CC_T1
+set /a "CC_ELAPSED=CC_T1-CC_T0"
+if !CC_ELAPSED! lss 0 set /a "CC_ELAPSED+=86400"
+
+if defined RESUMING if not "!CC_RC!"=="0" if !CC_ELAPSED! lss 10 (
+    REM Strip the long-form resume flags by literal substring replacement. This
+    REM preserves any quoted flags (e.g. --append-system-prompt "respond in
+    REM Hebrew") that a token-rebuild would mangle. The picker and config presets
+    REM only ever emit the long forms (--continue / --resume), so this covers the
+    REM real cases; a manually-typed short -c / -r is rare and simply isn't
+    REM retried (the session just exits, exactly as before this fix).
+    set "FRESH_FLAGS=!FINAL_FLAGS!"
+    set "FRESH_FLAGS=!FRESH_FLAGS:--continue=!"
+    set "FRESH_FLAGS=!FRESH_FLAGS:--resume=!"
+    echo.
+    echo ===============================================
+    echo  No previous conversation found in this folder.
+    echo  Starting a fresh Claude session instead...
+    echo ===============================================
+    echo.
+    call :launch_claude "!FRESH_FLAGS!"
 )
 exit /b 0
+
+:launch_claude
+REM %~1 = flag string (may be empty). Expanded BARE (not quoted) so the flags
+REM word-split into separate arguments to claude; an empty string adds nothing.
+set "_FLAGS=%~1"
+if defined LANG_PROMPT (
+    claude !_FLAGS! --append-system-prompt "!LANG_PROMPT!"
+) else (
+    claude !_FLAGS!
+)
+exit /b !ERRORLEVEL!
+
+:now_seconds
+REM %~1 = name of the variable to receive seconds-since-midnight, parsed from
+REM %TIME% (HH:MM:SS.cc). `!TIME: =0!` zero-pads the space-padded hour (" 9:05"
+REM -> "09:05"); the 1HH-100 trick strips leading zeros without octal errors.
+set "_TT=!TIME: =0!"
+for /f "tokens=1-3 delims=:.," %%a in ("!_TT!") do set /a "%~1=(((1%%a-100)*60)+(1%%b-100))*60+(1%%c-100)"
+exit /b

@@ -5,7 +5,7 @@
 Unicode True
 
 !define PRODUCT_NAME "ClaudeCode Launchpad CLI"
-!define PRODUCT_VERSION "2.7.5"
+!define PRODUCT_VERSION "2.7.6"
 !define PRODUCT_PUBLISHER "Noam Brand"
 !define PRODUCT_WEB_SITE "https://github.com"
 !define PRODUCT_DESCRIPTION "Claude Code installer for Windows"
@@ -88,6 +88,11 @@ Page custom ConfigPage ConfigPageLeave
 Var ConfigLanguage
 Var ConfigUsername
 Var ConfigTerminalColor
+; "1" when config.txt already existed before this run started (i.e. this is an
+; upgrade/reinstall). Captured BEFORE any file is copied so we can PRESERVE the
+; user's edited config instead of overwriting it with wizard defaults. See
+; SecCore. (v2.7.6)
+Var ConfigExisted
 
 ; Pre-install warning: remind users to finish active CLI sessions
 Function .onInit
@@ -165,6 +170,16 @@ FunctionEnd
 Section "!Core Components (Required)" SecCore
   SectionIn RO  ; Read-only, cannot be deselected
 
+  ; v2.7.6: remember whether the user already has a config.txt BEFORE we touch
+  ; any files. On an upgrade we must PRESERVE it (it holds the user's language,
+  ; theme, CLAUDE_FLAGS and STARTUP_CMD); only a first install gets a freshly
+  ; generated one from the wizard choices. Earlier builds rewrote config.txt on
+  ; every install, silently wiping these settings on every upgrade.
+  StrCpy $ConfigExisted "0"
+  ${If} ${FileExists} "$INSTDIR\config.txt"
+    StrCpy $ConfigExisted "1"
+  ${EndIf}
+
   ; Hardening (v2.6.8): close any launcher window left running from a previous
   ; build BEFORE we overwrite files. An open mshta window only runs its update
   ; check once at load, so without this an upgraded user keeps seeing the OLD
@@ -180,7 +195,12 @@ Section "!Core Components (Required)" SecCore
 
   ; Copy essential files from source/
   File "source\claude_icon.ico"
-  File "source\config.txt"
+  ; config.txt: only lay down the template on a FIRST install. On an upgrade the
+  ; existing file is the user's edited config and is preserved (the regenerate
+  ; block below is likewise skipped). v2.7.6.
+  ${If} $ConfigExisted == "0"
+    File "source\config.txt"
+  ${EndIf}
   File "source\claudecode-launchpad.bat"
   File "source\folder-picker.hta"
   File "source\write-path.js"
@@ -210,7 +230,12 @@ Section "!Core Components (Required)" SecCore
   File "docs\QUICK_START.md"
   File "docs\CHANGELOG.md"
 
-  ; Create config.txt with user preferences
+  ; Create config.txt with user preferences — FIRST INSTALL ONLY. On an upgrade
+  ; we keep the user's existing config (language, theme, CLAUDE_FLAGS,
+  ; STARTUP_CMD) untouched. v2.7.6.
+  ${If} $ConfigExisted == "1"
+    DetailPrint "Preserving existing config.txt (user settings kept)"
+  ${Else}
   Delete "$INSTDIR\config.txt"
   FileOpen $0 "$INSTDIR\config.txt" w
   FileWrite $0 "# ClaudeCode Launchpad CLI Configuration$\r$\n"
@@ -289,6 +314,7 @@ Section "!Core Components (Required)" SecCore
   FileWrite $0 "STARTUP_CMD=$\r$\n"
 
   FileClose $0
+  ${EndIf}
 
   ; Single source of truth for the self-reported version (v2.6.8). The launcher
   ; HTA reads this file first and only falls back to its hardcoded
