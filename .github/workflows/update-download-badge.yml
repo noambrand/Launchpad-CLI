@@ -3,6 +3,19 @@ name: Update Download Badge
 on:
   release:
     types: [published]
+  # Manual re-run from the Actions tab.
+  workflow_dispatch:
+  # Downloads keep accruing between releases; recompute daily so the badge
+  # never goes stale (the release-only trigger left it frozen at the baseline).
+  schedule:
+    - cron: '17 6 * * *'
+
+# Serialize badge updates: two releases published back-to-back would otherwise
+# both check out the same main tip and the second push would be rejected
+# non-fast-forward.
+concurrency:
+  group: update-download-badge
+  cancel-in-progress: false
 
 jobs:
   update-badge:
@@ -27,17 +40,35 @@ jobs:
           echo "total=$TOTAL" >> "$GITHUB_OUTPUT"
           echo "Base: $BASE  Live: $LIVE  Total: $TOTAL"
 
-      - name: Update badge in README
+      - name: Update badge in every README
         run: |
           TOTAL="${{ steps.calc.outputs.total }}"
-          sed -i "s|/badge/downloads-[0-9]*%2B-blue|/badge/downloads-${TOTAL}%2B-blue|g" README.md
-          grep "downloads-" README.md
+          shopt -s nullglob
+          updated=0
+          for f in README*.md; do
+            grep -q "/badge/downloads-[0-9]*%2B-blue" "$f" || continue
+            sed -i "s|/badge/downloads-[0-9]*%2B-blue|/badge/downloads-${TOTAL}%2B-blue|g" "$f"
+            # Fail loudly if the badge pattern drifted and sed silently no-opped;
+            # otherwise the badge goes permanently stale with green CI.
+            grep -q "downloads-${TOTAL}%2B-blue" "$f" || {
+              echo "::error::Badge not updated in $f (pattern /badge/downloads-...%2B-blue changed?)"
+              exit 1
+            }
+            updated=1
+            echo "Updated $f -> ${TOTAL}+"
+          done
+          [ "$updated" = "1" ] || {
+            echo "::error::No README contained the downloads badge pattern"
+            exit 1
+          }
 
       - name: Commit and push
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add README.md
+          git add README*.md
           git diff --staged --quiet && echo "Badge unchanged, nothing to commit." && exit 0
           git commit -m "chore(badge): update download count to ${{ steps.calc.outputs.total }}+ [skip ci]"
+          # main may have moved since checkout; rebase so the push is fast-forward.
+          git pull --rebase origin main
           git push
