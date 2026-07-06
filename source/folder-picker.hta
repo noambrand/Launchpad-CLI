@@ -466,7 +466,7 @@
   // Used only when the installer-written VERSION file is missing (e.g. a very
   // old install). Since v2.6.8 the installer writes $INSTDIR\VERSION, which is
   // the authoritative figure; keep this in sync at release time anyway.
-  var FALLBACK_VERSION = "2.8.0";
+  var FALLBACK_VERSION = "2.8.1";
   var ASSET_NAME_RE = /^ClaudeCode_Launchpad_CLI_Setup\.exe$/i;
 
   function readInstalledVersion() {
@@ -968,6 +968,7 @@
     // any external tool that scrapes config.txt; profiles.json is the
     // source of truth from v1.4.0 onwards.
     try { writeFlagsToConfig(composeFlagsForConfig()); } catch (e) {}
+    try { var _cv = currentColorValue(); if (_cv) writeTerminalColorToConfig(_cv); } catch (e) {}
     try { writeStartupCmds(); } catch (e) {}
     try { writeEnvFile(); } catch (e) {}
     writePath(p);
@@ -1439,6 +1440,81 @@
     } catch (e) {}
   }
 
+  // ---- Terminal color (TERMINAL_COLOR in config.txt) -----------------
+  // Named theme (kivun/dark/black/white), "default" (keep the user's own
+  // Windows Terminal theme), or a custom #hex. "Apply now" writes config.txt
+  // and runs apply-terminal-color.js, which recolors Windows Terminal live
+  // (WT hot-reloads settings.json); the choice is also saved for next launch.
+  var NAMED_COLORS = { kivun: 1, dark: 1, black: 1, white: 1, "default": 1 };
+
+  function readTerminalColor() {
+    var content = readUtf8(configFile);
+    var m = content ? content.match(/^[ \t]*TERMINAL_COLOR[ \t]*=(.*)$/m) : null;
+    var v = m ? m[1].replace(/^\s+|\s+$/g, "") : "kivun";
+    return v || "kivun";
+  }
+
+  function applyColorToUI(val) {
+    val = (val || "kivun");
+    var lc = ("" + val).toLowerCase();
+    var isNamed = NAMED_COLORS[lc] ? true : false;
+    setRadioValue("term-color", isNamed ? lc : "custom");
+    var hx = document.getElementById("term-hex");
+    if (hx && !isNamed) hx.value = val;
+  }
+
+  function currentColorValue() {
+    var v = getRadioValue("term-color");
+    if (v === "custom") {
+      var hx = document.getElementById("term-hex");
+      return hx ? hx.value.replace(/^\s+|\s+$/g, "") : "";
+    }
+    return v || "kivun";
+  }
+
+  function writeTerminalColorToConfig(val) {
+    var content = readUtf8(configFile);
+    if (!content) return;
+    if (/^[ \t]*TERMINAL_COLOR[ \t]*=.*$/m.test(content)) {
+      content = content.replace(/^[ \t]*TERMINAL_COLOR[ \t]*=.*$/m, "TERMINAL_COLOR=" + val);
+    } else {
+      var nl = (content.indexOf("\r\n") >= 0) ? "\r\n" : "\n";
+      if (content.length && content.charAt(content.length - 1) !== "\n") content += nl;
+      content += "TERMINAL_COLOR=" + val + nl;
+    }
+    writeUtf8NoBom(configFile, content);
+  }
+
+  function flashColorStatus(msg) {
+    var s = document.getElementById("color-status");
+    if (!s) return;
+    s.className = "status saved";
+    s.innerText = msg || "✓ applied";
+    try { setTimeout(function () { try { s.innerText = ""; s.className = "status"; } catch (_) {} }, 1600); } catch (_) {}
+  }
+
+  function onColorPick() {
+    if (getRadioValue("term-color") === "custom") {
+      var hx = document.getElementById("term-hex");
+      if (hx && hx.focus) hx.focus();
+    }
+  }
+
+  function onColorHexType() {
+    setRadioValue("term-color", "custom");   // typing a hex implies Custom
+  }
+
+  function applyTerminalColor() {
+    var val = currentColorValue();
+    if (!val) { flashColorStatus("enter a #hex color"); return; }
+    try { writeTerminalColorToConfig(val); } catch (e) {}
+    try {
+      var js = installDir + "\\apply-terminal-color.js";
+      if (fso.FileExists(js)) wshShell.Run("node \"" + js + "\"", 0, false);
+    } catch (e) {}
+    flashColorStatus("✓ applied");
+  }
+
   function init() {
     try {
       deleteIfExists(startupFile);   // start each session fresh
@@ -1451,6 +1527,7 @@
       applyProfileToDialog(active);
       loadSoundConfig();
       applySoundConfigToUI();
+      applyColorToUI(readTerminalColor());
       autoSizeToContent();
       var p = document.getElementById("path");
       if (p && p.focus) p.focus();
@@ -1598,6 +1675,29 @@
       </div>
       <div class="flag-help">These are <b>global</b> settings: one switch for <b>every project, folder, and window</b> (not per-project, not per-profile). Turning <b>Sounds: Off</b> here silences <b>all</b> alerts everywhere, takes effect immediately (no restart), and stays off across updates until you turn it back on.</div>
     </div>
+  </div>
+
+  <div class="option" style="margin-top:12px">
+    <div class="opt-label"><span class="opt-num">7</span> 🎨 Terminal color:</div>
+    <div class="flag-grid">
+      <div class="lbl">Background:</div>
+      <div class="radio-row">
+        <label><input type="radio" name="term-color" value="kivun" onclick="onColorPick()" /> Kivun <span style="color:#707070">(light blue)</span></label>
+        <label><input type="radio" name="term-color" value="dark" onclick="onColorPick()" /> Dark</label>
+        <label><input type="radio" name="term-color" value="black" onclick="onColorPick()" /> Black</label>
+        <label><input type="radio" name="term-color" value="white" onclick="onColorPick()" /> White</label>
+        <label><input type="radio" name="term-color" value="default" onclick="onColorPick()" /> Keep my theme</label>
+        <label><input type="radio" name="term-color" value="custom" onclick="onColorPick()" /> Custom</label>
+      </div>
+
+      <div class="lbl">Custom color:</div>
+      <div class="check-row">
+        <input type="text" id="term-hex" value="" placeholder="#1e1e2e" onkeyup="onColorHexType()" style="width:100px; padding:6px 8px; font-size:13px;" />
+        <button type="button" onclick="applyTerminalColor()" title="Save this color and recolor Windows Terminal now">Apply now</button>
+        <span class="status" id="color-status" style="margin-left:10px;"></span>
+      </div>
+    </div>
+    <div class="flag-help">Sets the terminal background; the text color is picked automatically for readability. <b>Apply now</b> recolors open Windows Terminal windows immediately and saves the choice for future launches. Pick <b>Keep my theme</b> to leave your own Windows Terminal colors untouched.</div>
   </div>
 
   </div><!-- /advanced-body -->

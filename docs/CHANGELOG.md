@@ -1,5 +1,16 @@
 # Changelog
 
+## [2.8.1] - 2026-07-06
+
+### Added — pick your terminal color in the folder picker
+
+The picker's **Advanced options** now include a **Terminal color** control: choose
+`kivun` (light blue), `dark`, `black`, `white`, keep your own Windows Terminal
+theme, or type a custom hex like `#1e1e2e` — no need to hand-edit `config.txt`.
+**Apply now** recolors open Windows Terminal windows immediately (and saves the
+choice for future launches); the text color is picked automatically for
+readability.
+
 ## [2.8.0] - 2026-07-06
 
 ### Added — pick any terminal background color
