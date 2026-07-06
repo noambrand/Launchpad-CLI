@@ -2,7 +2,7 @@
     "profiles": [
         {
             "name": "ClaudeCode Launchpad CLI",
-            "commandline": "cmd /c claude",
+            "commandline": "\"%LOCALAPPDATA%\\Kivun\\claudecode-launchpad.bat\" --run",
             "icon": "%LOCALAPPDATA%\\Kivun\\claude_icon.ico",
             "colorScheme": "Noam",
             "cursorShape": "bar",

@@ -5,7 +5,7 @@
 Unicode True
 
 !define PRODUCT_NAME "ClaudeCode Launchpad CLI"
-!define PRODUCT_VERSION "2.7.6"
+!define PRODUCT_VERSION "2.8.0"
 !define PRODUCT_PUBLISHER "Noam Brand"
 !define PRODUCT_WEB_SITE "https://github.com"
 !define PRODUCT_DESCRIPTION "Claude Code installer for Windows"
@@ -33,12 +33,12 @@ InstallDir "${INSTALL_DIR}"
 ShowInstDetails show
 
 ; Version info
-VIProductVersion "2.7.5.0"
+VIProductVersion "2.8.0.0"
 VIAddVersionKey "ProductName" "${PRODUCT_NAME}"
 VIAddVersionKey "ProductVersion" "${PRODUCT_VERSION}"
 VIAddVersionKey "CompanyName" "${PRODUCT_PUBLISHER}"
 VIAddVersionKey "FileDescription" "${PRODUCT_DESCRIPTION}"
-VIAddVersionKey "FileVersion" "2.7.5.0"
+VIAddVersionKey "FileVersion" "2.8.0.0"
 VIAddVersionKey "LegalCopyright" "(C) 2026 ${PRODUCT_PUBLISHER}"
 
 ; Modern UI Configuration
@@ -211,6 +211,7 @@ Section "!Core Components (Required)" SecCore
   File "source\claudecode-launchpad-wt-fragment.json"
   File "source\claudecode-launchpad-wt-fragment-nocolor.json"
   File "source\apply-wt-settings.js"
+  File "source\apply-terminal-color.js"
   File "source\statusline.mjs"
   File "source\configure-statusline.js"
   File "source\install.cmd"
@@ -296,8 +297,12 @@ Section "!Core Components (Required)" SecCore
     FileWrite $0 "RESPONSE_LANGUAGE=english$\r$\n"
   ${EndIf}
 
-  FileWrite $0 "# Terminal color theme$\r$\n"
-  FileWrite $0 "# Options: kivun (light-blue), default (keep your terminal theme)$\r$\n"
+  FileWrite $0 "# Terminal background color$\r$\n"
+  FileWrite $0 "#   kivun   - light blue (the default look)$\r$\n"
+  FileWrite $0 "#   dark    - dark gray        black - almost black        white - white$\r$\n"
+  FileWrite $0 "#   default - keep your own terminal theme (don't change it)$\r$\n"
+  FileWrite $0 "#   #RRGGBB - any custom color, e.g. TERMINAL_COLOR=#1e1e2e$\r$\n"
+  FileWrite $0 "# The text color is picked automatically. A change applies on next launch.$\r$\n"
   ${If} $ConfigTerminalColor == ${BST_CHECKED}
     FileWrite $0 "TERMINAL_COLOR=kivun$\r$\n"
   ${Else}
@@ -469,12 +474,19 @@ Section "!Install Claude Code (Required)" SecClaudeCode
     DetailPrint "WARNING: Could not configure voice alerts (exit code: $0)"
   ${EndIf}
 
-  ; Apply Noam color scheme directly to WT settings (only when theme is enabled)
-  ${If} $ConfigTerminalColor == ${BST_CHECKED}
-    DetailPrint "Applying Windows Terminal color scheme..."
-    nsExec::ExecToLog 'node "$INSTDIR\apply-wt-settings.js"'
-    Pop $0
-  ${EndIf}
+  ; Apply the Windows Terminal profile plumbing (commandline, cursor, font) —
+  ; always, so a materialized profile keeps launching via our launcher no matter
+  ; the theme choice.
+  DetailPrint "Applying Windows Terminal profile settings..."
+  nsExec::ExecToLog 'node "$INSTDIR\apply-wt-settings.js"'
+  Pop $0
+
+  ; Apply the terminal color from config.txt (kivun/dark/black/white/default/#hex)
+  ; — always run, so an upgrade with TERMINAL_COLOR=default reliably UN-PINS any
+  ; previously applied scheme (the reported "can't turn off the blue" bug).
+  DetailPrint "Applying terminal color from config..."
+  nsExec::ExecToLog 'node "$INSTDIR\apply-terminal-color.js"'
+  Pop $0
 SectionEnd
 
 Section "Install Windows Terminal (Recommended)" SecWindowsTerminal

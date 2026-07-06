@@ -4,8 +4,13 @@
 # Options: english, hebrew, arabic, persian, urdu, kurdish, pashto, sindhi, yiddish, syriac, dhivehi, nko, adlam, mandaic, samaritan, dari, uyghur, balochi, kashmiri, shahmukhi, azeri_south, jawi, hausa_ajami, rohingya, turoyo
 # Default: english
 RESPONSE_LANGUAGE=english
-# Terminal color theme
-# Options: kivun (light-blue), default (keep your terminal theme)
+# Terminal background color
+#   kivun   - light blue (the default look)
+#   dark    - dark gray        black - almost black        white - white
+#   default - keep your own terminal theme (don't change it)
+#   #RRGGBB - any custom color, e.g. TERMINAL_COLOR=#1e1e2e
+# The text color is picked automatically (dark text on a light background,
+# light text on a dark one). A color change applies the next time you launch.
 TERMINAL_COLOR=kivun
 # Claude startup flags (optional, applied on every launch)
 # Useful flags:

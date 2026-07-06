@@ -103,6 +103,13 @@ if "!CLAUDE_FOUND!"=="0" (
     exit /b 1
 )
 
+REM --- Sync the terminal color from config.txt into the Windows Terminal
+REM     fragment + settings.json BEFORE we open the window, so the chosen
+REM     TERMINAL_COLOR (kivun / dark / black / white / default / #hex) is live
+REM     for this launch. Best-effort: a missing Node or Windows Terminal must
+REM     never block the launch (hence the &&, and stderr/stdout swallowed).
+where node >nul 2>&1 && node "!SCRIPT_DIR!apply-terminal-color.js" >nul 2>&1
+
 REM --- Try Windows Terminal first ---
 where wt.exe >nul 2>&1
 if errorlevel 1 goto :fallback_cmd
@@ -143,11 +150,25 @@ if exist "!SCRIPT_DIR!config.txt" (
     )
 )
 
-if /i "!TERMINAL_COLOR!"=="kivun" (
+REM --- Resolve TERMINAL_COLOR into RGB for the instant ANSI paint below.
+REM     The authoritative color is the Windows Terminal scheme written by
+REM     apply-terminal-color.js in phase 1; this ANSI paint is the immediate
+REM     repaint (before the scheme's default-bg fully takes over) and the
+REM     conhost/cmd.exe fallback when Windows Terminal isn't in play.
+set "BG_RGB="
+set "FG_RGB="
+if /i "!TERMINAL_COLOR!"=="kivun" ( set "BG_RGB=200;230;255" & set "FG_RGB=12;12;12" )
+if /i "!TERMINAL_COLOR!"=="dark"  ( set "BG_RGB=30;30;30"    & set "FG_RGB=242;242;242" )
+if /i "!TERMINAL_COLOR!"=="black" ( set "BG_RGB=12;12;12"    & set "FG_RGB=242;242;242" )
+if /i "!TERMINAL_COLOR!"=="white" ( set "BG_RGB=255;255;255" & set "FG_RGB=12;12;12" )
+if not defined BG_RGB if "!TERMINAL_COLOR:~0,1!"=="#" call :resolve_hex "!TERMINAL_COLOR!"
+if not defined BG_RGB if /i not "!TERMINAL_COLOR!"=="default" if not "!TERMINAL_COLOR!"=="" (
+    echo [ClaudeCode Launchpad] Unrecognized TERMINAL_COLOR "!TERMINAL_COLOR!" - leaving terminal theme unchanged.
+)
+if defined BG_RGB (
     REM Generate ESC character for ANSI sequences (Windows 10+)
     for /f %%a in ('echo prompt $E ^| cmd') do set "ESC=%%a"
-    REM Apply Kivun light-blue background #C8E6FF (200,230,255) + dark text #0C0C0C (12,12,12)
-    <nul set /p="!ESC![48;2;200;230;255m!ESC![38;2;12;12;12m"
+    <nul set /p="!ESC![48;2;!BG_RGB!m!ESC![38;2;!FG_RGB!m"
     cls
 )
 
@@ -253,7 +274,47 @@ if defined RESUMING if not "!CC_RC!"=="0" if !CC_ELAPSED! lss 10 (
     echo.
     call :launch_claude "!FRESH_FLAGS!"
 )
+
+REM --- Claude has exited. Rather than let the Windows Terminal tab close (what
+REM     users hit when they type `exit` to run a quick command and then expect to
+REM     come back), drop to a normal command prompt in the SAME tab. Typing
+REM     `claude` there re-launches Claude with the SAME language prompt + flags;
+REM     `exit` closes the tab. The doskey macro makes `claude` exit the child
+REM     cmd with code 42, which this parent batch catches to relaunch — so the
+REM     full original behavior (--append-system-prompt language flag and
+REM     CLAUDE_FLAGS) is preserved. The macro ignores arguments typed after it.
+:interactive_shell
+echo.
+echo  ------------------------------------------------------------
+echo   Claude ended. You're now at a normal command prompt.
+echo   Type  claude  to return to Claude, or  exit  to close.
+echo  ------------------------------------------------------------
+echo.
+cmd /k "doskey claude=exit 42"
+if !ERRORLEVEL! EQU 42 (
+    call :launch_claude "!FINAL_FLAGS!"
+    goto :interactive_shell
+)
 exit /b 0
+
+:resolve_hex
+REM %~1 = "#RRGGBB" or "#RGB". On success sets BG_RGB / FG_RGB (semicolon RGB for
+REM ANSI) in the caller's scope, choosing dark or light text by luminance; on an
+REM invalid value it leaves them empty so the caller warns and skips coloring.
+setlocal enabledelayedexpansion
+set "HX=%~1"
+set "HX=!HX:~1!"
+set "LEN="
+echo(!HX!| findstr /r /i /x "[0-9a-f][0-9a-f][0-9a-f]" >nul && set "LEN=3"
+echo(!HX!| findstr /r /i /x "[0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f]" >nul && set "LEN=6"
+if not defined LEN ( endlocal & exit /b )
+if "!LEN!"=="3" set "HX=!HX:~0,1!!HX:~0,1!!HX:~1,1!!HX:~1,1!!HX:~2,1!!HX:~2,1!"
+set /a R=0x!HX:~0,2!, G=0x!HX:~2,2!, B=0x!HX:~4,2! 2>nul
+set /a L=(299*R+587*G+114*B)/1000
+set "FGV=12;12;12"
+if !L! lss 128 set "FGV=242;242;242"
+endlocal & set "BG_RGB=%R%;%G%;%B%" & set "FG_RGB=%FGV%"
+exit /b
 
 :launch_claude
 REM %~1 = flag string (may be empty). Expanded BARE (not quoted) so the flags

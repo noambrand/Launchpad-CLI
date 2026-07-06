@@ -1,5 +1,33 @@
 # Changelog
 
+## [2.8.0] - 2026-07-06
+
+### Added — pick any terminal background color
+
+`TERMINAL_COLOR` in `config.txt` now accepts far more than the old light-blue-or-nothing:
+
+- Named themes: `kivun` (the light blue), `dark`, `black`, `white`, and `default`
+  (keep your own terminal theme, don't touch it).
+- Any custom color as a hex code, e.g. `TERMINAL_COLOR=#1e1e2e`.
+- The **text color is chosen automatically** — dark text on a light background, light
+  text on a dark one — so every color stays readable.
+
+The choice is applied to the Windows Terminal profile and color scheme, so it sticks for
+new windows and updates an already-open window; a change takes effect on the next launch.
+
+### Fixed — `TERMINAL_COLOR=default` now really turns the color off
+
+Setting `TERMINAL_COLOR=default` used to leave the blue background in place, because the
+color scheme was pinned into the Windows Terminal profile regardless of the setting. The
+color is now owned by a single step (`apply-terminal-color.js`) that **un-pins** the scheme
+for `default`, so your own terminal theme shows through — on a fresh install and on upgrade.
+
+### Added — type `exit` to run commands, then `claude` to come back
+
+When Claude ends, the window no longer closes. It drops to a normal command prompt in the
+same tab so you can run an update, a `git` command, anything — then type **`claude`** to
+return to Claude with the same language and flags, or **`exit`** to close the tab.
+
 ## [2.7.6] - 2026-06-29
 
 ### Fixed — "Continue last conversation" no longer closes the tab on a fresh folder

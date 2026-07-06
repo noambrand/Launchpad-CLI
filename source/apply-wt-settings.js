@@ -1,7 +1,9 @@
-// ClaudeCode Launchpad CLI - Apply Windows Terminal color scheme + profile keys
-// Closes WT first (it overwrites settings while running), then ensures the Noam
-// color scheme exists and the ClaudeCode Launchpad profile carries the right
-// keys (commandline, colorScheme, font, etc.).
+// ClaudeCode Launchpad CLI - Apply Windows Terminal profile keys (NON-color)
+// Closes WT first (it overwrites settings while running), then ensures the
+// ClaudeCode Launchpad profile carries the right keys (commandline, cursor,
+// font, etc.). The terminal COLOR is owned separately by apply-terminal-color.js
+// (which reads TERMINAL_COLOR from config.txt); this script no longer touches
+// colorScheme so the two can't fight over settings.json.
 //
 // Post-v2.6.6 fix: rewritten to parse settings.json as real JSON instead of string-
 // splicing. The old string-insertion approach (a) was NOT idempotent — its
@@ -69,39 +71,7 @@ try {
 
 let changed = false;
 
-const NOAM_SCHEME = {
-  name: 'Noam',
-  background: '#C8E6FF',
-  foreground: '#0C0C0C',
-  cursorColor: '#0050C8',
-  selectionBackground: '#32FFF1',
-  black: '#0C0C0C',
-  red: '#C50F1F',
-  green: '#13A10E',
-  yellow: '#C19C00',
-  blue: '#0000A0',
-  purple: '#881798',
-  cyan: '#005AA0',
-  white: '#CCCCCC',
-  brightBlack: '#000000',
-  brightRed: '#FF1328',
-  brightGreen: '#0F800B',
-  brightYellow: '#AB8A00',
-  brightBlue: '#000078',
-  brightPurple: '#691275',
-  brightCyan: '#003C8C',
-  brightWhite: '#5E5E5E',
-};
-
-// --- 1. Ensure the Noam color scheme exists (top-level "schemes" array) ---
-if (!Array.isArray(settings.schemes)) settings.schemes = [];
-if (!settings.schemes.some((s) => s && s.name === 'Noam')) {
-  settings.schemes.push(NOAM_SCHEME);
-  changed = true;
-  console.log('Added Noam color scheme');
-}
-
-// --- 2. Ensure the ClaudeCode Launchpad profile carries the right keys ---
+// --- Ensure the ClaudeCode Launchpad profile carries the right keys ---
 // The WT fragment already defines this profile; this only matters once WT has
 // "materialized" it into settings.json (which happens when the user customizes
 // it). We set keys only when missing/different, so this is idempotent.
@@ -120,8 +90,11 @@ if (list) {
 
   if (profile) {
     const want = {
-      commandline: 'cmd /c claude', // critical: without this a hiccupped merge falls back to cmd.exe = no claude
-      colorScheme: 'Noam',
+      // Route through the launcher (not a bare `claude`) so a profile opened
+      // straight from the WT dropdown gets the language prompt AND the
+      // exit-to-shell behavior; without a commandline a hiccupped fragment
+      // merge would fall back to cmd.exe (no claude at all).
+      commandline: '"%LOCALAPPDATA%\\Kivun\\claudecode-launchpad.bat" --run',
       cursorShape: 'bar',
       scrollbarState: 'visible',
       // Lock the tab title so Claude can't overwrite it with "Claude Code";
