@@ -181,11 +181,12 @@ to **On** the same way. Nothing is removed or uninstalled — it's a reversible 
 
 ## Configuration
 
-Edit `%LOCALAPPDATA%\Kivun\config.txt` (Windows) after installation:
+Set the terminal color right in the **folder picker → Advanced options** (with an **Apply now**
+button that recolors Windows Terminal instantly), or edit `%LOCALAPPDATA%\Kivun\config.txt`:
 
 ```ini
 RESPONSE_LANGUAGE=english     # 24+ languages supported
-TERMINAL_COLOR=kivun          # "kivun" or "default"
+TERMINAL_COLOR=kivun          # kivun / dark / black / white / default, or a hex like #1e1e2e
 CLAUDE_FLAGS=                 # e.g. --continue
 ```
 
