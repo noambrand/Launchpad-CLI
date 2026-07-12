@@ -126,6 +126,14 @@ REM     for this launch. Best-effort: a missing Node or Windows Terminal must
 REM     never block the launch (hence the &&, and stderr/stdout swallowed).
 where node >nul 2>&1 && node "!SCRIPT_DIR!apply-terminal-color.js" >nul 2>&1
 
+REM --- De-duplicate against Windows Terminal's "reopen tabs on startup" ---
+REM     If WT is set to restore tabs, a cold start would reopen THIS project's
+REM     saved Launchpad tab AND we would add another below -> two tabs, same
+REM     name. This prunes only this project's tab from WT's saved layout so
+REM     restore brings back everything else and we supply this one exactly once.
+REM     Best-effort and must never block the launch (hence && + swallowed output).
+where node >nul 2>&1 && node "!SCRIPT_DIR!dedupe-launch-tab.js" "!WT_TAB!" "!WORK_DIR!" >nul 2>&1
+
 REM --- Try Windows Terminal first ---
 where wt.exe >nul 2>&1
 if errorlevel 1 goto :fallback_cmd

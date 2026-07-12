@@ -1,5 +1,34 @@
 # Changelog
 
+## [2.9.2] - 2026-07-13
+
+### Fixed — opening a session no longer shows two tabs with the same project name
+
+If Windows Terminal was set to reopen your tabs on startup (its
+"firstWindowPreference": "persistedWindowLayout" option), a cold start restored
+the previously-saved Launchpad tab for a project AND the launcher then opened a
+fresh tab for that same project — so you got two identical tabs side by side.
+
+Rather than turn tab-restore off (which would lose it for every window), the
+launcher now prunes ONLY the tab for the project you're opening from Windows
+Terminal's saved layout, immediately before it opens the window. Restore still
+brings back everything else — other projects, other windows, non-Launchpad tabs
+— and the launcher supplies this one project exactly once. Full restore, no
+duplicate.
+
+New `source/dedupe-launch-tab.js` (run in phase 1 of the launcher) does the
+prune. It is best-effort and defensive: on a missing/unparsable state file, or an
+unexpected shape, it does nothing and the launch proceeds normally. It only ever
+touches tabs whose command line is the Launchpad launcher AND whose working
+folder/title matches the project being opened, so other tabs are never disturbed.
+Verified with isolated tests (target pruned; other project + PowerShell tab kept;
+match-by-folder; malformed-state left untouched; same-named non-Launchpad tab not
+pruned).
+
+Note: this targets the common cold-start case. If Windows Terminal is already
+open and the same project's tab is already showing, opening it again can still add
+a second tab in that running window.
+
 ## [2.9.1] - 2026-07-13
 
 ### Fixed — Windows Terminal "invalid colorScheme" warning on install
