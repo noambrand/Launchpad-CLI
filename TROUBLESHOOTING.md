@@ -87,6 +87,32 @@ The installer uses ANSI escape sequences as a fallback, so colors should work ev
 2. Re-run the installer - it registers a WT JSON fragment automatically
 3. If using CMD fallback, verify your Windows 10 build supports 24-bit ANSI (build 1903+)
 
+### Windows Terminal warns "Found a profile with an invalid colorScheme"
+
+On startup Windows Terminal showed *"Found a profile with an invalid colorScheme.
+Defaulting that profile to the default colors."* and the Launchpad profile lost its
+color.
+
+**Fixed in v2.9.1+.** The launcher writes its color scheme (`Launchpad Color`) into
+Windows Terminal's `settings.json`, but that file normally contains `//` comments,
+and the old code couldn't read a commented file so it skipped writing the scheme —
+leaving the profile pointing at a scheme Windows Terminal couldn't find. The reader
+now handles comments, so the scheme is always present. Nothing to do on your side;
+if you're on an older build, re-run the installer or update to v2.9.1+.
+
+### Opening a session shows two tabs with the same project name
+
+You opened one project but got **two identical tabs** side by side.
+
+**Fixed in v2.9.2+.** This happens when Windows Terminal is set to reopen your tabs
+on startup: it restored the project's saved tab *and* the launcher opened a fresh
+one. Rather than switch that setting off (which would stop restore for every
+window), the launcher now removes just that one project's saved tab a moment before
+it opens the window — so restore still brings back everything else and the project
+opens exactly once. Update to v2.9.2+ (or re-run the installer). *Edge case:* if
+Windows Terminal is already open and that project's tab is already showing, opening
+it again can still add a second tab in that running window.
+
 ### Folder picker doesn't open
 
 The GUI folder picker requires Windows Script Host. If it's disabled by policy:
