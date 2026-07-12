@@ -1485,6 +1485,48 @@
     writeUtf8NoBom(configFile, content);
   }
 
+  // ---- Auto-continue (AUTO_CONTINUE in config.txt) -------------------
+  // Opt-in: a detached watcher (auto-continue.js, spawned by the .bat) types
+  // "continue" once after the 5-hour limit resets. Persisted to the SAME
+  // config.txt the .bat reads, using the TERMINAL_COLOR dedicated read/write
+  // pattern (NOT the CLAUDE_FLAGS-append chips). Toggling writes immediately.
+  function readAutoContinue() {
+    var content = readUtf8(configFile);
+    var m = content ? content.match(/^[ \t]*AUTO_CONTINUE[ \t]*=(.*)$/m) : null;
+    var v = m ? m[1].replace(/^\s+|\s+$/g, "").toLowerCase() : "false";
+    return (v === "true") ? "true" : "false";
+  }
+
+  function writeAutoContinueToConfig(val) {
+    var content = readUtf8(configFile);
+    if (!content) return;
+    if (/^[ \t]*AUTO_CONTINUE[ \t]*=.*$/m.test(content)) {
+      content = content.replace(/^[ \t]*AUTO_CONTINUE[ \t]*=.*$/m, "AUTO_CONTINUE=" + val);
+    } else {
+      var nl = (content.indexOf("\r\n") >= 0) ? "\r\n" : "\n";
+      if (content.length && content.charAt(content.length - 1) !== "\n") content += nl;
+      content += "AUTO_CONTINUE=" + val + nl;
+    }
+    writeUtf8NoBom(configFile, content);
+  }
+
+  function applyAutoContinueToUI(val) {
+    var cb = document.getElementById("auto-continue");
+    if (cb) cb.checked = (("" + val).toLowerCase() === "true");
+  }
+
+  function onAutoContinueToggle() {
+    var cb = document.getElementById("auto-continue");
+    var val = (cb && cb.checked) ? "true" : "false";
+    try { writeAutoContinueToConfig(val); } catch (e) {}
+    var s = document.getElementById("autocontinue-status");
+    if (s) {
+      s.className = "status saved";
+      s.innerText = (val === "true") ? "✓ on" : "✓ off";
+      try { setTimeout(function () { try { s.innerText = ""; s.className = "status"; } catch (_) {} }, 1600); } catch (_) {}
+    }
+  }
+
   function flashColorStatus(msg) {
     var s = document.getElementById("color-status");
     if (!s) return;
@@ -1528,6 +1570,7 @@
       loadSoundConfig();
       applySoundConfigToUI();
       applyColorToUI(readTerminalColor());
+      applyAutoContinueToUI(readAutoContinue());
       autoSizeToContent();
       var p = document.getElementById("path");
       if (p && p.focus) p.focus();
@@ -1698,6 +1741,15 @@
       </div>
     </div>
     <div class="flag-help">Sets the terminal background; the text color is picked automatically for readability. <b>Apply now</b> recolors open Windows Terminal windows immediately and saves the choice for future launches. Pick <b>Keep my theme</b> to leave your own Windows Terminal colors untouched.</div>
+  </div>
+
+  <div class="option" style="margin-top:12px">
+    <div class="opt-label"><span class="opt-num">8</span> ⏳ Auto-continue when limit resets:</div>
+    <div class="check-row">
+      <label title="When the 5-hour usage limit resets, a background watcher focuses this tab and types &quot;continue&quot; once so work resumes on its own. Needs the PC awake and the tab still open. CAUTION: it can't see the screen — if a permission prompt is showing at reset time the keystrokes land there; &quot;Auto-accept file edits&quot; above helps but only for file-edit prompts (a command or tool prompt still gets the keys). It does not bypass the limit; use at your own risk."><input type="checkbox" id="auto-continue" onclick="onAutoContinueToggle()" /> Auto-type <b>continue</b> after the 5-hour limit resets</label>
+      <span class="status" id="autocontinue-status" style="margin-left:10px;"></span>
+    </div>
+    <div class="flag-help">Off by default. Resumes idle work unattended once the limit's real reset time passes (it does <b>not</b> bypass the limit). Requires the PC awake and this tab still open. Because the watcher can't read the screen, <b>Auto-accept file edits</b> helps, but it only auto-accepts file-edit prompts, so a pending command or tool prompt still gets the keystrokes. May spend quota on unwanted work, so use at your own risk.</div>
   </div>
 
   </div><!-- /advanced-body -->

@@ -24,6 +24,54 @@ const SHOW_COST  = truthy(process.env.KIVUN_SL_COST);
 const SHOW_CACHE = truthy(process.env.KIVUN_SL_CACHE);
 const SHOW_TPM   = truthy(process.env.KIVUN_SL_TPM);
 
+// ── Rate-limit state file (for the opt-in auto-continue watcher) ──────────
+// The auto-continue.js watcher (spawned by the .bat when AUTO_CONTINUE=true)
+// cannot read Claude's screen on native Windows, so the statusline persists
+// the 5-hour usage %, its reset epoch, and the working folder to a small JSON
+// file each render. The watcher polls that file and, once the limit resets,
+// focuses the tab and types "continue". This write is best-effort and silent
+// on any error — it must never disturb the statusline itself.
+//
+// hashCwd() must stay byte-for-byte identical to the copy in auto-continue.js
+// (32-bit djb2 over a normalised path → 8 hex chars). The watcher is passed
+// the working folder and derives the SAME filename, so writer and reader agree
+// without the .bat having to compute a hash. Keep both in sync.
+//
+// The {five_hour:{pct,resets_at}} sub-shape is kept identical to the Kivun
+// sibling (kivun-terminal-wsl payload/statusline.mjs) for future de-dup.
+function hashCwd(s) {
+  s = String(s || '').toLowerCase().replace(/\//g, '\\').replace(/\\+$/, '');
+  let h = 5381;
+  for (let i = 0; i < s.length; i++) {
+    h = ((h << 5) + h + s.charCodeAt(i)) | 0;   // h*33 + c, 32-bit
+  }
+  return ('0000000' + (h >>> 0).toString(16)).slice(-8);
+}
+
+function writeRateLimitState(d) {
+  try {
+    const rl = d.rate_limits?.five_hour;
+    if (!rl) return;
+    const cwd = d.workspace?.current_dir || d.cwd || '';
+    const rec = {
+      five_hour: {
+        pct: Math.round(rl.used_percentage || 0),
+        resets_at: (typeof rl.resets_at === 'number') ? rl.resets_at : null
+      },
+      blocked: null,                         // native Windows has no output stream to read (G3)
+      cwd,
+      ts: Math.floor(Date.now() / 1000)      // epoch SECONDS, matches resets_at units
+    };
+    const base = process.env.LOCALAPPDATA || path.join(os.homedir(), 'AppData', 'Local');
+    const dir = path.join(base, 'Kivun');
+    fs.mkdirSync(dir, { recursive: true });
+    const file = path.join(dir, 'ratelimit-' + hashCwd(cwd) + '.json');
+    const tmp = file + '.' + process.pid;    // tmp+rename template (kivun sibling :168-173)
+    fs.writeFileSync(tmp, JSON.stringify(rec));
+    fs.renameSync(tmp, file);
+  } catch {}
+}
+
 // ── Effort source resolver ────────────
 // Resolution order:
 //   1) d.effort.level from stdin JSON (Anthropic issue #40261 — open as of 2026-05)
@@ -205,6 +253,7 @@ process.stdin.on('data', chunk => { raw += chunk; });
 process.stdin.on('end', () => {
   try {
     const data = JSON.parse(raw);
+    writeRateLimitState(data);   // persist 5h usage for the auto-continue watcher (best-effort)
     const sep = `${C.d}|${C.n}`;
     const top = LINE1.map(fn => fn(data)).filter(Boolean).join(` ${sep} `);
     const bot = LINE2.map(fn => fn(data)).filter(Boolean).join(`  ${sep}  `);

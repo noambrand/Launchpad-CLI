@@ -1,5 +1,56 @@
 # Changelog
 
+## [2.9.0] - 2026-07-12
+
+### Added — auto-continue after the 5-hour limit resets (opt-in, default off)
+
+When Claude Code hits the 5-hour usage cap, the session stays alive but idle
+until you come back and type something after the limit resets. Turn on the new
+**Auto-continue when limit resets** toggle (folder picker, Advanced options — or
+set `AUTO_CONTINUE=true` in `config.txt`) and a small background watcher does it
+for you: it waits until the limit's real reset time passes, focuses this tab, and
+types `continue` once so work resumes on its own.
+
+This does **not** bypass the limit — it waits for the real reset time and then
+resumes. It is conservative and capped by design:
+
+- `AUTO_CONTINUE_MAX=5` — most times it will auto-continue in one run, then it stops.
+- `AUTO_CONTINUE_FALLBACK_MIN=300` — if the limit blocks with no known reset time,
+  wait this many minutes, then continue once.
+- `AUTO_CONTINUE_QUIET=` — optional quiet hours `HH:MM-HH:MM` (local); never
+  auto-continues inside that window.
+
+**How detection works (recorded per gate G3):** native Windows has no wrapper
+around Claude's output, so the watcher cannot read the screen. Instead
+`statusline.mjs` persists the 5-hour usage %, its reset epoch, and the working
+folder to `%LOCALAPPDATA%\Kivun\ratelimit-<hash(cwd)>.json` each render, and the
+watcher uses the **fallback heuristic** (`five_hour.pct >= 99` at the last render)
+as the BLOCKED signal.
+
+**Caveats (also in the README):**
+
+- Resumes only: PC must be awake (not asleep), the tab still open, Claude still
+  running. It does not restart a closed tab.
+- The watcher briefly brings the Claude tab to the foreground at reset time to
+  type `continue`; if you happen to be typing in another app at that exact moment
+  the word may land there.
+- Because it can't see the screen, a **permission prompt** pending at reset time
+  would receive the keystrokes. The **Auto-accept file edits** chip
+  (`--permission-mode acceptEdits`) helps but only auto-accepts *file-edit* prompts;
+  a pending command or tool prompt still receives the keys.
+- Focus targets this tab's title (the project folder name), which is the real
+  Windows Terminal window title, with the static app name as a cmd.exe-fallback; it
+  focuses the window but can't disambiguate multiple project tabs inside it.
+- A session that blocks without a final statusline render won't auto-continue.
+- **ToS:** unattended automated continuation may violate the provider's usage
+  policy and can spend quota on unwanted work. Defaults are conservative; use at
+  your own risk.
+
+Files: new `source/auto-continue.js` (WSH JScript watcher, spawned detached by the
+launcher), `source/statusline.mjs` (persists the state file), the launcher `.bat`,
+`config.txt`, the folder picker, and the NSI installer. New `source/test/RunUT.cmd`
+covers the watcher's pure logic (cscript).
+
 ## [2.8.1] - 2026-07-06
 
 ### Added — pick your terminal color in the folder picker

@@ -188,7 +188,44 @@ button that recolors Windows Terminal instantly), or edit `%LOCALAPPDATA%\Kivun\
 RESPONSE_LANGUAGE=english     # 24+ languages supported
 TERMINAL_COLOR=kivun          # kivun / dark / black / white / default, or a hex like #1e1e2e
 CLAUDE_FLAGS=                 # e.g. --continue
+AUTO_CONTINUE=false           # auto-type "continue" when the 5-hour limit resets (see below)
 ```
+
+## Auto-continue after the 5-hour limit resets (opt-in)
+
+When Claude Code hits the 5-hour usage cap, the session stays alive but idle until you come
+back and type something after the limit resets. Turn on **Auto-continue when limit resets**
+(folder picker → **Advanced options**, or set `AUTO_CONTINUE=true` in `config.txt`) and a small
+background watcher waits until the limit's real reset time passes, focuses this tab, and types
+`continue` once so work resumes on its own.
+
+This does **not** bypass the limit — it waits for the real reset time and then resumes. It is
+off by default, conservative, and capped:
+
+```ini
+AUTO_CONTINUE=false            # master switch (off by default)
+AUTO_CONTINUE_MAX=5            # most times it will auto-continue in one run, then stop
+AUTO_CONTINUE_FALLBACK_MIN=300 # if blocked with no known reset time, wait this many minutes
+AUTO_CONTINUE_QUIET=           # optional quiet hours "HH:MM-HH:MM" (local); never fire inside
+```
+
+**Caveats — read before turning it on:**
+
+- **Resumes only.** Your PC must be awake (Settings → Power: sleep = *Never* while you use this),
+  the tab still open, and Claude still running. It does not restart a closed tab.
+- **It briefly steals focus at reset time** to type `continue`. If you happen to be typing in
+  another app at that exact moment, the word may land there. At 3am this is theoretical.
+- **It can't see the screen.** If a permission prompt is showing at reset time, the keystrokes
+  land in that prompt. **Auto-accept file edits** (`--permission-mode acceptEdits`) helps, but it
+  only auto-accepts *file-edit* prompts — a pending command or tool prompt still gets the keys.
+- **It focuses by the project's folder-name title, not an exact tab.** With several projects open
+  it can't pick which one receives the keys — and because Windows matches window titles by prefix,
+  a folder name that's a prefix of another (e.g. `Kivun` vs `Kivun_all`) could send `continue` to
+  the wrong project's window. It's opt-in partly for this reason.
+- **No final-render gap.** A session that blocks without one last status-bar update won't
+  auto-continue (known v1 limitation).
+- **Terms of Service.** Unattended automated continuation may violate the provider's usage policy
+  and can spend quota on unwanted work. Defaults are conservative; **use at your own risk.**
 
 ## Contributing
 

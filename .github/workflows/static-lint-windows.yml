@@ -15,12 +15,16 @@ on:
     branches: [main]
     paths:
       - 'source/claudecode-launchpad.bat'
+      - 'source/auto-continue.js'
+      - 'source/statusline.mjs'
       - 'ClaudeCode_Launchpad_CLI_Setup.nsi'
       - '.github/workflows/static-lint-windows.yml'
   pull_request:
     branches: [main]
     paths:
       - 'source/claudecode-launchpad.bat'
+      - 'source/auto-continue.js'
+      - 'source/statusline.mjs'
       - 'ClaudeCode_Launchpad_CLI_Setup.nsi'
       - '.github/workflows/static-lint-windows.yml'
 
@@ -95,3 +99,33 @@ jobs:
           grep -q '\${If} \$ConfigExisted == "0"' "$NSI" \
             || (echo "FAIL: NSI template config copy is not first-install-only — could overwrite user config"; exit 1)
           echo "PASS: installer preserves an existing config.txt on upgrade, generates only on first install"
+
+      - name: Verify v2.9.0 auto-continue wiring (.bat / statusline / NSI)
+        run: |
+          set -eu
+          BAT=source/claudecode-launchpad.bat
+          SL=source/statusline.mjs
+          NSI=ClaudeCode_Launchpad_CLI_Setup.nsi
+          AC=source/auto-continue.js
+          # AUTO_CONTINUE must be parsed in the config loop(s).
+          grep -q 'if "%%A"=="AUTO_CONTINUE" set "AUTO_CONTINUE=%%B"' "$BAT" \
+            || (echo "FAIL: .bat no longer parses AUTO_CONTINUE from config.txt"; exit 1)
+          # The watcher must be spawned detached, opt-in, with title + working folder.
+          grep -q 'start "" /b wscript.exe //nologo "!SCRIPT_DIR!auto-continue.js"' "$BAT" \
+            || (echo "FAIL: .bat no longer spawns auto-continue.js detached"; exit 1)
+          grep -q 'if /i "!AUTO_CONTINUE!"=="true"' "$BAT" \
+            || (echo "FAIL: auto-continue spawn is not gated on AUTO_CONTINUE=true (opt-in lost)"; exit 1)
+          # statusline must persist the rate-limit state file the watcher reads.
+          grep -q 'writeRateLimitState' "$SL" \
+            || (echo "FAIL: statusline no longer writes the rate-limit state file"; exit 1)
+          grep -q "ratelimit-' + hashCwd" "$SL" \
+            || (echo "FAIL: statusline state-file name is not keyed by hashCwd(cwd)"; exit 1)
+          # hashCwd must be byte-identical in the writer (statusline) and reader (watcher).
+          slh=$(grep -c 'h = ((h << 5) + h + s.charCodeAt(i)) | 0;' "$SL" || true)
+          ach=$(grep -c 'h = ((h << 5) + h + s.charCodeAt(i)) | 0;' "$AC" || true)
+          [ "$slh" -ge 1 ] && [ "$ach" -ge 1 ] \
+            || (echo "FAIL: hashCwd djb2 line missing from statusline or watcher — writer/reader may disagree"; exit 1)
+          # The installer must package the watcher.
+          grep -q 'File "source\\auto-continue.js"' "$NSI" \
+            || (echo "FAIL: NSI does not package source/auto-continue.js"; exit 1)
+          echo "PASS: auto-continue wiring present (parse + detached spawn + state write + packaged)"

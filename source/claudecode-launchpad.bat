@@ -29,6 +29,7 @@ set "RESPONSE_LANGUAGE=english"
 set "TERMINAL_COLOR=kivun"
 set "CLAUDE_FLAGS="
 set "STARTUP_CMD="
+set "AUTO_CONTINUE=false"
 set "SCRIPT_DIR=%~dp0"
 
 if exist "!SCRIPT_DIR!config.txt" (
@@ -39,6 +40,7 @@ if exist "!SCRIPT_DIR!config.txt" (
             if "%%A"=="TERMINAL_COLOR" set "TERMINAL_COLOR=%%B"
             if "%%A"=="CLAUDE_FLAGS" set "CLAUDE_FLAGS=%%B"
             if "%%A"=="STARTUP_CMD" set "STARTUP_CMD=%%B"
+            if "%%A"=="AUTO_CONTINUE" set "AUTO_CONTINUE=%%B"
         )
     )
 )
@@ -103,6 +105,20 @@ if "!CLAUDE_FOUND!"=="0" (
     exit /b 1
 )
 
+REM --- Auto-continue watcher (opt-in; AUTO_CONTINUE=true) ---
+REM After the 5-hour usage limit resets, this detached watcher focuses the
+REM Launchpad tab and types "continue" once so idle work resumes unattended.
+REM Spawned here (before the WT tab opens) so it outlives this launcher process;
+REM it polls for the window, so starting a moment early is fine. It reads the
+REM state file the statusline persists, keyed by the WORKING FOLDER passed below
+REM (auto-continue.js derives the state-file name the same way statusline.mjs
+REM does, since cmd can't compute that hash). See auto-continue.js for caveats.
+REM arg#1 = the per-tab title (folder name) = the real WT window title the watcher
+REM AppActivates; arg#2 = the working folder (used to derive the state-file name).
+if /i "!AUTO_CONTINUE!"=="true" (
+    where wscript >nul 2>&1 && start "" /b wscript.exe //nologo "!SCRIPT_DIR!auto-continue.js" "!WT_TAB!" "!WORK_DIR!"
+)
+
 REM --- Sync the terminal color from config.txt into the Windows Terminal
 REM     fragment + settings.json BEFORE we open the window, so the chosen
 REM     TERMINAL_COLOR (kivun / dark / black / white / default / #hex) is live
@@ -138,6 +154,7 @@ REM Re-read config (needed when launched via --run inside Windows Terminal)
 set "RESPONSE_LANGUAGE=english"
 set "TERMINAL_COLOR=kivun"
 set "CLAUDE_FLAGS="
+set "AUTO_CONTINUE=false"
 set "SCRIPT_DIR=%~dp0"
 if exist "!SCRIPT_DIR!config.txt" (
     for /f "usebackq tokens=1,* delims==" %%A in ("!SCRIPT_DIR!config.txt") do (
@@ -146,6 +163,7 @@ if exist "!SCRIPT_DIR!config.txt" (
             if "%%A"=="RESPONSE_LANGUAGE" set "RESPONSE_LANGUAGE=%%B"
             if "%%A"=="TERMINAL_COLOR" set "TERMINAL_COLOR=%%B"
             if "%%A"=="CLAUDE_FLAGS" set "CLAUDE_FLAGS=%%B"
+            if "%%A"=="AUTO_CONTINUE" set "AUTO_CONTINUE=%%B"
         )
     )
 )

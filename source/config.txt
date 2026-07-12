@@ -27,3 +27,20 @@ CLAUDE_FLAGS=
 # Default startup command auto-typed into Claude after the TUI loads (e.g. /voicemode:converse)
 # Leave empty to skip. Do NOT put passwords here (it will be typed visibly).
 STARTUP_CMD=
+# Auto-continue when the 5-hour usage limit resets (opt-in, default off).
+# When true, a small background watcher waits until the limit's real reset time
+# passes, then focuses this tab and types "continue" once so work resumes on its
+# own. Requires: PC awake (not asleep), the tab still open, Claude still running.
+# It does NOT bypass the limit and may spend quota on unwanted work - use at your
+# own risk (see README). If a permission prompt is on screen at reset time the
+# keystrokes land there. --permission-mode acceptEdits helps but only auto-accepts
+# FILE-EDIT prompts; a pending command or tool prompt still receives the keys.
+AUTO_CONTINUE=false
+# Max times the watcher may auto-continue in one run (then it stops).
+AUTO_CONTINUE_MAX=5
+# If the limit blocks with no known reset time, wait this many minutes, then
+# continue once (fallback only).
+AUTO_CONTINUE_FALLBACK_MIN=300
+# Quiet hours "HH:MM-HH:MM" (local): never auto-continue inside this window.
+# Leave empty for no quiet hours. Example: AUTO_CONTINUE_QUIET=09:00-17:00
+AUTO_CONTINUE_QUIET=

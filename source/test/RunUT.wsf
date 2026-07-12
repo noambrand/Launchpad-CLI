@@ -1,0 +1,154 @@
+<?xml version="1.0"?>
+<package>
+<!--
+  RunUT.wsf - Unit tests for source/auto-continue.js (v2.9.0).
+  Run via RunUT.cmd (cscript). Tests the PURE helper functions only; the real
+  SendKeys/AppActivate focus-steal path can only be smoke-tested live on the
+  user's Windows machine.
+
+  AC_TEST_MODE is declared BEFORE auto-continue.js is included so its bottom
+  guard skips main() (no infinite poll loop during tests). All <script> blocks
+  in a WSF job share one global scope, so the included functions are callable.
+
+  Inline JScript is wrapped in CDATA because it contains <, >, && which would
+  otherwise break the WSF XML parser. The included file (src=) is loaded as
+  script, not parsed as XML, so it needs no CDATA.
+-->
+<job id="RunUT">
+  <script language="JScript"><![CDATA[
+    var AC_TEST_MODE = true;   // must be set before the include below
+  ]]></script>
+  <script language="JScript" src="..\auto-continue.js"></script>
+  <script language="JScript"><![CDATA[
+    var PASS = 0, FAIL = 0;
+    function ser(x) {
+      if (x === null) return "null";
+      if (typeof x === "undefined") return "undefined";
+      if (typeof x === "object") {
+        var s = [], k;
+        for (k in x) if (x.hasOwnProperty(k)) s.push(k + ":" + ser(x[k]));
+        return "{" + s.join(",") + "}";
+      }
+      return "" + x;
+    }
+    function eq(name, got, want) {
+      var ok = (ser(got) === ser(want));
+      if (ok) { PASS++; WScript.Echo("PASS " + name); }
+      else { FAIL++; WScript.Echo("FAIL " + name + "  got=" + ser(got) + " want=" + ser(want)); }
+    }
+
+    WScript.Echo("=== auto-continue.js unit tests (v2.9.0) ===");
+
+    // UT_EscSendKeys - reserved chars escaped identically to inject-startup-cmd.js
+    eq("UT_EscSendKeys plain", escSendKeys("continue"), "continue");
+    eq("UT_EscSendKeys reserved", escSendKeys("a+b^c%d~e(f)g{h}i[j]"),
+       "a{+}b{^}c{%}d{~}e{(}f{)}g{{}h{}}i{[}j{]}");
+
+    // UT_StateParse - reads schema; rejects malformed JSON without throwing
+    eq("UT_StateParse good", parseState('{"five_hour":{"pct":99,"resets_at":1000},"ts":1}').five_hour.pct, 99);
+    eq("UT_StateParse malformed", parseState("{not json"), null);
+    eq("UT_StateParse empty", parseState(""), null);
+    eq("UT_StateParse null", parseState(null), null);
+    eq("UT_StateParse nonobject", parseState("123"), null);
+
+    // hashCwd must be stable across case + trailing slash + forward slashes
+    eq("hash stable", hashCwd("C:\\Users\\noam\\proj"), hashCwd("c:\\users\\NOAM\\proj\\"));
+
+    // resolvePaths dual-mode (cwd -> derived; literal .json -> used as-is)
+    var Pa = resolvePaths("C:\\Users\\noam\\proj", "C:\\LA");
+    eq("resolve cwd stateFile", Pa.stateFile, "C:\\LA\\Kivun\\ratelimit-" + hashCwd("C:\\Users\\noam\\proj") + ".json");
+    eq("resolve cwd doneMarker", Pa.doneMarker, "C:\\LA\\Kivun\\autocontinue-done-" + hashCwd("C:\\Users\\noam\\proj") + ".txt");
+    var Pb = resolvePaths("C:\\LA\\Kivun\\ratelimit-abc123.json", "C:\\LA");
+    eq("resolve json hash", Pb.hash, "abc123");
+
+    // UT_ResetMath - now vs resets_at + grace (epoch only, DST-safe). decideFire's
+    // 5th arg is the witnessed-future latch value; pass the reset value to model a
+    // watcher that already saw this reset while it was still in the future.
+    var st = { five_hour: { pct: 99, resets_at: 1000 }, blocked: null, ts: 900 };
+    eq("UT_ResetMath before grace", decideFire(st, 1059, 300, "", 1000).fire, false);
+    eq("UT_ResetMath at grace", decideFire(st, 1060, 300, "", 1000).fire, true);
+    eq("UT_ResetMath not blocked", decideFire({ five_hour: { pct: 50, resets_at: 1000 }, ts: 900 }, 5000, 300, "", 1000).fire, false);
+
+    // UT_SingleShotPerReset - done-marker keyed by resets_at blocks repeat fire
+    eq("UT_SingleShotPerReset", decideFire(st, 5000, 300, "1000", 1000).fire, false);
+
+    // UT_RearmNewReset - a new resets_at value re-arms
+    var st2 = { five_hour: { pct: 99, resets_at: 2000 }, ts: 1900 };
+    eq("UT_RearmNewReset fires", decideFire(st2, 5000, 300, "1000", 2000).fire, true);
+    eq("UT_RearmNewReset resetVal", decideFire(st2, 5000, 300, "1000", 2000).resetVal, 2000);
+
+    // UT_FallbackFixedWait (B2) - blocked with no resets_at -> ts + min*60
+    var stFb = { five_hour: { pct: 99, resets_at: 0 }, blocked: null, ts: 1000 };
+    eq("UT_FallbackFixedWait reset", computeReset(stFb, 5).reset, 1300);
+    eq("UT_FallbackFixedWait before", decideFire(stFb, 1359, 5, "", 1300).fire, false);
+    eq("UT_FallbackFixedWait fires", decideFire(stFb, 1360, 5, "", 1300).fire, true);
+    eq("UT_FallbackFixedWait none", computeReset({ five_hour: { pct: 10 }, ts: 1000 }, 5).reset, null);
+
+    // UT_StaleEpochNoFire - a leftover PAST reset that was NEVER witnessed while
+    // in the future must NOT fire, even on the very first poll (armedVal null).
+    // This is the stale-state-file guard (WSL twin's reject-resets_at<=now, poll-
+    // adapted). Regression test for the v2.9.0 pre-release blocker.
+    var stStale = { five_hour: { pct: 100, resets_at: 1000 }, blocked: null, ts: 1000 };
+    eq("UT_StaleEpochNoFire fire", decideFire(stStale, 999999, 300, "", null).fire, false);
+    eq("UT_StaleEpochNoFire noArm", decideFire(stStale, 999999, 300, "", null).arm, null);
+    // same via the B2 fixed-wait path (stale ts -> fallback reset also in the past)
+    var stStaleFb = { five_hour: { pct: 100, resets_at: 0 }, blocked: null, ts: 1000 };
+    eq("UT_StaleFallbackNoFire", decideFire(stStaleFb, 999999, 5, "", null).fire, false);
+
+    // UT_WitnessArmsFuture - seeing a FUTURE reset arms it (arm := reset), no fire yet;
+    // once elapsed WITH the latch it fires, but the SAME elapsed reset with NO latch
+    // (a stale relaunch) does not. This is the crux of the witnessed-future guard.
+    var stFuture = { five_hour: { pct: 100, resets_at: 5000 }, blocked: null, ts: 4000 };
+    eq("UT_WitnessArmsFuture arm", decideFire(stFuture, 100, 300, "", null).arm, 5000);
+    eq("UT_WitnessArmsFuture noFireYet", decideFire(stFuture, 100, 300, "", null).fire, false);
+    eq("UT_WitnessThenFire", decideFire(stFuture, 5060, 300, "", 5000).fire, true);
+    eq("UT_ElapsedNoLatchNoFire", decideFire(stFuture, 5060, 300, "", null).fire, false);
+
+    // UT_ChooseTitles - focus tries the per-tab (folder) title first, then the
+    // static app title (cmd.exe fallback), deduped when they are the same.
+    eq("UT_ChooseTitles folder", chooseTitles("Kivun_all"), ["Kivun_all", "ClaudeCode Launchpad CLI"]);
+    eq("UT_ChooseTitles static", chooseTitles("ClaudeCode Launchpad CLI"), ["ClaudeCode Launchpad CLI"]);
+    eq("UT_ChooseTitles empty", chooseTitles(""), ["ClaudeCode Launchpad CLI"]);
+
+    // Explicit blocked:true signal honoured even without pct
+    eq("blocked true honoured", computeReset({ five_hour: { resets_at: 0 }, blocked: true, ts: 100 }, 5).blocked, true);
+
+    // UT_QuietHoursBlocksThenResumes (B3)
+    eq("quiet empty", inQuietHours("", new Date(2026, 0, 1, 10, 0, 0)), false);
+    eq("quiet inside", inQuietHours("09:00-17:00", new Date(2026, 0, 1, 10, 0, 0)), true);
+    eq("quiet outside", inQuietHours("09:00-17:00", new Date(2026, 0, 1, 18, 0, 0)), false);
+    eq("quiet overnight late", inQuietHours("22:00-06:00", new Date(2026, 0, 1, 23, 0, 0)), true);
+    eq("quiet overnight early", inQuietHours("22:00-06:00", new Date(2026, 0, 1, 3, 0, 0)), true);
+    eq("quiet overnight day", inQuietHours("22:00-06:00", new Date(2026, 0, 1, 12, 0, 0)), false);
+    eq("quiet degenerate", inQuietHours("09:00-09:00", new Date(2026, 0, 1, 9, 0, 0)), false);
+    eq("quiet malformed", inQuietHours("nonsense", new Date(2026, 0, 1, 9, 0, 0)), false);
+
+    // UT_TitleFallback - missing WT_TAB -> static app title
+    eq("UT_TitleFallback empty", resolveTitle(""), "ClaudeCode Launchpad CLI");
+    eq("UT_TitleFallback provided", resolveTitle("My Tab"), "My Tab");
+
+    // UT_MaxResumesCap (B1)
+    eq("UT_MaxResumesCap under", shouldExitMax(4, 5), false);
+    eq("UT_MaxResumesCap at", shouldExitMax(5, 5), true);
+
+    // UT_ExitOnTabGone - 10 failed activations after success -> exit
+    eq("UT_ExitOnTabGone no-success", shouldExitTabGone(false, 50), false);
+    eq("UT_ExitOnTabGone under", shouldExitTabGone(true, 9), false);
+    eq("UT_ExitOnTabGone at", shouldExitTabGone(true, 10), true);
+
+    // 24h uptime cap
+    eq("uptime under", shouldExitUptime(1000, 500), false);
+    eq("uptime at", shouldExitUptime(86400, 0), true);
+
+    // readConfigValue - Rev B keys, skips comments
+    var cfg = "# c\nAUTO_CONTINUE=true\nAUTO_CONTINUE_MAX=7\n#AUTO_CONTINUE_MAX=99\nAUTO_CONTINUE_QUIET=09:00-17:00\n";
+    eq("cfg max", readConfigValue(cfg, "AUTO_CONTINUE_MAX"), "7");
+    eq("cfg quiet", readConfigValue(cfg, "AUTO_CONTINUE_QUIET"), "09:00-17:00");
+    eq("cfg missing", readConfigValue(cfg, "NOPE"), null);
+
+    WScript.Echo("");
+    WScript.Echo(PASS + " passed, " + FAIL + " failed");
+    WScript.Quit(FAIL === 0 ? 0 : 1);
+  ]]></script>
+</job>
+</package>

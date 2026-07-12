@@ -5,7 +5,7 @@
 Unicode True
 
 !define PRODUCT_NAME "ClaudeCode Launchpad CLI"
-!define PRODUCT_VERSION "2.8.1"
+!define PRODUCT_VERSION "2.9.0"
 !define PRODUCT_PUBLISHER "Noam Brand"
 !define PRODUCT_WEB_SITE "https://github.com"
 !define PRODUCT_DESCRIPTION "Claude Code installer for Windows"
@@ -33,12 +33,12 @@ InstallDir "${INSTALL_DIR}"
 ShowInstDetails show
 
 ; Version info
-VIProductVersion "2.8.1.0"
+VIProductVersion "2.9.0.0"
 VIAddVersionKey "ProductName" "${PRODUCT_NAME}"
 VIAddVersionKey "ProductVersion" "${PRODUCT_VERSION}"
 VIAddVersionKey "CompanyName" "${PRODUCT_PUBLISHER}"
 VIAddVersionKey "FileDescription" "${PRODUCT_DESCRIPTION}"
-VIAddVersionKey "FileVersion" "2.8.1.0"
+VIAddVersionKey "FileVersion" "2.9.0.0"
 VIAddVersionKey "LegalCopyright" "(C) 2026 ${PRODUCT_PUBLISHER}"
 
 ; Modern UI Configuration
@@ -206,6 +206,7 @@ Section "!Core Components (Required)" SecCore
   File "source\write-path.js"
   File "source\write-startcmd.js"
   File "source\inject-startup-cmd.js"
+  File "source\auto-continue.js"
   File "source\save-defaults.js"
   File "source\post-install.bat"
   File "source\claudecode-launchpad-wt-fragment.json"
@@ -317,6 +318,20 @@ Section "!Core Components (Required)" SecCore
   FileWrite $0 "# Example: STARTUP_CMD=/voicemode:converse$\r$\n"
   FileWrite $0 "# Leave empty to skip. Do NOT put passwords here (typed visibly).$\r$\n"
   FileWrite $0 "STARTUP_CMD=$\r$\n"
+
+  FileWrite $0 "# Auto-continue when the 5-hour usage limit resets (opt-in, default off).$\r$\n"
+  FileWrite $0 "# A background watcher waits past the real reset time, then focuses this$\r$\n"
+  FileWrite $0 "# tab and types 'continue' once. Needs the PC awake and the tab open. It$\r$\n"
+  FileWrite $0 "# does NOT bypass the limit; may spend quota on unwanted work (see README).$\r$\n"
+  FileWrite $0 "# If a permission prompt is on screen at reset time the keystrokes land$\r$\n"
+  FileWrite $0 "# there. --permission-mode acceptEdits helps but only auto-accepts FILE-EDIT$\r$\n"
+  FileWrite $0 "# prompts; a pending command or tool prompt still receives the keys.$\r$\n"
+  FileWrite $0 "AUTO_CONTINUE=false$\r$\n"
+  FileWrite $0 "# Max auto-continues per run, fixed-wait fallback minutes, and quiet hours.$\r$\n"
+  FileWrite $0 "AUTO_CONTINUE_MAX=5$\r$\n"
+  FileWrite $0 "AUTO_CONTINUE_FALLBACK_MIN=300$\r$\n"
+  FileWrite $0 "# Quiet hours 'HH:MM-HH:MM' (local); empty = none. e.g. 09:00-17:00$\r$\n"
+  FileWrite $0 "AUTO_CONTINUE_QUIET=$\r$\n"
 
   FileClose $0
   ${EndIf}
