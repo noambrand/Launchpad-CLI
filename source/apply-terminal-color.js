@@ -20,11 +20,54 @@
 //
 // Safe by design: never calls taskkill (so it won't nuke the user's other WT
 // tabs at launch time), writes settings.json only when something actually
-// changed, and leaves settings.json untouched if it can't be parsed as JSON.
+// changed, and leaves settings.json untouched if it's genuinely unparsable.
 // This runs at install time AND best-effort on every launch.
+//
+// JSONC note (the "invalid colorScheme" bug fix): Windows Terminal's
+// settings.json ships with // and /* */ comments, so a strict JSON.parse
+// throws on most real machines. The OLD code bailed on that throw and so
+// NEVER wrote our scheme into settings.json — while WT still materialized the
+// profile with colorScheme "Launchpad Color" (inherited from the fragment).
+// If the fragment wasn't merged at load time (install race / an open window),
+// WT saw a profile pinned to a scheme it couldn't find and warned. We now
+// strip comments (carefully, preserving anything inside strings) so the scheme
+// upsert actually lands; a file that's still unparsable after that is treated
+// as genuinely corrupt and left untouched, exactly as before.
 
 const fs = require('fs');
 const path = require('path');
+
+// Parse Windows Terminal's JSONC settings. Fast path: strict JSON.parse. If
+// that throws, strip // line and /* */ block comments (skipping any that live
+// INSIDE a double-quoted string, e.g. a path or URL) plus trailing commas, then
+// parse again. Throws only when the content is truly malformed, so callers can
+// still bail safely on a corrupt file.
+function parseJsonc(text) {
+  try {
+    return JSON.parse(text);
+  } catch (e) {
+    let out = '';
+    let inStr = false, esc = false, inLine = false, inBlock = false;
+    for (let i = 0; i < text.length; i++) {
+      const c = text[i], n = text[i + 1];
+      if (inLine) { if (c === '\n') { inLine = false; out += c; } continue; }
+      if (inBlock) { if (c === '*' && n === '/') { inBlock = false; i++; } continue; }
+      if (inStr) {
+        out += c;
+        if (esc) esc = false;
+        else if (c === '\\') esc = true;
+        else if (c === '"') inStr = false;
+        continue;
+      }
+      if (c === '"') { inStr = true; out += c; continue; }
+      if (c === '/' && n === '/') { inLine = true; i++; continue; }
+      if (c === '/' && n === '*') { inBlock = true; i++; continue; }
+      out += c;
+    }
+    const cleaned = out.replace(/,(\s*[}\]])/g, '$1');
+    return JSON.parse(cleaned); // may still throw -> caller bails safely
+  }
+}
 
 const SCHEME_NAME = 'Launchpad Color';
 const PROFILE_NAME = 'ClaudeCode Launchpad CLI';
@@ -187,9 +230,11 @@ function syncSettings(resolved) {
 
   let settings;
   try {
-    settings = JSON.parse(raw);
+    settings = parseJsonc(raw);
   } catch (e) {
-    console.log('Could not parse settings.json (JSONC/malformed?); leaving it untouched: ' + e.message);
+    // Unparsable even after stripping comments -> genuinely malformed. Do NOT
+    // risk corrupting it with a blind write; leave it exactly as we found it.
+    console.log('Could not parse settings.json (malformed?); leaving it untouched: ' + e.message);
     return;
   }
 

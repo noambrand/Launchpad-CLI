@@ -22,6 +22,41 @@ const fs = require('fs');
 const path = require('path');
 const { execSync } = require('child_process');
 
+// Parse Windows Terminal's JSONC settings. Fast path: strict JSON.parse. If that
+// throws, strip // line and /* */ block comments (skipping any that live INSIDE a
+// double-quoted string, e.g. a path) plus trailing commas, then parse again.
+// Throws only when the content is truly malformed, so the caller can still bail
+// safely on a corrupt file. WT's settings.json normally has // comments, and the
+// old strict-only parse bailed on them — silently never applying the profile keys
+// below. (Mirror of the helper in apply-terminal-color.js; kept inline because
+// these installer scripts are shipped standalone with no shared require.)
+function parseJsonc(text) {
+  try {
+    return JSON.parse(text);
+  } catch (e) {
+    let out = '';
+    let inStr = false, esc = false, inLine = false, inBlock = false;
+    for (let i = 0; i < text.length; i++) {
+      const c = text[i], n = text[i + 1];
+      if (inLine) { if (c === '\n') { inLine = false; out += c; } continue; }
+      if (inBlock) { if (c === '*' && n === '/') { inBlock = false; i++; } continue; }
+      if (inStr) {
+        out += c;
+        if (esc) esc = false;
+        else if (c === '\\') esc = true;
+        else if (c === '"') inStr = false;
+        continue;
+      }
+      if (c === '"') { inStr = true; out += c; continue; }
+      if (c === '/' && n === '/') { inLine = true; i++; continue; }
+      if (c === '/' && n === '*') { inBlock = true; i++; continue; }
+      out += c;
+    }
+    const cleaned = out.replace(/,(\s*[}\]])/g, '$1');
+    return JSON.parse(cleaned); // may still throw -> caller bails safely
+  }
+}
+
 const settingsPath = path.join(
   process.env.LOCALAPPDATA,
   'Packages',
@@ -61,11 +96,11 @@ try {
 
 let settings;
 try {
-  settings = JSON.parse(raw);
+  settings = parseJsonc(raw);
 } catch (e) {
-  // Settings may contain comments (JSONC) or be hand-edited/malformed.
+  // Unparsable even after stripping comments -> genuinely malformed/hand-broken.
   // Do NOT risk corrupting it with a blind write — leave it alone.
-  console.log('Could not parse settings.json (JSONC/malformed?); leaving it untouched: ' + e.message);
+  console.log('Could not parse settings.json (malformed?); leaving it untouched: ' + e.message);
   process.exit(0);
 }
 

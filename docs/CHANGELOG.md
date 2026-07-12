@@ -1,5 +1,28 @@
 # Changelog
 
+## [2.9.1] - 2026-07-13
+
+### Fixed — Windows Terminal "invalid colorScheme" warning on install
+
+Some installs showed *"Found a profile with an invalid colorScheme. Defaulting
+that profile to the default colors"* when Windows Terminal started. Cause:
+`source/apply-terminal-color.js` is meant to also write our "Launchpad Color"
+scheme *into* `settings.json` (so the profile's pin always resolves), but it read
+the file with a strict `JSON.parse`. Windows Terminal's `settings.json` normally
+contains `//` comments (JSONC), so the parse threw and the script hit its safety
+bail — never writing the scheme. Windows Terminal still materialized the profile
+with `colorScheme: "Launchpad Color"` (inherited from the fragment), so if the
+fragment wasn't merged at that instant (install race / an already-open window),
+the pin pointed at a scheme WT couldn't find, and it warned.
+
+Fix: the script now strips `//` and `/* */` comments (carefully preserving any
+that appear inside string values) and tolerates trailing commas before parsing,
+so the scheme upsert reliably lands in `settings.json`. A file that is still
+unparsable after that is treated as genuinely corrupt and left untouched, exactly
+as before. The `default` un-pin path is unchanged. Verified against a simulated
+JSONC `settings.json` in the failure state (dangling pin resolved, the user's own
+schemes preserved) plus unit checks for malformed-bail and string preservation.
+
 ## [2.9.0] - 2026-07-12
 
 ### Added — auto-continue after the 5-hour limit resets (opt-in, default off)
