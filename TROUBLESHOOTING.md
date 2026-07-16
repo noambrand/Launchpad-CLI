@@ -120,6 +120,31 @@ entirely and the duplicate tab got saved permanently. The launcher now adds Node
 own folder to PATH before that step, so the de-dupe runs on a fresh install too
 (no re-login needed).
 
+### Two "ClaudeCode Launchpad CLI" entries in Add/Remove Programs
+
+You see the product listed **twice** in Apps & Features / Add or Remove Programs
+(for example an old `2.4.1` next to your current version).
+
+**Why:** the earliest releases (before v2.6.4) installed *system-wide* and needed
+administrator rights, so they wrote their uninstall entry to the machine-wide
+registry (`HKLM`). From v2.6.4 the installer became *per-user* and writes to your
+own registry (`HKCU`). A per-user installer can't delete a machine-wide key (that
+needs admin), so the old system-wide row was left behind as a second listing. It's
+only a leftover label — you don't have two copies of the app.
+
+**Fixed in v2.9.3+:** the installer and uninstaller now clear that legacy
+system-wide entry when they can. New installs never create a machine-wide entry, so
+no new duplicate can appear.
+
+**To remove the leftover now** (one click, no typing):
+
+1. Run **`tools/Remove-Duplicate-Entry.cmd`** (double-click it).
+2. Click **Yes** on the Windows approval box.
+3. Reopen Add/Remove Programs — you'll see just one entry.
+
+It removes **only** the old system-wide "ClaudeCode Launchpad CLI" entry. It never
+touches your current install, and never the separate **Kivun Terminal** product.
+
 ### Folder picker doesn't open
 
 The GUI folder picker requires Windows Script Host. If it's disabled by policy:

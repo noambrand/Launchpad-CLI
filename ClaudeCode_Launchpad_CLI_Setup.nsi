@@ -381,6 +381,21 @@ Section "!Core Components (Required)" SecCore
   DeleteRegKey HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\Kivun"
   RMDir /r "$LOCALAPPDATA\Microsoft\Windows Terminal\Fragments\KivunTerminal"
 
+  ; Remove any legacy SYSTEM-WIDE (HKLM) uninstall entry for THIS product, left by a
+  ; pre-v2.6.4 admin install. Those installs needed admin and wrote to HKLM — and,
+  ; since this is a 32-bit installer, to the 32-bit WOW6432Node view on 64-bit
+  ; Windows. When we switched to per-user (HKCU) installs in v2.6.4 the old HKLM row
+  ; was orphaned, so Add/Remove Programs showed a SECOND "ClaudeCode Launchpad CLI"
+  ; (e.g. an old 2.4.1 next to the current per-user one). Clear both registry views.
+  ; Best-effort: deleting HKLM needs admin, so a standard-user run silently no-ops.
+  ; Current builds never write HKLM, so no NEW duplicate can ever appear — this only
+  ; clears an old ghost, and only when we happen to be running elevated. Users who
+  ; can't elevate use the standalone "Remove duplicate entry" one-click cleaner.
+  DeleteRegKey HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\ClaudeCodeLaunchpad"
+  SetRegView 64
+  DeleteRegKey HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\ClaudeCodeLaunchpad"
+  SetRegView default
+
   ; Create Desktop shortcut
   CreateShortCut "$DESKTOP\ClaudeCode Launchpad CLI.lnk" "mshta.exe" '"$INSTDIR\folder-picker.hta"' "$INSTDIR\claude_icon.ico" 0 SW_SHOWNORMAL "" "${PRODUCT_DESCRIPTION}"
 
@@ -595,9 +610,16 @@ Section "Uninstall"
   DeleteRegKey HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\Kivun"
   RMDir /r "$LOCALAPPDATA\Microsoft\Windows Terminal\Fragments\KivunTerminal"
 
-  ; Remove registry entries - Add/Remove Programs
+  ; Remove registry entries - Add/Remove Programs. Delete the per-user (HKCU) entry
+  ; this build wrote, plus any legacy system-wide (HKLM) entry from a pre-v2.6.4
+  ; admin install — in BOTH the 32-bit (default, WOW6432Node) and 64-bit views, so a
+  ; clean uninstall leaves no orphaned "ClaudeCode Launchpad CLI" row behind. The
+  ; HKLM deletes are best-effort (need admin; no-op otherwise).
   DeleteRegKey HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\ClaudeCodeLaunchpad"
   DeleteRegKey HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\ClaudeCodeLaunchpad"
+  SetRegView 64
+  DeleteRegKey HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\ClaudeCodeLaunchpad"
+  SetRegView default
 
   ; Remove context menu entries
   DeleteRegKey HKCU "Software\Classes\Directory\shell\ClaudeCodeLaunchpad"

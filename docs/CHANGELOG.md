@@ -25,6 +25,20 @@ real install dir to its PATH at the top of the script (same treatment Claude's
 `.local\bin` already got), so the de-dupe — and the runtime statusline command
 Claude spawns — work even before the first re-login.
 
+### Fixed — two "ClaudeCode Launchpad CLI" rows in Add/Remove Programs
+
+Some PCs showed the product **twice** in Apps & Features (e.g. an old `2.4.1`
+alongside the current one). Cause: the earliest releases (pre-v2.6.4) installed
+system-wide and wrote their uninstall entry to `HKLM` (needing admin); from v2.6.4
+the installer went per-user and writes to `HKCU`. A per-user process can't delete
+an `HKLM` key, so the old system-wide row was orphaned and lingered as a second
+listing. The installer and uninstaller now clear that legacy `HKLM` entry in both
+registry views (best-effort — it only takes effect when running elevated). New
+installs never write `HKLM`, so no new duplicate can appear. For an existing ghost
+on a PC where you can't elevate the installer, run the new one-click cleaner
+`tools/Remove-Duplicate-Entry.cmd` (it self-elevates and removes ONLY the old
+system-wide entry — never your current install, never the separate Kivun Terminal).
+
 ### Changed — "Create Desktop Shortcut" on the finish page is now ticked by default
 
 The final-page checkbox is checked (V) by default, so the desktop icon is created
