@@ -19,6 +19,17 @@ REM Claude as missing immediately after a fresh install. Runs in both phases
 REM (the WT relaunch re-enters the top of this script before :run_claude).
 if exist "%USERPROFILE%\.local\bin\claude.exe" set "PATH=%PATH%;%USERPROFILE%\.local\bin"
 
+REM --- Ensure Node is on PATH too (same stale-PATH problem as Claude above) ---
+REM On a fresh PC the installer just added Node, but Explorer-spawned processes
+REM keep the OLD PATH until the user logs out/in — so `where node` here would
+REM MISS it. That silently skipped the tab de-dupe (-> duplicate tabs) and broke
+REM the statusline command Claude runs (`node "...statusline.mjs"` inherits THIS
+REM PATH), so the statusline stayed blank until a re-login. Add Node's real dir
+REM (winget + official MSI both install to Program Files\nodejs). v2.9.3.
+if exist "%ProgramFiles%\nodejs\node.exe" set "PATH=%PATH%;%ProgramFiles%\nodejs"
+if defined ProgramW6432 if exist "%ProgramW6432%\nodejs\node.exe" set "PATH=%PATH%;%ProgramW6432%\nodejs"
+if exist "%LOCALAPPDATA%\Programs\nodejs\node.exe" set "PATH=%PATH%;%LOCALAPPDATA%\Programs\nodejs"
+
 REM --- Phase 2: inside terminal, apply colors and run Claude ---
 if "%~1"=="--run" goto :run_claude
 

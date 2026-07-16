@@ -5,7 +5,7 @@
 Unicode True
 
 !define PRODUCT_NAME "ClaudeCode Launchpad CLI"
-!define PRODUCT_VERSION "2.9.2"
+!define PRODUCT_VERSION "2.9.3"
 !define PRODUCT_PUBLISHER "Noam Brand"
 !define PRODUCT_WEB_SITE "https://github.com"
 !define PRODUCT_DESCRIPTION "Claude Code installer for Windows"
@@ -33,12 +33,12 @@ InstallDir "${INSTALL_DIR}"
 ShowInstDetails show
 
 ; Version info
-VIProductVersion "2.9.2.0"
+VIProductVersion "2.9.3.0"
 VIAddVersionKey "ProductName" "${PRODUCT_NAME}"
 VIAddVersionKey "ProductVersion" "${PRODUCT_VERSION}"
 VIAddVersionKey "CompanyName" "${PRODUCT_PUBLISHER}"
 VIAddVersionKey "FileDescription" "${PRODUCT_DESCRIPTION}"
-VIAddVersionKey "FileVersion" "2.9.2.0"
+VIAddVersionKey "FileVersion" "2.9.3.0"
 VIAddVersionKey "LegalCopyright" "(C) 2026 ${PRODUCT_PUBLISHER}"
 
 ; Modern UI Configuration
@@ -71,7 +71,8 @@ Page custom ConfigPage ConfigPageLeave
 !define MUI_FINISHPAGE_RUN
 !define MUI_FINISHPAGE_RUN_TEXT "Create Desktop Shortcut"
 !define MUI_FINISHPAGE_RUN_FUNCTION CreateDesktopShortcut
-!define MUI_FINISHPAGE_RUN_NOTCHECKED
+; Checked (V) by default so the desktop icon is created unless the user opts out.
+; (Omitting MUI_FINISHPAGE_RUN_NOTCHECKED leaves the checkbox ticked.)
 !define MUI_FINISHPAGE_SHOWREADME "$INSTDIR\QUICK_START.md"
 !define MUI_FINISHPAGE_SHOWREADME_TEXT "View Quick Start Guide"
 !define MUI_FINISHPAGE_SHOWREADME_NOTCHECKED
@@ -93,6 +94,13 @@ Var ConfigTerminalColor
 ; user's edited config instead of overwriting it with wizard defaults. See
 ; SecCore. (v2.7.6)
 Var ConfigExisted
+; Full path to node.exe, resolved in SecClaudeCode. The installer's OWN PATH is
+; captured at launch and is STALE right after SecNodeJS installs Node this same
+; run — so a bare `node ...` in the post-install steps fails on a first-time PC
+; (Node not yet on our PATH), silently skipping the statusline/sound/color config.
+; That was the "statusline only shows after I hand-edit settings.json on a new PC"
+; bug. We call Node by full path instead. (v2.9.3)
+Var NodeExe
 
 ; Pre-install warning: remind users to finish active CLI sessions
 Function .onInit
@@ -444,6 +452,21 @@ SectionEnd
 Section "!Install Claude Code (Required)" SecClaudeCode
   SectionIn RO  ; Read-only, cannot be deselected
 
+  ; Resolve node.exe by full path. SecNodeJS ran just before this and put Node on
+  ; disk, but THIS process's PATH is stale, so `where node` / a bare `node` would
+  ; miss it on a fresh install. Prefer the real path (winget + the official MSI
+  ; both land in Program Files\nodejs); fall back to a bare `node` for the case
+  ; where Node was already installed and IS on our inherited PATH. (v2.9.3)
+  StrCpy $NodeExe "node"
+  ${If} ${FileExists} "$PROGRAMFILES64\nodejs\node.exe"
+    StrCpy $NodeExe "$PROGRAMFILES64\nodejs\node.exe"
+  ${ElseIf} ${FileExists} "$PROGRAMFILES\nodejs\node.exe"
+    StrCpy $NodeExe "$PROGRAMFILES\nodejs\node.exe"
+  ${ElseIf} ${FileExists} "$LOCALAPPDATA\Programs\nodejs\node.exe"
+    StrCpy $NodeExe "$LOCALAPPDATA\Programs\nodejs\node.exe"
+  ${EndIf}
+  DetailPrint "Using Node at: $NodeExe"
+
   DetailPrint "Installing Claude Code via install.cmd..."
   ExecWait 'cmd /c "$INSTDIR\install.cmd" /claude' $0
   DetailPrint "install.cmd /claude exit code: $0"
@@ -472,7 +495,7 @@ Section "!Install Claude Code (Required)" SecClaudeCode
 
   ; Configure statusline in Claude Code settings.json
   DetailPrint "Configuring Claude Code statusline..."
-  nsExec::ExecToLog 'node "$INSTDIR\configure-statusline.js" "$INSTDIR\statusline.mjs"'
+  nsExec::ExecToLog '"$NodeExe" "$INSTDIR\configure-statusline.js" "$INSTDIR\statusline.mjs"'
   Pop $0
   ${If} $0 == 0
     DetailPrint "Statusline configured in Claude Code settings"
@@ -482,7 +505,7 @@ Section "!Install Claude Code (Required)" SecClaudeCode
 
   ; Configure voice alerts (deploys to %USERPROFILE%\.claude\sounds and wires hooks)
   DetailPrint "Configuring Claude Code voice alerts..."
-  nsExec::ExecToLog 'node "$INSTDIR\sounds\configure-sound-hooks.js"'
+  nsExec::ExecToLog '"$NodeExe" "$INSTDIR\sounds\configure-sound-hooks.js"'
   Pop $0
   ${If} $0 == 0
     DetailPrint "Voice alerts configured in Claude Code settings"
@@ -494,14 +517,14 @@ Section "!Install Claude Code (Required)" SecClaudeCode
   ; always, so a materialized profile keeps launching via our launcher no matter
   ; the theme choice.
   DetailPrint "Applying Windows Terminal profile settings..."
-  nsExec::ExecToLog 'node "$INSTDIR\apply-wt-settings.js"'
+  nsExec::ExecToLog '"$NodeExe" "$INSTDIR\apply-wt-settings.js"'
   Pop $0
 
   ; Apply the terminal color from config.txt (kivun/dark/black/white/default/#hex)
   ; — always run, so an upgrade with TERMINAL_COLOR=default reliably UN-PINS any
   ; previously applied scheme (the reported "can't turn off the blue" bug).
   DetailPrint "Applying terminal color from config..."
-  nsExec::ExecToLog 'node "$INSTDIR\apply-terminal-color.js"'
+  nsExec::ExecToLog '"$NodeExe" "$INSTDIR\apply-terminal-color.js"'
   Pop $0
 SectionEnd
 

@@ -1,5 +1,35 @@
 # Changelog
 
+## [2.9.3] - 2026-07-16
+
+### Fixed — statusline now appears on a fresh PC without hand-editing settings.json
+
+On a computer that did NOT already have Node.js, the installer installed Node in
+an earlier step, but the installer process kept its OLD PATH for the rest of the
+run. So the post-install steps that call `node ...` (statusline config, voice
+alerts, terminal color, Windows Terminal profile) could not find `node` and
+silently did nothing — most visibly, `~/.claude/settings.json` never got its
+`statusLine` block, so Claude showed no statusline until the file was edited by
+hand later (once a re-login had refreshed PATH). The installer now resolves
+`node.exe` by its real path (`Program Files\nodejs`, with fallbacks) and calls it
+directly, so these steps run reliably on a first-time install.
+
+### Fixed — duplicate tabs on a fresh PC (the de-dupe was being skipped)
+
+Same stale-PATH cause: the launcher gates its tab de-dupe behind
+`where node && node dedupe-launch-tab.js`. On a fresh PC where `node` wasn't yet
+on the Explorer-inherited PATH, that check failed and the de-dupe was skipped
+entirely, so Windows Terminal's restore + the launcher's new tab produced two
+identical tabs (which then got saved permanently). The launcher now adds Node's
+real install dir to its PATH at the top of the script (same treatment Claude's
+`.local\bin` already got), so the de-dupe — and the runtime statusline command
+Claude spawns — work even before the first re-login.
+
+### Changed — "Create Desktop Shortcut" on the finish page is now ticked by default
+
+The final-page checkbox is checked (V) by default, so the desktop icon is created
+unless the user unticks it.
+
 ## [2.9.2] - 2026-07-13
 
 ### Fixed — opening a session no longer shows two tabs with the same project name
