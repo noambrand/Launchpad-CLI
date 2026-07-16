@@ -113,6 +113,13 @@ opens exactly once. Update to v2.9.2+ (or re-run the installer). *Edge case:* if
 Windows Terminal is already open and that project's tab is already showing, opening
 it again can still add a second tab in that running window.
 
+**Also fixed in v2.9.3+ (fresh PCs):** the de-dupe step only runs if `node` is
+found. On a brand-new PC — where the installer had *just* installed Node.js — the
+launcher's inherited PATH didn't yet include Node, so the de-dupe was skipped
+entirely and the duplicate tab got saved permanently. The launcher now adds Node's
+own folder to PATH before that step, so the de-dupe runs on a fresh install too
+(no re-login needed).
+
 ### Folder picker doesn't open
 
 The GUI folder picker requires Windows Script Host. If it's disabled by policy:
@@ -229,6 +236,18 @@ Make sure your shell profile (`.zshrc` or `.bash_profile`) includes the npm glob
 ## Status Bar
 
 ### Status bar not showing
+
+**On a fresh PC, this is fixed in v2.9.3+.** If the PC did **not** already have
+Node.js, the installer installed it mid-run but kept its old PATH for the rest of
+the run — so the step that writes the statusline into `~/.claude/settings.json`
+(`node configure-statusline.js`) couldn't find `node` and silently did nothing.
+The result: `settings.json` had **no** `statusLine` entry and the bar stayed blank
+until the file was edited by hand (after a re-login refreshed PATH). v2.9.3 calls
+Node by its full path during install and also puts Node on the launcher's PATH, so
+the statusline is configured and rendered on a first-time install. **If you're on
+an older build: update to v2.9.3+ or re-run the installer.**
+
+If it still doesn't show:
 
 1. Check that `statusline.mjs` exists:
    - Windows: `%LOCALAPPDATA%\Kivun\statusline.mjs`
