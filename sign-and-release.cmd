@@ -29,10 +29,13 @@ echo         (you entered the 6-digit code from your phone).
 echo(
 pause
 
-REM ---- locate the newest signtool.exe from the Windows SDK ----
+REM ---- locate the newest x64 signtool.exe from the Windows SDK ----
+REM (dir /s can't wildcard a middle path segment, so recurse for the name and
+REM  filter for the x64 build; fall back to any signtool if no x64 is present.)
 set "SIGNTOOL="
-for /f "delims=" %%s in ('dir /b /s /a-d "C:\Program Files (x86)\Windows Kits\10\bin\*\x64\signtool.exe" 2^>nul') do set "SIGNTOOL=%%s"
-if "%SIGNTOOL%"=="" (
+for /f "delims=" %%s in ('dir /b /s "C:\Program Files (x86)\Windows Kits\10\bin\signtool.exe" 2^>nul ^| findstr /i /c:"\x64\signtool"') do set "SIGNTOOL=%%s"
+if not defined SIGNTOOL for /f "delims=" %%s in ('dir /b /s "C:\Program Files (x86)\Windows Kits\10\bin\signtool.exe" 2^>nul') do set "SIGNTOOL=%%s"
+if not defined SIGNTOOL (
   echo ERROR: signtool.exe not found ^(Windows SDK missing^).
   goto :fail
 )
