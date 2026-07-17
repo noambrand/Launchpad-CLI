@@ -20,8 +20,14 @@ Every release **must** include all three assets:
    - Builds the macOS `.pkg` (pkgbuild on macOS runner)
    - Copies the demo video from the repo
    - **Validates all 3 assets exist** (fails the workflow if any are missing)
-   - Creates the GitHub release with all assets attached
-3. Edit the release notes on GitHub if needed.
+   - Creates the GitHub release with all assets attached (the `.exe` is **unsigned** here)
+3. **Sign the Windows installer** (required): open **SimplySign Desktop** and log in (6-digit
+   code from your phone), then **double-click `sign-and-release.cmd`** in the repo root. It
+   downloads the built `.exe`, signs it with the Certum "Code Signing Individual in Cloud"
+   certificate, verifies it, and re-uploads the **signed** copy to the release. Full flow:
+   `../Certification/SIGNING_GUIDE.md`. (Signing can only be done on Noam's PC — the cloud
+   cert's key can't be exported to CI.)
+4. Edit the release notes on GitHub if needed.
 
 ### Manual (fallback)
 

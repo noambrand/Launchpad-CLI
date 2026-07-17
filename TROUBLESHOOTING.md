@@ -194,15 +194,17 @@ The installer uses `curl.exe` (built-in on Windows 10 1803+) to download Node.js
 
 ### Antivirus or SmartScreen flags the installer (false positive)
 
-The installer is **not code-signed yet**, so Windows SmartScreen may warn at
-**download** time, again at **run** time (*"Windows protected your PC"*), and some
+The installer is **code-signed** by its verified publisher, but a brand-new signature
+still has to build Microsoft SmartScreen reputation. So for a while SmartScreen may still
+warn at **download** time, again at **run** time (*"Windows protected your PC"*), and some
 antivirus (e.g. McAfee) may warn or block a step. This is a **false positive**.
 
-> **Why a NEW version gets flagged when the old one didn't:** SmartScreen trust is
-> tied to the exact file. Every new release is a brand-new `.exe`, so it starts with
-> **zero download reputation** until enough people have fetched it — even though the
-> previous version downloaded fine. This is normal for unsigned apps and clears on
-> its own over time (or once we code-sign / submit it to Microsoft).
+> **Why a NEW version can still be flagged:** SmartScreen reputation is tied both to the
+> signing certificate and to the exact file. Every new release is a brand-new `.exe`, so it
+> starts with **zero file reputation** until enough people have fetched it, even though the
+> previous version downloaded fine. Signing with the same certificate every time helps this
+> build up. Note: since 2024 even EV certificates no longer get instant SmartScreen trust,
+> so this reputation-building step is normal for all signed apps and clears on its own over time.
 
 **If the browser blocks the DOWNLOAD** ("…isn't commonly downloaded" / "blocked"):
 
