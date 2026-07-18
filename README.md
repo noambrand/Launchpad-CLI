@@ -23,7 +23,7 @@
   <img src="https://img.shields.io/badge/languages-24%2B-orange" alt="24+ Languages">
   <a href="https://github.com/noambrand/launchpad-cli/stargazers"><img src="https://img.shields.io/github/stars/noambrand/launchpad-cli?style=flat&color=yellow&cb=lc1" alt="GitHub Stars"></a>
   <img src="https://img.shields.io/github/last-commit/noambrand/launchpad-cli?label=last%20commit&color=brightgreen&cb=lc1" alt="Last Commit">
-  <img src="https://img.shields.io/badge/downloads-1079%2B-blue" alt="Total Downloads">
+  <img src="https://img.shields.io/badge/downloads-1072%2B-blue" alt="Total Downloads">
 
 </p>
 
