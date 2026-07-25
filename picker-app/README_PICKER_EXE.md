@@ -105,13 +105,23 @@ from your phone) — exactly like `sign-and-release.cmd`.
    the release build to pack them. This is the intended flow — releasing is
    gated on you having signed the picker first.
 
-## Follow-ups (not in this change)
+## Follow-ups — status
 
-- **`fix-wt-icon.hta`** is a second, separate HTA that can trip the same Defender
-  rule if it is ever launched via `mshta`. It's only used by its own README flow,
-  not by a shortcut, so it's lower risk — but it could be ported the same way
-  later if needed.
-- **Microsoft WDSI false-positive report** — optional. For users still on the
-  current (pre-3.0.0) release, you can report the old `folder-picker.hta` sample
-  to Microsoft's WDSI portal from your signed publisher identity to clear the
-  alarm retroactively. v3.0.0 makes this unnecessary going forward.
+- **`fix-wt-icon.hta`** — ✅ DONE in **v3.0.1**. The Windows Terminal icon fixer
+  is now hosted by the same signed `LaunchpadPicker.exe` (page argument
+  `fix-wt-icon.html`), launched from a Start-menu shortcut. The product now
+  ships **zero HTAs**. See the v3.0.1 CHANGELOG entry.
+- **Microsoft WDSI false-positive report** — ✅ SUBMITTED **2026-07-26** (for the
+  pre-3.0.0 `folder-picker.hta`, to clear the alarm retroactively for users still
+  on old versions). Awaiting Microsoft's determination. See
+  `../WDSI_false_positive_report.md`.
+
+## Multi-tool note (v3.0.1+)
+
+`LaunchpadPicker.exe` hosts more than one page. The first CLI argument selects the
+page to load (a safe local `.html` filename); no argument = `folder-picker.html`.
+Shipping pages: `folder-picker.html` (the folder picker) and `fix-wt-icon.html`
+(the Windows Terminal icon fixer). Both are generated from their canonical `.hta`
+by `build-picker.js`. Add a new tool by adding its `.hta`, generating the page in
+`build-and-sign-picker.cmd`, packaging it in the installer, and pointing a
+shortcut at `LaunchpadPicker.exe <page>.html`.
