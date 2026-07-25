@@ -44,6 +44,10 @@
       FolderExists: function (p) { return !!host().FolderExists(String(p)); },
       CreateFolder: function (p) { return host().CreateFolder(String(p)); },
       DeleteFile: function (p) { return host().DeleteFile(String(p)); },
+      // VBScript's CopyFile overwrites by default when the flag is omitted.
+      CopyFile: function (src, dst, overwrite) {
+        return host().CopyFile(String(src), String(dst), overwrite === undefined ? true : !!overwrite);
+      },
       // Pure string helper - no OS call needed. Matches VBScript semantics:
       // strips a trailing separator, then returns everything before the last one.
       GetParentFolderName: function (p) {

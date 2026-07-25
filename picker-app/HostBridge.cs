@@ -115,6 +115,23 @@ namespace LaunchpadPicker
             }
         }
 
+        // Scripting.FileSystemObject.CopyFile(source, destination, overwrite)
+        // Used by the Windows Terminal icon fixer to back up and restore
+        // settings.json. VBScript's CopyFile overwrites by default.
+        public void CopyFile(string source, string destination, bool overwrite)
+        {
+            try
+            {
+                File.Copy(source, destination, overwrite);
+            }
+            catch (Exception ex)
+            {
+                // Surface failures to JS so the tool's try/catch can report and
+                // (for the restore path) react, instead of failing silently.
+                throw new InvalidOperationException("CopyFile failed (" + source + " -> " + destination + "): " + ex.Message, ex);
+            }
+        }
+
         // WScript.Shell.Run(command, windowStyle, waitOnReturn)
         //   windowStyle: 0 = hidden, anything else = normal
         //   waitOnReturn: block until the process exits

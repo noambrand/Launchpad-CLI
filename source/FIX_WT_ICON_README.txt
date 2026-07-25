@@ -36,7 +36,10 @@ WHY IT HAPPENS:
 HOW TO FIX:
 
   Option 1 (Automated):
-    • Double-click: fix-wt-icon.hta
+    • Open the Start menu and run:
+        ClaudeCode Launchpad CLI  ->  Fix Windows Terminal Icon
+      (this is the signed LaunchpadPicker.exe hosting fix-wt-icon.html;
+       the old fix-wt-icon.hta is no longer used, as of v3.0.1)
     • Click "Fix Icon Now"
     • Follow the on-screen instructions
     • Close ALL Windows Terminal windows

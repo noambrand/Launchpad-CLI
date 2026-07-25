@@ -16,22 +16,44 @@ namespace LaunchpadPicker
         private static Mutex _instanceMutex;
 
         [STAThread]
-        private static void Main()
+        private static void Main(string[] args)
         {
+            // Which page to host. Default is the folder picker, so existing
+            // shortcuts that pass no argument keep working unchanged. A second
+            // tool (the Windows Terminal icon fixer) is launched with its page
+            // name as the first argument: LaunchpadPicker.exe fix-wt-icon.html
+            string page = ResolvePage(args);
+
+            // Single-instance PER TOOL (each HTA was SINGLEINSTANCE). Keying the
+            // mutex on the page lets the picker and the icon fixer be open at the
+            // same time, while a second copy of the SAME tool exits quietly.
             bool createdNew;
-            _instanceMutex = new Mutex(true, "ClaudeCodeLaunchpadPicker_SingleInstance", out createdNew);
-            if (!createdNew) return; // already running
+            _instanceMutex = new Mutex(true, "ClaudeCodeLaunchpad_" + page.Replace('.', '_'), out createdNew);
+            if (!createdNew) return; // this tool is already running
 
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
             try
             {
-                Application.Run(new MainForm());
+                Application.Run(new MainForm(page));
             }
             finally
             {
                 try { _instanceMutex.ReleaseMutex(); } catch { }
             }
+        }
+
+        // Accept only a safe local .html filename (no path, no traversal); fall
+        // back to the folder picker for anything unexpected.
+        private static string ResolvePage(string[] args)
+        {
+            if (args != null && args.Length > 0 && !string.IsNullOrWhiteSpace(args[0]))
+            {
+                string candidate = System.IO.Path.GetFileName(args[0].Trim());
+                if (System.Text.RegularExpressions.Regex.IsMatch(candidate, "^[A-Za-z0-9._-]+\\.html$"))
+                    return candidate;
+            }
+            return "folder-picker.html";
         }
     }
 
@@ -43,23 +65,41 @@ namespace LaunchpadPicker
             AppDomain.CurrentDomain.BaseDirectory.TrimEnd('\\');
 
         private const string VirtualHost = "appassets.local";
-        private const string StartPage = "https://appassets.local/folder-picker.html";
 
         private readonly WebView2 _web = new WebView2();
         private readonly HostBridge _bridge;
+        private readonly string _startPage;
 
-        public MainForm()
+        public MainForm(string page)
         {
             _bridge = new HostBridge(this);
+            _startPage = "https://" + VirtualHost + "/" + page;
 
-            Text = "ClaudeCode Launchpad CLI - Pick Folder";
+            // Per-tool window title + baseline size (each page also calls
+            // window.resizeTo, which the shim routes to HostBridge.SizeAndCenter,
+            // so this is just the pre-layout size).
+            string title;
+            int baseW, baseH;
+            switch (page.ToLowerInvariant())
+            {
+                case "fix-wt-icon.html":
+                    title = "Fix Windows Terminal Icon - ClaudeCode Launchpad CLI";
+                    baseW = 700; baseH = 650;
+                    break;
+                default:
+                    title = "ClaudeCode Launchpad CLI - Pick Folder";
+                    baseW = 1040; baseH = 690;
+                    break;
+            }
+
+            Text = title;
             try { Icon = System.Drawing.Icon.ExtractAssociatedIcon(Application.ExecutablePath); } catch { }
             FormBorderStyle = FormBorderStyle.FixedDialog; // BORDER="dialog"
             MaximizeBox = false;                            // MAXIMIZEBUTTON="no"
             MinimizeBox = false;                            // MINIMIZEBUTTON="no"
             ShowInTaskbar = true;                           // SHOWINTASKBAR="yes"
             StartPosition = FormStartPosition.CenterScreen;
-            ClientSize = new System.Drawing.Size(1040, 690); // baseline; JS re-fits
+            ClientSize = new System.Drawing.Size(baseW, baseH); // baseline; JS re-fits
             BackColor = System.Drawing.Color.White;
 
             _web.Dock = DockStyle.Fill;
@@ -124,7 +164,7 @@ namespace LaunchpadPicker
                     try { Process.Start(new ProcessStartInfo(e2.Uri) { UseShellExecute = true }); } catch { }
                 };
 
-                c.Navigate(StartPage);
+                c.Navigate(_startPage);
             }
             catch (Exception ex)
             {

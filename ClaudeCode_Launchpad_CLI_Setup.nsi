@@ -5,7 +5,7 @@
 Unicode True
 
 !define PRODUCT_NAME "ClaudeCode Launchpad CLI"
-!define PRODUCT_VERSION "3.0.0"
+!define PRODUCT_VERSION "3.0.1"
 !define PRODUCT_PUBLISHER "Noam Brand"
 !define PRODUCT_WEB_SITE "https://github.com"
 !define PRODUCT_DESCRIPTION "Claude Code installer for Windows"
@@ -242,7 +242,11 @@ Section "!Core Components (Required)" SecCore
   File "source\install.cmd"
   File "source\launchpad-diagnostics.cmd"
   File "source\install-node-elevated.js"
-  File "source\fix-wt-icon.hta"
+  ; v3.0.1: the Windows Terminal icon fixer is now hosted by the same signed
+  ; LaunchpadPicker.exe (page argument fix-wt-icon.html), not its own HTA - so
+  ; it can't trip the mshta Defender rule either. Remove any leftover legacy HTA.
+  Delete "$INSTDIR\fix-wt-icon.hta"
+  File "source\fix-wt-icon.html"
   File "source\close-launchers.js"
 
   ; Copy the voice-alert sounds toolkit (bundled under $INSTDIR\sounds)
@@ -378,6 +382,8 @@ Section "!Core Components (Required)" SecCore
   CreateShortCut "$SMPROGRAMS\${PRODUCT_NAME}\${PRODUCT_NAME}.lnk" "$INSTDIR\LaunchpadPicker.exe" "" "$INSTDIR\claude_icon.ico" 0 SW_SHOWNORMAL "" "${PRODUCT_DESCRIPTION}"
   CreateShortCut "$SMPROGRAMS\${PRODUCT_NAME}\Configuration.lnk" "notepad.exe" "$INSTDIR\config.txt" "" 0 SW_SHOWNORMAL "" "Configure language settings"
   CreateShortCut "$SMPROGRAMS\${PRODUCT_NAME}\Diagnostics.lnk" "$INSTDIR\launchpad-diagnostics.cmd" "" "$INSTDIR\claude_icon.ico" 0 SW_SHOWNORMAL "" "Create a diagnostic report to email if something isn't working"
+  ; v3.0.1: the Windows Terminal icon fixer, now the signed exe with a page arg.
+  CreateShortCut "$SMPROGRAMS\${PRODUCT_NAME}\Fix Windows Terminal Icon.lnk" "$INSTDIR\LaunchpadPicker.exe" "fix-wt-icon.html" "$INSTDIR\claude_icon.ico" 0 SW_SHOWNORMAL "" "Repair the Windows Terminal taskbar icon for ClaudeCode Launchpad"
   CreateShortCut "$SMPROGRAMS\${PRODUCT_NAME}\Uninstall.lnk" "$INSTDIR\Uninstall.exe" "" "" 0 SW_SHOWNORMAL "" "Uninstall ${PRODUCT_NAME}"
 
   ; Clean up THIS product's own old-name ("Kivun") ARP entry + legacy

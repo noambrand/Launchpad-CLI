@@ -1,5 +1,22 @@
 # Changelog
 
+## [3.0.1] - 2026-07-26
+
+### Changed — the Windows Terminal icon fixer is now signed too (second HTA retired)
+
+`fix-wt-icon.hta` was the last remaining HTA in the product. Like the folder
+picker before it, `mshta.exe` opening it could trip Windows Defender's LOLBin
+heuristic. v3.0.1 retires it: the same signed **LaunchpadPicker.exe** now hosts
+the icon fixer too, launched with a page argument (`LaunchpadPicker.exe
+fix-wt-icon.html`). The exe gained one small bridge method (`CopyFile`, used for
+the settings.json backup/restore) and an argument that selects which page to
+host — with no argument it's the folder picker exactly as before, so existing
+shortcuts are unaffected.
+
+- New Start-menu entry: **ClaudeCode Launchpad CLI → Fix Windows Terminal Icon**.
+- `fix-wt-icon.hta` is no longer installed and is removed on upgrade.
+- No more HTAs ship in the product.
+
 ## [3.0.0] - 2026-07-25
 
 ### Changed — the folder picker is now a signed program, not an HTA (fixes the Defender false alarm)

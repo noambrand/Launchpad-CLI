@@ -40,7 +40,9 @@ REM ---- 2. Rebuild the HTML from the canonical .hta ----------------------
 echo [2/5] Rebuilding folder-picker.html from folder-picker.hta ...
 where node >nul 2>nul || (echo ERROR: node not found. & goto :fail)
 node "%APP%\build-picker.js" "%SRC%\folder-picker.hta" "%SRC%\folder-picker.html"
-if errorlevel 1 (echo HTML TRANSFORM FAILED. & goto :fail)
+if errorlevel 1 (echo HTML TRANSFORM FAILED (folder-picker). & goto :fail)
+node "%APP%\build-picker.js" "%SRC%\fix-wt-icon.hta" "%SRC%\fix-wt-icon.html"
+if errorlevel 1 (echo HTML TRANSFORM FAILED (fix-wt-icon). & goto :fail)
 
 REM ---- 3. Locate signtool (newest x64) ----------------------------------
 echo [3/5] Locating signtool ...

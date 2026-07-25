@@ -40,35 +40,44 @@ function assertChanged(label, before, after) {
   return after;
 }
 
-// 1. Remove the HTA:APPLICATION element.
+// Apply an edit that is only present in SOME pages (folder-picker has the
+// JScript language attr and getInstallDir; fix-wt-icon does not). If the marker
+// isn't there, skip quietly - this is not drift, just a different page.
+function applyOptional(label, before, re, repl) {
+  var after = before.replace(re, repl);
+  console.log(after === before ? "    skip (" + label + " - not in this page)" : "    " + label);
+  return after;
+}
+
+// 1. Remove the HTA:APPLICATION element. REQUIRED in every page.
 out = assertChanged(
   "remove <HTA:APPLICATION>",
   out,
   out.replace(/<HTA:APPLICATION[\s\S]*?\/>\s*/i, "")
 );
 
-// 2. Strip language="JScript" from the script tag(s).
-out = assertChanged(
-  "strip language=\"JScript\"",
-  out,
-  out.replace(/(<script)\s+language\s*=\s*"?JScript"?\s*(>)/gi, "$1$2")
-);
-
-// 3. Inject the shim <script> immediately before the first inline <script>.
+// 2. Inject the shim <script> immediately before the FIRST <script ...> (any
+//    attributes). REQUIRED - the shim must define ActiveXObject/resizeTo first.
 out = assertChanged(
   "inject webview-shim.js",
   out,
-  out.replace(/(<script>)/i, '<script src="webview-shim.js"></script>\n$1')
+  out.replace(/(<script\b[^>]*>)/i, '<script src="webview-shim.js"></script>\n$1')
 );
 
-// 4. Replace getInstallDir() body with the __APP_DIR__ lookup.
-out = assertChanged(
+// 3. Strip language="JScript" so the script runs as ordinary JS (folder-picker only).
+out = applyOptional(
+  "strip language=\"JScript\"",
+  out,
+  /(<script\b[^>]*?)\s+language\s*=\s*"?JScript"?([^>]*>)/gi,
+  "$1$2"
+);
+
+// 4. Replace getInstallDir() body with the __APP_DIR__ lookup (folder-picker only).
+out = applyOptional(
   "rewrite getInstallDir()",
   out,
-  out.replace(
-    /function getInstallDir\(\)\s*\{[\s\S]*?return fso\.GetParentFolderName\(url\);\s*\}/,
-    "function getInstallDir() { return window.__APP_DIR__ || \"\"; }"
-  )
+  /function getInstallDir\(\)\s*\{[\s\S]*?return fso\.GetParentFolderName\(url\);\s*\}/,
+  "function getInstallDir() { return window.__APP_DIR__ || \"\"; }"
 );
 
 // Sanity: the shim reference must be present exactly once.
