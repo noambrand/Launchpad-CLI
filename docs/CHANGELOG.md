@@ -1,5 +1,40 @@
 # Changelog
 
+## [3.0.0] - 2026-07-25
+
+### Changed — the folder picker is now a signed program, not an HTA (fixes the Defender false alarm)
+
+Windows Defender's machine-learning heuristic repeatedly flagged the folder
+picker as malware. The detection was never about the picker's contents or its
+signature — it fires on the *command line* pattern `mshta.exe <a local .hta>`,
+which is a common malware-delivery technique (a "living off the land" binary),
+so it tripped no matter what the HTA did. Signing the launcher could not clear
+it, because the process Defender sees is Microsoft's own `mshta.exe`, and an
+`.hta` cannot carry a signature.
+
+v3.0.0 removes `mshta` from the picture entirely. The picker is now
+**LaunchpadPicker.exe**, a small signed native program that shows the *same*
+window by hosting the existing picker UI inside the Microsoft Edge **WebView2**
+control. The UI (layout, flags, profiles, colors, sounds, update check) is
+unchanged — it is generated from the same source at build time — while the
+handful of Windows operations it needs (read/write files, browse for a folder,
+run a command) are handled by the signed program instead of ActiveX/COM.
+
+Benefits: no more `mshta` LOLBin pattern for Defender to flag, the picker
+process now carries the publisher's Authenticode signature (which builds
+SmartScreen reputation over time), and the Start-menu / desktop shortcuts launch
+the signed exe directly.
+
+Notes:
+- Requires the Microsoft Edge WebView2 Runtime, which ships with Windows 11 and
+  with Microsoft Edge (so it is present on essentially all target machines). If
+  it is ever missing, the picker shows a friendly message pointing to the free
+  Microsoft download instead of failing silently.
+- The legacy `folder-picker.hta` is no longer installed, and any leftover copy
+  from a previous version is removed on upgrade.
+- `.NET Framework 4.8` (built into Windows 10 1903+/11) is the only runtime the
+  program itself needs — nothing extra to download.
+
 ## [2.9.3] - 2026-07-16
 
 ### Fixed — statusline now appears on a fresh PC without hand-editing settings.json

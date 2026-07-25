@@ -22,22 +22,6 @@
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
 <meta http-equiv="X-UA-Compatible" content="IE=edge" />
 <title>ClaudeCode Launchpad CLI - Pick Folder</title>
-<HTA:APPLICATION
-  ID="LaunchpadPicker"
-  APPLICATIONNAME="ClaudeCode Launchpad CLI Folder Picker"
-  BORDER="dialog"
-  CAPTION="yes"
-  CONTEXTMENU="no"
-  INNERBORDER="no"
-  MAXIMIZEBUTTON="no"
-  MINIMIZEBUTTON="no"
-  SCROLL="auto"
-  SELECTION="no"
-  SHOWINTASKBAR="yes"
-  SINGLEINSTANCE="yes"
-  SYSMENU="yes"
-  WINDOWSTATE="normal"
-/>
 <style>
   html, body { height: 100%; }
   body {
@@ -409,7 +393,8 @@
     font-weight: 600;
   }
 </style>
-<script language="JScript">
+<script src="webview-shim.js"></script>
+<script>
   // Resize to fit all four sections WITHOUT scrolling. We use a generous
   // 1040x980 baseline and then re-fit to actual content height after
   // layout settles, so different DPI / font-render heights still get a
@@ -451,10 +436,7 @@
   var fso = new ActiveXObject("Scripting.FileSystemObject");
   var shell = new ActiveXObject("Shell.Application");
 
-  function getInstallDir() {
-    var url = decodeURIComponent(location.pathname).replace(/^\//, "").replace(/\//g, "\\");
-    return fso.GetParentFolderName(url);
-  }
+  function getInstallDir() { return window.__APP_DIR__ || ""; }
 
   // ---- Update check --------------------------------------------------
   // Async-ish background check against the GitHub Releases API. On

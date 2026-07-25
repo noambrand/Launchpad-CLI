@@ -1,0 +1,48 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    ClaudeCode Launchpad CLI - Folder Picker (signed native host)
+
+    WHY THIS EXISTS: the picker used to run as an HTA hosted by mshta.exe.
+    Windows Defender's ML heuristic flags "mshta.exe <local .hta>" as a
+    LOLBin malware pattern regardless of file contents or signature, because
+    the flag is on the command line, not the file. This app removes mshta
+    from the process tree entirely: it is a signed WinForms process that
+    hosts the SAME picker UI inside the Edge WebView2 control. The 10
+    Windows operations the picker needs (file r/w, folder browse, run a
+    command, expand env vars) are re-routed from COM objects to HostBridge.
+
+    TARGET: net48 so end users need NO runtime download (.NET Framework 4.8
+    ships with every Windows 10 1903+/11). WebView2 runtime also ships with
+    Windows 11 / Edge, so nothing extra to install on the target machines.
+  -->
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net48</TargetFramework>
+    <UseWindowsForms>true</UseWindowsForms>
+    <LangVersion>latest</LangVersion>
+    <AssemblyName>LaunchpadPicker</AssemblyName>
+    <RootNamespace>LaunchpadPicker</RootNamespace>
+    <ApplicationIcon>claude_icon.ico</ApplicationIcon>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <PlatformTarget>x64</PlatformTarget>
+    <Deterministic>true</Deterministic>
+    <Nullable>disable</Nullable>
+    <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
+    <Company>Noam Brand</Company>
+    <Product>ClaudeCode Launchpad CLI</Product>
+    <AssemblyTitle>ClaudeCode Launchpad CLI Folder Picker</AssemblyTitle>
+    <Description>Folder picker and launch options for ClaudeCode Launchpad CLI.</Description>
+    <Version>3.0.0</Version>
+    <FileVersion>3.0.0.0</FileVersion>
+    <!-- Keep the assembly self-contained in one output folder for easy packaging. -->
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.2903.40" />
+  </ItemGroup>
+
+</Project>

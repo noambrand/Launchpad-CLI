@@ -5,7 +5,7 @@
 Unicode True
 
 !define PRODUCT_NAME "ClaudeCode Launchpad CLI"
-!define PRODUCT_VERSION "2.9.3"
+!define PRODUCT_VERSION "3.0.0"
 !define PRODUCT_PUBLISHER "Noam Brand"
 !define PRODUCT_WEB_SITE "https://github.com"
 !define PRODUCT_DESCRIPTION "Claude Code installer for Windows"
@@ -210,7 +210,22 @@ Section "!Core Components (Required)" SecCore
     File "source\config.txt"
   ${EndIf}
   File "source\claudecode-launchpad.bat"
-  File "source\folder-picker.hta"
+  ; v3.0.0: the folder picker is now a SIGNED native program
+  ; (LaunchpadPicker.exe) that hosts the same UI inside the Edge WebView2
+  ; control, replacing the old mshta.exe + folder-picker.hta combo that
+  ; Windows Defender kept false-flagging (mshta running a local .hta is a
+  ; LOLBin pattern flagged regardless of file contents or signature). The
+  ; .hta is no longer shipped; folder-picker.html is generated from it at
+  ; build time by picker-app\build-picker.js. WebView2 runtime ships with
+  ; Windows 11 / Edge; the DLLs are Microsoft-signed support files.
+  ; On upgrade from v2.x, remove the now-unused legacy HTA so no dormant .hta lingers.
+  Delete "$INSTDIR\folder-picker.hta"
+  File "source\LaunchpadPicker.exe"
+  File "source\folder-picker.html"
+  File "source\webview-shim.js"
+  File "source\Microsoft.Web.WebView2.Core.dll"
+  File "source\Microsoft.Web.WebView2.WinForms.dll"
+  File "source\WebView2Loader.dll"
   File "source\write-path.js"
   File "source\write-startcmd.js"
   File "source\inject-startup-cmd.js"
@@ -360,7 +375,7 @@ Section "!Core Components (Required)" SecCore
 
   ; Create Start Menu shortcuts
   CreateDirectory "$SMPROGRAMS\${PRODUCT_NAME}"
-  CreateShortCut "$SMPROGRAMS\${PRODUCT_NAME}\${PRODUCT_NAME}.lnk" "mshta.exe" '"$INSTDIR\folder-picker.hta"' "$INSTDIR\claude_icon.ico" 0 SW_SHOWNORMAL "" "${PRODUCT_DESCRIPTION}"
+  CreateShortCut "$SMPROGRAMS\${PRODUCT_NAME}\${PRODUCT_NAME}.lnk" "$INSTDIR\LaunchpadPicker.exe" "" "$INSTDIR\claude_icon.ico" 0 SW_SHOWNORMAL "" "${PRODUCT_DESCRIPTION}"
   CreateShortCut "$SMPROGRAMS\${PRODUCT_NAME}\Configuration.lnk" "notepad.exe" "$INSTDIR\config.txt" "" 0 SW_SHOWNORMAL "" "Configure language settings"
   CreateShortCut "$SMPROGRAMS\${PRODUCT_NAME}\Diagnostics.lnk" "$INSTDIR\launchpad-diagnostics.cmd" "" "$INSTDIR\claude_icon.ico" 0 SW_SHOWNORMAL "" "Create a diagnostic report to email if something isn't working"
   CreateShortCut "$SMPROGRAMS\${PRODUCT_NAME}\Uninstall.lnk" "$INSTDIR\Uninstall.exe" "" "" 0 SW_SHOWNORMAL "" "Uninstall ${PRODUCT_NAME}"
@@ -397,7 +412,7 @@ Section "!Core Components (Required)" SecCore
   SetRegView default
 
   ; Create Desktop shortcut
-  CreateShortCut "$DESKTOP\ClaudeCode Launchpad CLI.lnk" "mshta.exe" '"$INSTDIR\folder-picker.hta"' "$INSTDIR\claude_icon.ico" 0 SW_SHOWNORMAL "" "${PRODUCT_DESCRIPTION}"
+  CreateShortCut "$DESKTOP\ClaudeCode Launchpad CLI.lnk" "$INSTDIR\LaunchpadPicker.exe" "" "$INSTDIR\claude_icon.ico" 0 SW_SHOWNORMAL "" "${PRODUCT_DESCRIPTION}"
 
   ; Create SendTo shortcut
   CreateShortCut "$SENDTO\ClaudeCode Launchpad CLI.lnk" "$INSTDIR\claudecode-launchpad.bat" "" "$INSTDIR\claude_icon.ico" 0 SW_SHOWNORMAL "" "Open with ClaudeCode Launchpad CLI"
@@ -578,7 +593,7 @@ SectionEnd
 Function CreateDesktopShortcut
   ; Do NOT delete "$DESKTOP\Kivun Terminal.lnk" — that belongs to the
   ; separate WSL Kivun Terminal product. Only create our own shortcut.
-  CreateShortCut "$DESKTOP\ClaudeCode Launchpad CLI.lnk" "mshta.exe" '"$INSTDIR\folder-picker.hta"' "$INSTDIR\claude_icon.ico" 0 SW_SHOWNORMAL "" "${PRODUCT_DESCRIPTION}"
+  CreateShortCut "$DESKTOP\ClaudeCode Launchpad CLI.lnk" "$INSTDIR\LaunchpadPicker.exe" "" "$INSTDIR\claude_icon.ico" 0 SW_SHOWNORMAL "" "${PRODUCT_DESCRIPTION}"
 FunctionEnd
 
 ; Uninstaller

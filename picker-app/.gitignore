@@ -1,0 +1,5 @@
+# Build artifacts - the signed picker + support files are staged into ..\source\
+# by build-and-sign-picker.cmd and committed from there. Nothing here is tracked.
+bin/
+obj/
+dist/
