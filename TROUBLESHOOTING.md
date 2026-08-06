@@ -159,6 +159,27 @@ Right-click the shortcut > Properties > verify the target points to:
 %LOCALAPPDATA%\Kivun\claudecode-launchpad.bat
 ```
 
+### "folder-picker.hta is missing… Try reinstalling" popup
+
+You click your icon and get a red error box: *"folder-picker.hta is missing from
+…\Kivun. Try reinstalling ClaudeCode Launchpad CLI."* Reinstalling doesn't help.
+
+**Your install is fine — this is a leftover from an old version.** It almost always
+comes from a **taskbar pin** you created on a pre-v3.0.0 build. Back then the picker
+was launched by `folder-picker-launcher.wsf`, which opens `folder-picker.hta`.
+v3.0.0 replaced both with the signed **LaunchpadPicker.exe** and removed the `.hta`.
+Windows updates your Desktop and Start-menu shortcuts on upgrade, but it **won't let
+the installer touch a taskbar pin** — so that pin keeps launching the old `.wsf`,
+which then can't find the deleted `.hta`.
+
+**Fastest fix:** right-click the taskbar pin → **Unpin from taskbar**. Then click
+**Start**, type *ClaudeCode Launchpad CLI*, right-click it and **Pin to taskbar**.
+The new pin launches the correct signed picker.
+
+**Fixed in v3.0.2+:** the installer now repoints an old taskbar pin automatically and
+deletes the obsolete launcher files, so updating to v3.0.2 or later clears this for
+good (a one-time sign-out/in may be needed for Windows to refresh the pinned icon).
+
 ### "Continue last conversation" closed the tab / it opened and shut by itself
 
 If you picked **Continue last** in the picker (or set `CLAUDE_FLAGS=--continue` in
@@ -288,6 +309,34 @@ If it still doesn't show:
    ```bash
    node configure-statusline.js "<path-to-statusline.mjs>"
    ```
+
+### Status bar went blank after installing or updating Node.js
+
+Everything was fine, then you **installed a new Node.js version** (or moved/uninstalled
+Node) and the status bar disappeared, specifically when you open a folder from the
+**right-click menu** or the **folder picker**.
+
+**Why:** the status bar isn't drawn by the terminal — it's a small command Claude runs
+on every refresh: `node "…\statusline.mjs"`. So the bar only appears if the launched
+window can find `node`. When you open a folder from the right-click menu or the picker,
+**Windows Explorer** starts the launch, and Explorer hands over the *old* copy of your
+program list (PATH) that it captured at your last login. A Node installer updates that
+list, but Explorer keeps using the old one until you **log out and back in, or restart**.
+So right after a Node install, that launch can't see the new Node and the bar stays blank.
+
+**The fix is simply to restart** (or log out and back in) once after installing Node.
+No re-install of Launchpad is needed. After the restart, Explorer picks up the new Node
+and the bar comes back on its own.
+
+**If the bar is *still* blank after a restart:** Node landed somewhere non-standard.
+The launcher can auto-find Node only in the usual spots — `C:\Program Files\nodejs`,
+its 64-bit twin, and `%LOCALAPPDATA%\Programs\nodejs`. If a version manager (nvm, fnm,
+volta) or a portable/zip Node put it elsewhere, reinstall Node with the plain official
+installer from <https://nodejs.org/> (or `winget install OpenJS.NodeJS`), which uses the
+standard `C:\Program Files\nodejs` folder.
+
+**Note — Git is unrelated.** The status bar script is pure Node; it never runs `git`.
+Installing or updating Git cannot blank the status bar.
 
 ### Only one status line visible
 
