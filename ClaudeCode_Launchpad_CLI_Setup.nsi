@@ -5,7 +5,7 @@
 Unicode True
 
 !define PRODUCT_NAME "ClaudeCode Launchpad CLI"
-!define PRODUCT_VERSION "3.0.1"
+!define PRODUCT_VERSION "3.0.2"
 !define PRODUCT_PUBLISHER "Noam Brand"
 !define PRODUCT_WEB_SITE "https://github.com"
 !define PRODUCT_DESCRIPTION "Claude Code installer for Windows"
@@ -220,6 +220,19 @@ Section "!Core Components (Required)" SecCore
   ; Windows 11 / Edge; the DLLs are Microsoft-signed support files.
   ; On upgrade from v2.x, remove the now-unused legacy HTA so no dormant .hta lingers.
   Delete "$INSTDIR\folder-picker.hta"
+  ; v3.0.2: also remove the obsolete pre-WebView2 picker LAUNCHERS a v2.x upgrade
+  ; left behind. Nothing current calls them, but a taskbar pin or shortcut a user
+  ; made against the old build still targets folder-picker-launcher.wsf — which
+  ; hunts for the folder-picker.hta we delete just above and pops the misleading
+  ; "folder-picker.hta is missing - reinstall" box on every click. We repoint the
+  ; known taskbar pin further below; here we clear the dead files so the old
+  ; mshta/hta flow can never run again. (Delete accepts a wildcard in the filename.)
+  Delete "$INSTDIR\folder-picker-launcher.wsf"
+  Delete "$INSTDIR\folder-picker-launcher.vbs"
+  Delete "$INSTDIR\folder-picker-launcher.js"
+  Delete "$INSTDIR\folder-picker.vbs"
+  Delete "$INSTDIR\folder-picker.js"
+  Delete "$INSTDIR\folder-picker.hta.bak.*"
   File "source\LaunchpadPicker.exe"
   File "source\folder-picker.html"
   File "source\webview-shim.js"
@@ -419,6 +432,24 @@ Section "!Core Components (Required)" SecCore
 
   ; Create Desktop shortcut
   CreateShortCut "$DESKTOP\ClaudeCode Launchpad CLI.lnk" "$INSTDIR\LaunchpadPicker.exe" "" "$INSTDIR\claude_icon.ico" 0 SW_SHOWNORMAL "" "${PRODUCT_DESCRIPTION}"
+
+  ; v3.0.2: repair a stale TASKBAR PIN from a pre-v3.0.0 build. A user who pinned
+  ; the old build has a pin whose target is:
+  ;   wscript.exe "...\folder-picker-launcher.wsf"
+  ; We refresh the Start-menu and Desktop shortcuts above, but Windows never lets an
+  ; installer re-pin the taskbar, so that pin keeps launching the now-deleted .wsf
+  ; and shows the "folder-picker.hta is missing - reinstall" box on every click. The
+  ; pin is backed by a real .lnk we CAN edit — overwrite it in place to point at the
+  ; signed picker. Only touch it if it already exists: never create a taskbar pin
+  ; uninvited (the finish page asks the user to pin manually). $QUICKLAUNCH resolves
+  ; to %APPDATA%\Microsoft\Internet Explorer\Quick Launch for the current user.
+  ; NOTE: Explorer may cache the old target until the next sign-in; a fresh click
+  ; after re-login (or an unpin + re-pin from the Start menu) always uses the fix.
+  StrCpy $0 "$QUICKLAUNCH\User Pinned\TaskBar\${PRODUCT_NAME}.lnk"
+  ${If} ${FileExists} "$0"
+    CreateShortCut "$0" "$INSTDIR\LaunchpadPicker.exe" "" "$INSTDIR\claude_icon.ico" 0 SW_SHOWNORMAL "" "${PRODUCT_DESCRIPTION}"
+    DetailPrint "Repointed taskbar pin to LaunchpadPicker.exe (was the retired folder-picker launcher)"
+  ${EndIf}
 
   ; Create SendTo shortcut
   CreateShortCut "$SENDTO\ClaudeCode Launchpad CLI.lnk" "$INSTDIR\claudecode-launchpad.bat" "" "$INSTDIR\claude_icon.ico" 0 SW_SHOWNORMAL "" "Open with ClaudeCode Launchpad CLI"

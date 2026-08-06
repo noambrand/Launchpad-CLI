@@ -1,5 +1,29 @@
 # Changelog
 
+## [3.0.2] - 2026-08-06
+
+### Fixed — a taskbar pin from an old version showed "folder-picker.hta is missing - reinstall"
+
+If you pinned an **older** (pre-v3.0.0) version to your taskbar, clicking that pin
+popped up *"folder-picker.hta is missing from ...\Kivun. Try reinstalling."* even
+though the app was installed fine and the Desktop / Start-menu shortcuts worked.
+
+**Why:** back then the picker launched through `folder-picker-launcher.wsf`, which
+opens `folder-picker.hta`. v3.0.0 replaced both with the signed **LaunchpadPicker.exe**
+and removed the `.hta` (the old `mshta.exe` + `.hta` combo kept tripping Windows
+Defender). The installer updated the Desktop and Start-menu shortcuts, but **Windows
+does not let an installer re-pin the taskbar** — so a taskbar pin kept its old target
+and went on launching the retired `.wsf`, which then couldn't find the deleted `.hta`.
+
+**Fix (this release):**
+- The installer now **repoints an existing taskbar pin** to `LaunchpadPicker.exe`.
+- It also **deletes the obsolete launcher leftovers** (`folder-picker-launcher.wsf`,
+  `folder-picker.vbs`, the old `.js` launchers, and `folder-picker.hta.bak.*`) so the
+  old flow can't run again.
+- Fresh installs were never affected (they never shipped the `.wsf`). If you're an
+  upgrader and the pin still misbehaves right after updating, sign out and back in
+  once, or unpin it and re-pin from the Start-menu entry.
+
 ## [3.0.1] - 2026-07-26
 
 ### Changed — the Windows Terminal icon fixer is now signed too (second HTA retired)
