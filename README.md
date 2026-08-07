@@ -54,9 +54,9 @@
 | **Time to first prompt** | 20+ minutes | ~1 minute |
 
 <p align="center">
-  <a href="https://github.com/noambrand/launchpad-cli/releases/latest/download/ClaudeCode_Launchpad_CLI_Setup.exe"><img src="https://img.shields.io/badge/⬇_Download_for_Windows-2962ff?style=for-the-badge" alt="Download for Windows"></a>
+  <a href="https://github.com/noambrand/launchpad-cli/releases/latest/download/ClaudeCode_Launchpad_CLI_Setup.exe"><img src="https://img.shields.io/badge/Download%20for%20Windows-0078D6?style=for-the-badge&logo=data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0iI2ZmZmZmZiI%2BPHBhdGggZD0iTTAgMy40NDkgOS43NSAyLjF2OS40NTFIMG0xMC45NDktOS42MDJMMjQgMHYxMS40SDEwLjk0OU0wIDEyLjZoOS43NXY5LjQ1MUwwIDIwLjY5OU0xMC45NDkgMTIuNkgyNFYyNGwtMTIuOS0xLjgwMSIvPjwvc3ZnPg%3D%3D&logoColor=white" alt="Download for Windows" height="42"></a>
   &nbsp;
-  <a href="https://github.com/noambrand/launchpad-cli/releases/latest/download/ClaudeCode_Launchpad_CLI_Setup_mac.pkg"><img src="https://img.shields.io/badge/🍎_Download_for_macOS-6366f1?style=for-the-badge" alt="Download for macOS"></a>
+  <a href="https://github.com/noambrand/launchpad-cli/releases/latest/download/ClaudeCode_Launchpad_CLI_Setup_mac.pkg"><img src="https://img.shields.io/badge/Download%20for%20macOS-000000?style=for-the-badge&logo=apple&logoColor=white" alt="Download for macOS" height="42"></a>
 </p>
 
 ### Here's the picker you'll get
