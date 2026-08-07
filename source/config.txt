@@ -44,3 +44,9 @@ AUTO_CONTINUE_FALLBACK_MIN=300
 # Quiet hours "HH:MM-HH:MM" (local): never auto-continue inside this window.
 # Leave empty for no quiet hours. Example: AUTO_CONTINUE_QUIET=09:00-17:00
 AUTO_CONTINUE_QUIET=
+# Safe resume (default true): instead of a bare "continue", ask Claude to first
+# run git status and re-read the file it was mid-edit on, so a change that already
+# landed before the pause is reconciled instead of silently duplicated. This only
+# guards the clean limit-reset resume; a hard crash mid-edit is Claude's own
+# checkpointing, not this. Set false for a plain "continue".
+AUTO_CONTINUE_SAFE_RESUME=true

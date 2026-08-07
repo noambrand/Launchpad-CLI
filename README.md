@@ -196,8 +196,9 @@ AUTO_CONTINUE=false           # auto-type "continue" when the 5-hour limit reset
 When Claude Code hits the 5-hour usage cap, the session stays alive but idle until you come
 back and type something after the limit resets. Turn on **Auto-continue when limit resets**
 (folder picker → **Advanced options**, or set `AUTO_CONTINUE=true` in `config.txt`) and a small
-background watcher waits until the limit's real reset time passes, focuses this tab, and types
-`continue` once so work resumes on its own.
+background watcher waits until the limit's real reset time passes, focuses this tab, and resumes
+your work once so it continues on its own. By default it doesn't type a bare `continue` — it asks
+Claude to re-check its own git/file state first (see **Mid-edit resume** below).
 
 This does **not** bypass the limit — it waits for the real reset time and then resumes. It is
 off by default, conservative, and capped:
@@ -207,6 +208,7 @@ AUTO_CONTINUE=false            # master switch (off by default)
 AUTO_CONTINUE_MAX=5            # most times it will auto-continue in one run, then stop
 AUTO_CONTINUE_FALLBACK_MIN=300 # if blocked with no known reset time, wait this many minutes
 AUTO_CONTINUE_QUIET=           # optional quiet hours "HH:MM-HH:MM" (local); never fire inside
+AUTO_CONTINUE_SAFE_RESUME=true # re-check git/file state before resuming (see Mid-edit resume)
 ```
 
 **Caveats — read before turning it on:**
@@ -222,6 +224,14 @@ AUTO_CONTINUE_QUIET=           # optional quiet hours "HH:MM-HH:MM" (local); nev
   it can't pick which one receives the keys — and because Windows matches window titles by prefix,
   a folder name that's a prefix of another (e.g. `Kivun` vs `Kivun_all`) could send `continue` to
   the wrong project's window. It's opt-in partly for this reason.
+- **Mid-edit resume.** If the session paused while a file edit was in flight, a naive `continue`
+  can make Claude redo work it already did — or re-apply a half-written patch (people have seen a
+  function get duplicated this way). `AUTO_CONTINUE_SAFE_RESUME=true` (the default) guards this by
+  asking Claude to run `git status` and re-read the file it was editing before continuing, so an
+  edit that already landed is reconciled instead of repeated. It's a genuine mitigation, not a
+  guarantee — the real safety net is to **commit (or `git add`) before you leave it running** and
+  prefer whole-function edits, so a duplicate shows up in `git status` instead of shipping. Set it
+  to `false` for the old plain `continue`.
 - **No final-render gap.** A session that blocks without one last status-bar update won't
   auto-continue (known v1 limitation).
 - **Terms of Service.** Unattended automated continuation may violate the provider's usage policy

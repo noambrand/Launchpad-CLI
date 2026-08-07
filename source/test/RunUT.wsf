@@ -44,6 +44,20 @@
     eq("UT_EscSendKeys reserved", escSendKeys("a+b^c%d~e(f)g{h}i[j]"),
        "a{+}b{^}c{%}d{~}e{(}f{)}g{{}h{}}i{[}j{]}");
 
+    // UT_ResumeText - safe resume prompt vs bare "continue"; the safe prompt must
+    // reconcile state and stay free of SendKeys-reserved chars (escSendKeys no-op).
+    eq("UT_ResumeText plain", resumeText(false), "continue");
+    eq("UT_ResumeText safe reconciles",
+       /git status/.test(resumeText(true)) && /do not repeat/.test(resumeText(true)), true);
+    eq("UT_ResumeText safe no reserved chars", escSendKeys(resumeText(true)), resumeText(true));
+
+    // UT_ParseBool - config boolean; absent/unrecognised -> default
+    eq("UT_ParseBool default", parseBool(null, true), true);
+    eq("UT_ParseBool false", parseBool("false", true), false);
+    eq("UT_ParseBool off", parseBool(" OFF ", true), false);
+    eq("UT_ParseBool on", parseBool("1", false), true);
+    eq("UT_ParseBool junk keeps default", parseBool("maybe", true), true);
+
     // UT_StateParse - reads schema; rejects malformed JSON without throwing
     eq("UT_StateParse good", parseState('{"five_hour":{"pct":99,"resets_at":1000},"ts":1}').five_hour.pct, 99);
     eq("UT_StateParse malformed", parseState("{not json"), null);

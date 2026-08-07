@@ -71,6 +71,29 @@ function escSendKeys(s) {
   return s.replace(/[+^%~(){}\[\]]/g, function (c) { return "{" + c + "}"; });
 }
 
+// The message typed when the limit resets. Default is a "safe resume": instead of a
+// bare "continue" it tells Claude to reconcile its OWN git/file state first, so a
+// change that already landed (fully or partially) right before the pause is not
+// silently re-applied or duplicated. Only Claude can reconcile — this external typer
+// can't read the screen — so the guard lives in the words we inject, not here.
+// AUTO_CONTINUE_SAFE_RESUME=false reverts to plain "continue". Deliberately free of
+// SendKeys-reserved chars (+ ^ % ~ ( ) { } [ ]) so escSendKeys is a no-op on it.
+var SAFE_RESUME_PROMPT =
+  "Before continuing, run git status and re-read the file you were editing. " +
+  "If an edit already applied, do not repeat it, reconcile first. Then continue the task.";
+
+// Pure: pick the resume text. (unit-tested: UT_ResumeText)
+function resumeText(safe) { return safe ? SAFE_RESUME_PROMPT : "continue"; }
+
+// Pure: parse a config boolean; absent/unrecognised -> the given default. (UT_ParseBool)
+function parseBool(v, dflt) {
+  if (v === null || typeof v === "undefined") return dflt;
+  var s = ("" + v).toLowerCase().replace(/^\s+|\s+$/g, "");
+  if (/^(1|true|yes|on)$/.test(s)) return true;
+  if (/^(0|false|no|off)$/.test(s)) return false;
+  return dflt;
+}
+
 // Parse the small state JSON WITHOUT throwing on malformed input (returns null).
 // WSH JScript has no JSON object; the file is written only by our own
 // statusline.mjs into %LOCALAPPDATA%, so an eval of a leading-'{' payload is
@@ -260,6 +283,7 @@ function main() {
 
   // Rev B config: read the picker's config.txt sitting next to this script.
   var cfgMax = DEFAULT_MAX, cfgFallbackMin = DEFAULT_FALLBACK_MIN, cfgQuiet = "";
+  var cfgSafeResume = true;   // safe resume ON unless config explicitly turns it off
   try {
     var cfgPath = fso.GetParentFolderName(WScript.ScriptFullName) + "\\config.txt";
     if (fso.FileExists(cfgPath)) {
@@ -267,9 +291,11 @@ function main() {
       var vMax = readConfigValue(cfgTxt, "AUTO_CONTINUE_MAX");
       var vFb = readConfigValue(cfgTxt, "AUTO_CONTINUE_FALLBACK_MIN");
       var vQ = readConfigValue(cfgTxt, "AUTO_CONTINUE_QUIET");
+      var vSafe = readConfigValue(cfgTxt, "AUTO_CONTINUE_SAFE_RESUME");
       if (vMax !== null && /^[0-9]+$/.test(vMax)) cfgMax = parseInt(vMax, 10);
       if (vFb !== null && /^[0-9]+$/.test(vFb)) cfgFallbackMin = parseInt(vFb, 10);
       if (vQ !== null) cfgQuiet = vQ;
+      cfgSafeResume = parseBool(vSafe, true);
     }
   } catch (e) {}
   if (!(cfgMax > 0)) cfgMax = DEFAULT_MAX;
@@ -303,7 +329,7 @@ function main() {
             consecFail = 0;
             WScript.Sleep(500);
             sh.AppActivate(effTitle);                    // re-focus so keys land in the tab
-            sh.SendKeys(escSendKeys("continue"));
+            sh.SendKeys(escSendKeys(resumeText(cfgSafeResume)));
             WScript.Sleep(100);
             sh.SendKeys("{ENTER}");
             writeDoneMarker(fso, P.doneMarker, decision.resetVal);  // single-shot per reset

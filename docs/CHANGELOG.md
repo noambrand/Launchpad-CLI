@@ -1,5 +1,24 @@
 # Changelog
 
+## [Unreleased]
+
+### Added — auto-continue "safe resume" + an `error` voice alert
+
+Two small quality-of-life changes, both opt-outable:
+
+- **Safe resume for auto-continue.** When the 5-hour limit resets, the watcher used
+  to type a bare `continue`. It now (by default) types a short prompt that asks Claude
+  to **run `git status` and re-read the file it was mid-edit on first**, so a change
+  that already landed before the pause is reconciled instead of silently duplicated.
+  This only guards the clean limit-reset resume — a hard crash mid-edit is still
+  Claude's own checkpointing, not this. Turn it off with `AUTO_CONTINUE_SAFE_RESUME=false`
+  in `config.txt` for the old plain `continue`. Only Claude can reconcile state, so the
+  guard lives in the injected words, not in the (screen-blind) watcher.
+- **`error` voice alert.** A fifth clip that is the failure counterpart of `done`:
+  Claude plays `done` when a run finishes clean and `error` when it ends in a failure,
+  so the sound alone tells you whether you're returning to a green result or a wall of
+  red. Both clips are short; regular and funny versions included.
+
 ## [3.0.2] - 2026-08-06
 
 ### Fixed — a taskbar pin from an old version showed "folder-picker.hta is missing - reinstall"
