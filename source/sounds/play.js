@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// play.js <name> - play a Claude Code alert clip (done | permission | waiting | save).
+// play.js <name> - play a Claude Code alert clip (done | error | permission | waiting | save).
 // Cross-platform, dependency-free, and never-fail: any error just stays silent and
 // exits 0, so a Claude Code hook can never break or slow a session.
 //

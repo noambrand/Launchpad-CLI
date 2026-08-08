@@ -5,19 +5,24 @@ screen. Bundled with the installer and wired up automatically. Pure **Node.js** 
 runtime the installer already sets up) plus the bundled `.wav` clips — no Python, no
 PowerShell, no extra installs.
 
-## The four alerts (and when each fires)
+## The five alerts (and when each fires)
 
 | Alert | Plays when | Hook (event) |
 |-------|-----------|--------------|
-| **done** | Claude has genuinely finished the task — nothing left to do | on-demand (Claude runs it) |
+| **done** | Claude has genuinely finished the task **successfully** — nothing left to do | on-demand (Claude runs it) |
+| **error** | Claude finished but the task ended in an **error** — the failure counterpart of `done` | on-demand (Claude runs it) |
 | **permission** | The numbered **1. Yes / 2. No** confirm appears and you must pick | `PermissionRequest` |
 | **waiting** | Claude has been waiting on you (~60s idle / you stepped away) | `Notification` (idle only) |
 | **save** | You must go do something by hand (manual intervention) | on-demand (Claude runs it) |
 
-`done` and `save` are **on-demand**: Claude plays them itself when it has truly finished
-or needs you to act by hand. They are **not** tied to a hook — in particular not to
-`Stop`, which fires at the end of *every* turn (not at true task completion), so wiring
+`done`, `error` and `save` are **on-demand**: Claude plays them itself when it has truly
+finished or needs you to act by hand. They are **not** tied to a hook — in particular not
+to `Stop`, which fires at the end of *every* turn (not at true task completion), so wiring
 `done` there made it announce on every turn.
+
+**Success vs failure at a glance:** `done` and `error` are a pair — Claude plays `done`
+when a run finished clean and `error` when it ended in a failure, so the sound alone tells
+you whether you're walking back to a green result or a wall of red. Both are short.
 
 `permission` fires **only** on a real interactive confirm — never on an auto-approved
 tool. `waiting` is filtered to the idle notification (`matcher: "idle_prompt"`), so it
@@ -32,6 +37,7 @@ Every alert has two recordings — a plain one and a joke one:
 | Alert | Regular says | Funny says |
 |-------|--------------|------------|
 | done | "Done." | "Done. I'll pretend that took effort." |
+| error | "Error." | "That errored. Not my proudest moment." |
 | permission | "Permission required." | "Permission needed. I'm about to run a command I have feelings about." |
 | waiting | "Attention required." | "Waiting for you. I've been very patient." |
 | save | "Manual intervention." | "About to delete things. Last chance to press escape." |
@@ -104,13 +110,13 @@ install takes effect in the next session.
 
 | File | Role |
 |------|------|
-| `play.js` | Plays one alert: `node play.js done\|permission\|waiting\|save` |
+| `play.js` | Plays one alert: `node play.js done\|error\|permission\|waiting\|save` |
 | `play.vbs` | Windows player used by `play.js` (no PowerShell) |
 | `reminder.js` | The repeat reminder: `arm` / `disarm` / internal `wait` |
 | `voice.js` | All controls (on/off, mode, repeat, status, test) |
 | `configure-sound-hooks.js` | Deploys to `~/.claude/sounds` and merges the hooks (idempotent) |
 | `config.json` | `enabled` + `mode` + `repeat_enabled` + `repeat_minutes` |
-| `regular/`, `funny/` | The two clip sets (`done/permission/waiting/save.wav`) |
+| `regular/`, `funny/` | The two clip sets (`done/error/permission/waiting/save.wav`) |
 | `alerts.log` | Trigger log — auto-created at runtime; when/why each alert fired |
 | `*.cmd` / `*.command` | Double-click launchers |
 

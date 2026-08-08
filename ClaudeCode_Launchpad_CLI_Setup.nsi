@@ -373,6 +373,9 @@ Section "!Core Components (Required)" SecCore
   FileWrite $0 "AUTO_CONTINUE_FALLBACK_MIN=300$\r$\n"
   FileWrite $0 "# Quiet hours 'HH:MM-HH:MM' (local); empty = none. e.g. 09:00-17:00$\r$\n"
   FileWrite $0 "AUTO_CONTINUE_QUIET=$\r$\n"
+  FileWrite $0 "# Safe resume (default true): before resuming, ask Claude to re-check git/file$\r$\n"
+  FileWrite $0 "# state so a half-applied edit is reconciled, not duplicated. false = bare continue.$\r$\n"
+  FileWrite $0 "AUTO_CONTINUE_SAFE_RESUME=true$\r$\n"
 
   FileClose $0
   ${EndIf}
