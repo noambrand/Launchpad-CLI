@@ -27,7 +27,21 @@
 
 </p>
 
-<h3 align="center">Zero-to-Claude in 1 minute. Installer, status bar, and launcher for Claude Code on Windows & macOS.</h3>
+<h3 align="center">Use Claude Code without the terminal.<br>Point it at a folder, describe the job in plain English, and Anthropic's AI agent does the work on your own files.</h3>
+
+<p align="center">
+  <b>Built for people who do not write code.</b> Claude Code is a genuinely capable AI agent, but it lives in a terminal built for programmers, and that is where most people stop. This puts a normal window in front of it: pick your folder, type a sentence, watch it work. Nothing to configure, no commands to memorise, no administrator rights.
+</p>
+
+<table align="center">
+<tr><th align="left">Instead of doing this by hand</th><th align="left">You type this</th></tr>
+<tr><td>Combining 40 monthly spreadsheets into one summary</td><td><em>"Take all the files in this folder and build one summary sheet, one row per month."</em></td></tr>
+<tr><td>Renaming and sorting a folder of hundreds of documents</td><td><em>"Rename these by date and client, and sort them into folders per year."</em></td></tr>
+<tr><td>Hunting for what changed between two versions</td><td><em>"Compare last month's list to this one and show me only what changed."</em></td></tr>
+<tr><td>Reading a file someone else built and left behind</td><td><em>"Explain what this workbook calculates and flag anything broken."</em></td></tr>
+</table>
+
+<p align="center"><sub>It works on the real files on your disk, across as many of them as you like, and saves the results back. There is no uploading and no size limit to work around, which is the part a chat window cannot do.</sub></p>
 
 <p align="center">
   <a href="#-quick-start">Quick Start</a> &bull;
