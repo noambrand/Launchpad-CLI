@@ -74,6 +74,52 @@ if exist "%~1" (
 
 :work_dir_done
 
+REM --- Normalise WORK_DIR: never let it end in a backslash --------------
+REM A trailing backslash inside a quoted argument ESCAPES the closing quote.
+REM `-d "Y:\"` reaches wt.exe as one mangled argument (`Y:" -- <bat> --run`),
+REM everything after it is swallowed, and Windows Terminal reports the path
+REM cannot be found, so Claude never starts. It bites whenever the picked
+REM folder is a drive root (the browse dialog returns `Y:\`) or the user typed
+REM a path ending in `\`. Measured: with the trailing slash a child process
+REM received 1 argument instead of 3; without it, all 3 arrive intact.
+REM A bare drive letter (`Y:`) is not a directory either, so restore it as
+REM `Y:\.` — same folder, and it does not end in a backslash.
+if defined WORK_DIR (
+    if "!WORK_DIR:~-1!"=="\" set "WORK_DIR=!WORK_DIR:~0,-1!"
+    if "!WORK_DIR:~-1!"==":" set "WORK_DIR=!WORK_DIR!\."
+)
+
+REM --- Last line of defence: never hand an unreachable folder to wt.exe --
+REM If the folder cannot be reached for ANY reason we have not thought of,
+REM Windows Terminal answers with a bare "error 0x80070002 ... cannot find the
+REM file specified" and the tab dies before Claude runs - a dead end, because
+REM the user cannot tell WHAT was not found. Say it plainly instead and name
+REM the path.
+REM
+REM NEVER silently continue in a different folder. Opening Claude somewhere the
+REM user did not choose is worse than not opening it: they would start working,
+REM and only later notice their project was never loaded. So this stops, and
+REM the user relaunches once the folder is reachable.
+REM
+REM Phase 1 runs HIDDEN (the picker starts it with windowStyle=0), so an `echo`
+REM here would be invisible. The message is shown in a terminal tab - the same
+REM place the cryptic error appeared - and Claude is never started.
+if defined WORK_DIR (
+    if not exist "!WORK_DIR!" (
+        where wt.exe >nul 2>&1
+        if errorlevel 1 (
+            echo.
+            echo   This folder could not be opened:  !WORK_DIR!
+            echo   If it is on a network drive, connect that drive and try again.
+            echo.
+            pause
+        ) else (
+            start "" wt.exe -w "ClaudeCodeLaunchpad" new-tab --title "Folder not found" -p "ClaudeCode Launchpad CLI" -d "%USERPROFILE%" -- cmd /c "echo. & echo   This folder could not be opened: & echo     !WORK_DIR! & echo. & echo   Claude was NOT started, so nothing opened in the wrong place. & echo   If it is on a network drive, connect that drive and launch again. & echo. & pause"
+        )
+        exit /b 1
+    )
+)
+
 REM --- One-shot resume flag hygiene -------------------------------------
 REM The folder picker writes the conversation choice (--continue / --resume)
 REM to kivun-claude-flags.txt, which :run_claude applies to THIS launch then

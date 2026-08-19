@@ -1,0 +1,42 @@
+Fixing Claude Code on the old server (99.30)
+============================================
+
+Why the normal installer did not work there
+--------------------------------------------
+That server runs Windows Server 2012 R2, a system from 2013. It is missing two
+modern Windows parts the app expects:
+
+  1. "curl" - a small download tool built into Windows 10/11 but NOT in this old
+     Windows. Without it, the installer could not download Claude. That is why
+     typing "claude" said "not recognized".
+  2. "WebView2" - the Microsoft Edge component that draws the folder-picker
+     window. It is not on this old Windows, so the picker cannot open.
+
+Node.js was fine (it was already on the server), so only Claude itself is missing.
+
+What to do
+----------
+1. Copy this whole folder (all four files) onto the server 99.30.
+2. On the server, double-click:  FIX-CLAUDE-ON-THIS-SERVER.cmd
+3. Let it run (it downloads about 50 MB). It will tell you, in plain words,
+   whether it worked.
+
+If it says SUCCESS
+-----------------
+On a server you do not need the picker window. Just:
+  1. Open a Command Prompt.
+  2. Go to your folder, e.g.:  cd C:\CNAAN
+  3. Type:  claude
+(If a brand-new window does not recognise "claude", close and reopen it once.)
+
+If it says Claude did not run
+-----------------------------
+Then the server's Windows is simply too old for Claude Code, and the reliable
+answer is to run Claude on Windows 10, Windows 11, or Windows Server 2019/2022.
+
+Files in this folder
+--------------------
+  FIX-CLAUDE-ON-THIS-SERVER.cmd  - the one you double-click
+  get.js                         - helper that downloads files using Node
+  unzip.vbs                      - helper that unpacks the curl download
+  READ-ME-FIRST.txt              - this file

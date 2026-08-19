@@ -46,29 +46,39 @@ Pin it once so you get a one-click blue Claude icon and never have to look for t
    - On Windows 11 you may need to click **More → Pin to taskbar**, or choose **Open file location** and then drag the icon onto the taskbar.
 3. Click the pinned blue icon any time to launch.
 
-### Method 1: Default Launch
+### Method 1: The icon (desktop or taskbar) - opens the folder picker
 
-Double-click the desktop shortcut "ClaudeCode Launchpad CLI" - opens Claude Code in your home folder.
+Click the **ClaudeCode Launchpad CLI** icon. The folder picker opens:
 
-### Method 2: Choose a Folder
+1. Pick the folder Claude should work in (browse the tree, or type/paste a path)
+2. Optionally open **Advanced options** to choose a model (Opus / Sonnet / Haiku), tap option chips (Respond in Hebrew, High effort, Auto-accept file edits, Read-only, ...), or add startup commands
+3. Click **Launch** - Claude Code opens in that folder with your choices applied
 
-1. Double-click desktop shortcut "ClaudeCode Launchpad CLI (Choose Folder)"
-2. Pick a folder using the folder picker (or type/paste the path)
-3. Claude Code opens in that folder
+Tip: save a folder + options combo as a **named profile** using the chip row at the top of the picker, then switch between projects in one click.
 
-### Method 3: Right-Click Send To
-
-1. Right-click any file or folder in Windows Explorer
-2. Send To - ClaudeCode Launchpad CLI
-3. Claude Code opens in that folder
-
-### Method 4: Right-Click Context Menu
+### Method 2: Right-click a folder - "Open with" (skips the picker)
 
 1. Right-click any folder in Windows Explorer
-2. Select "Open with ClaudeCode Launchpad CLI"
+2. Select **Open with ClaudeCode Launchpad CLI**
+3. Claude Code opens straight into that folder
+
+### Method 3: Right-click - Send To
+
+1. Right-click any file or folder in Windows Explorer
+2. **Send To - ClaudeCode Launchpad CLI**
 3. Claude Code opens in that folder
 
 ## Configuration
+
+All settings live in one plain-text file: `%LOCALAPPDATA%\Kivun\config.txt`. Open it in Notepad and change anything - nothing is permanent. Common keys:
+
+- `RESPONSE_LANGUAGE` - the language Claude replies in (e.g. `english`, `hebrew`)
+- `TERMINAL_COLOR` - `kivun` (light blue), `dark`, `black`, `white`, `default`, or a custom `#RRGGBB`
+- `CLAUDE_FLAGS` - default flags added to every launch (e.g. `--model opus`)
+- `STARTUP_CMD` - a slash command typed in automatically after Claude opens
+- `AUTO_CONTINUE` - `true` to resume automatically after the 5-hour limit resets (off by default)
+
+Most of these can also be set per-launch in the folder picker's **Advanced options**.
 
 ## Status Bar
 
@@ -97,8 +107,8 @@ The status bar is installed automatically - no configuration needed.
 Everything is installed in: `%LOCALAPPDATA%\Kivun`
 
 Key files:
-- `claudecode-launchpad.bat` - Main launcher
-- `claudecode-launchpad-choose-folder.bat` - Folder picker launcher
+- `LaunchpadPicker.exe` - The signed folder picker (this is what the desktop / Start-menu / taskbar shortcut opens)
+- `claudecode-launchpad.bat` - Main launcher (opens Claude Code in a folder)
 - `config.txt` - Your configuration
 - `post-install.bat` - Re-runs Claude Code installation if needed
 

@@ -1,6 +1,66 @@
 # Changelog
 
-## [Unreleased]
+## [3.0.3] - 2026-08-19
+
+### Fixed — "the path was not found", so Claude never started
+
+Reported from the field: picking a project folder ended with a path error in the terminal
+and no Claude. Cause: a trailing backslash on the picked folder. Inside a quoted argument
+a trailing backslash **escapes the closing quote**, so
+
+```
+wt.exe ... -d "Y:\" -- "<launcher>.bat" --run
+```
+
+reaches Windows Terminal as ONE mangled argument (`Y:" -- <launcher>.bat --run`) instead of
+three — Windows Terminal reports the starting directory cannot be found and the tab dies
+before Claude runs. Measured on a real path: with the trailing slash a child process
+received 1 argument instead of 3; without it, all 3 arrive intact. It bites whenever the
+picked folder is a drive root (the browse dialog returns `Y:\`) or the path was typed with
+a trailing slash — a Hebrew folder name is NOT required, though that is where it surfaced.
+
+The launcher now normalises the work directory before using it: strip a trailing backslash,
+and restore a bare drive letter as `Y:\.` so it remains a real directory. The tab title
+already did this; the directory itself did not. Same fix applied to Kivun Terminal.
+
+### Changed — an unreachable folder now says so, and never opens a different one
+
+If the chosen folder cannot be reached for any other reason (the classic one: a mapped
+network drive that is not connected yet), Windows Terminal used to answer with a bare
+`error 0x80070002 ... cannot find the file specified` and the tab died — the user could not
+tell what was not found. The launcher now checks first and shows a plain message naming the
+path, in a terminal tab, since phase 1 runs hidden and an `echo` there would be invisible.
+
+**It stops rather than substituting another folder.** Opening Claude somewhere the user did
+not choose is worse than not opening it at all: they would start working and only later
+notice the project was never loaded. Same rule applied to Kivun Terminal, whose silent
+fall-back to the home directory was exactly that failure.
+
+### Added — `tools/DIAGNOSE-HEBREW-PATH.cmd`
+
+A double-click diagnostic for a machine where a non-English project path fails. It reports
+the console codepage before/after `chcp 65001`, dumps the raw bytes of the last picked path,
+checks whether that folder resolves, and runs a live Windows Terminal round-trip into a
+Hebrew-named folder — then writes it all to the Desktop. It changes nothing on the machine
+it runs on. Built because this class of bug differs per PC and guessing across machines
+wasted releases before.
+
+### Added — a clear warning on old Windows (Server 2012 R2 / 8.1)
+
+On Windows versions older than Windows 10 / Server 2016, the install would appear to
+run but two steps silently failed: Claude never downloaded (that old Windows has no
+built-in `curl`, which the installer uses to fetch Claude) and the folder picker never
+opened (no Edge **WebView2** runtime to draw its window). The result looked like a
+broken product with two confusing error popups.
+
+- The installer now **detects old Windows up front** and shows one plain message
+  explaining exactly what is missing and recommending Windows 10/11 or Server 2019/2022,
+  with a choice to stop (default) or continue at your own risk.
+- A standalone **`server-recovery/` kit** (double-click `FIX-CLAUDE-ON-THIS-SERVER.cmd`)
+  is included for anyone who must use such a server: it fetches a real `curl` via Node,
+  installs Claude Code with Anthropic's official installer, and reports plainly whether
+  Claude actually runs on that OS. On a server you use `claude` in a terminal; the
+  picker window still needs WebView2, which that old OS cannot provide.
 
 ### Added — auto-continue "safe resume" + an `error` voice alert
 

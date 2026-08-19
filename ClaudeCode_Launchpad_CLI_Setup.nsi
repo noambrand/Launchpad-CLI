@@ -5,7 +5,7 @@
 Unicode True
 
 !define PRODUCT_NAME "ClaudeCode Launchpad CLI"
-!define PRODUCT_VERSION "3.0.2"
+!define PRODUCT_VERSION "3.0.3"
 !define PRODUCT_PUBLISHER "Noam Brand"
 !define PRODUCT_WEB_SITE "https://github.com"
 !define PRODUCT_DESCRIPTION "Claude Code installer for Windows"
@@ -17,6 +17,9 @@ Unicode True
 !include "LogicLib.nsh"
 !include "FileFunc.nsh"
 !include "WinMessages.nsh"
+; WinVer.nsh gives ${AtLeastWin10}, used in .onInit to warn on old Windows
+; (Server 2012 R2 / 8.1 and older) that lack the modern pieces this app needs.
+!include "WinVer.nsh"
 
 
 ; Per-user install — no admin needed. Everything lands under
@@ -33,7 +36,7 @@ InstallDir "${INSTALL_DIR}"
 ShowInstDetails show
 
 ; Version info
-VIProductVersion "2.9.3.0"
+VIProductVersion "3.0.3.0"
 VIAddVersionKey "ProductName" "${PRODUCT_NAME}"
 VIAddVersionKey "ProductVersion" "${PRODUCT_VERSION}"
 VIAddVersionKey "CompanyName" "${PRODUCT_PUBLISHER}"
@@ -104,6 +107,22 @@ Var NodeExe
 
 ; Pre-install warning: remind users to finish active CLI sessions
 Function .onInit
+  ; Old-Windows gate (v3.0.3). This app relies on two pieces that ship with
+  ; Windows 10/11 and Server 2016+ but are MISSING on Windows 8.1 / Server 2012 R2
+  ; and older: the built-in `curl` download tool (used to fetch Claude) and the
+  ; Edge WebView2 runtime (used to draw the folder picker). On those old systems
+  ; the install "succeeds" but Claude never downloads and the picker won't open,
+  ; which reads as a broken product. ${AtLeastWin10} is TRUE for Win10/11 and for
+  ; Server 2016/2019/2022 (all report NT 10.0); it is FALSE for 8.1 / 2012 R2.
+  ; Warn plainly and let the user abort, or continue at their own risk.
+  ${IfNot} ${AtLeastWin10}
+    MessageBox MB_YESNO|MB_ICONEXCLAMATION \
+      "This computer is running an older version of Windows (Windows 8.1 / Server 2012 R2 or earlier).$\r$\n$\r$\n${PRODUCT_NAME} is built for Windows 10, Windows 11, and Windows Server 2016 or newer. Two things this older Windows is missing will stop it working:$\r$\n$\r$\n  - The built-in download tool 'curl', which is used to install Claude. Without it, Claude will NOT download.$\r$\n  - The Microsoft Edge WebView2 component, which draws the folder picker window. Without it, the picker will NOT open.$\r$\n$\r$\nStrongly recommended: install and run this on Windows 10, Windows 11, or Windows Server 2019/2022 instead.$\r$\n$\r$\n  - Click No to stop now (recommended).$\r$\n  - Click Yes to continue anyway (the steps above will likely fail)." \
+      /SD IDNO IDYES continueOldWindows
+    Abort
+    continueOldWindows:
+  ${EndIf}
+
   MessageBox MB_OKCANCEL|MB_ICONINFORMATION \
     "Before installing ${PRODUCT_NAME}:$\r$\n$\r$\nIf you have any active Claude Code or terminal (CLI) sessions running, it is strongly advised to finish your work and close them now.$\r$\n$\r$\nThe installer may update Claude Code, Node.js, or Windows Terminal, which can interrupt running sessions and close terminal windows.$\r$\n$\r$\n  - Click OK to continue the installation.$\r$\n  - Click Cancel to abort so you can save your work first." \
     /SD IDOK IDOK continueInstall

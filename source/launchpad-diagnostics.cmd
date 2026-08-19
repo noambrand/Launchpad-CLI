@@ -1,4 +1,7 @@
 @echo off
+REM UTF-8, matching claudecode-launchpad.bat: the report reads UTF-8 sidecar
+REM files, so without this a Hebrew project path is reported as mojibake.
+chcp 65001 >nul 2>&1
 REM ============================================================
 REM  ClaudeCode Launchpad CLI - Diagnostics & Problem Report
 REM  Run it from the Start Menu ("Diagnostics & Problem Report")
