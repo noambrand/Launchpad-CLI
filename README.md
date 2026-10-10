@@ -22,7 +22,7 @@
 
 </p>
 
-<h3 align="center">Use Claude Code without the terminal.<br>Point it at a folder, describe the job in plain English, and Anthropic's AI agent does the work on your own files.</h3>
+<h3 align="center">Point it at a folder, describe the job in your own language, and Anthropic's AI agent does the work on your own files.</h3>
 
 <p align="center">
   <b>Built for people who do not write code.</b> Claude Code is a genuinely capable AI agent, but it lives in a terminal built for programmers, and that is where most people stop. This puts a normal window in front of it: pick your folder, type a sentence, watch it work. Nothing to configure, no commands to memorise, no administrator rights.
