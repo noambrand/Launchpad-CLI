@@ -46,6 +46,17 @@ gh release create v2.X.Y \
   --generate-notes --latest
 ```
 
+## Updating the bundled rtl-terminal plugin
+
+`source/plugins/rtl-terminal/` is an unmodified copy of an upstream release, pinned in
+`source/plugins/rtl-terminal.upstream` and checked byte for byte by `validate-rtl-plugin.yml`.
+
+1. Clone the new tag with `git -c core.autocrlf=false clone --depth 1 --branch rtl-terminal--vX.Y.Z https://github.com/MohammedSaud404/rtl-terminal.git` into a temp folder.
+2. `git diff --no-index source/plugins/rtl-terminal <clone>` and read every changed line in `hooks/`. Reject new network, file, command or `eval` use. New environment reads must be terminal flags only, never secrets.
+3. Copy the same file set over (`.claude-plugin/plugin.json`, `.claude-plugin/icon.png`, `LICENSE`, `hooks/`, `tests/`), then rewrite `rtl-terminal.sha256` as `<hash>  <path>` with two spaces. Git Bash's `sha256sum` writes `<hash> *<path>`, which fails the CI file-list check. Update `rtl-terminal.upstream` with the new tag and commit.
+4. Run the CI steps locally, then check cases 02, 03, 05, 05b and 06 in Windows Terminal and in the old console window (conhost).
+5. Bump the patch version and add a CHANGELOG entry.
+
 ## Verification
 
 After any release, verify all assets are present:
