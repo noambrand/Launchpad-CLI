@@ -93,7 +93,7 @@ There are **two** projects in this family. Pick whichever fits how you work:
 | **Startup time** | ~2 s | ~6 s |
 | **Install size on Windows** | ~150 MB | ~2 GB *(includes Ubuntu + Konsole via WSL2)* |
 | **Windows support** | Native (Windows Terminal) | WSL2 + Ubuntu + Konsole |
-| **macOS support** | ✅ | ❌ Deprecated as of v1.2.4 *(no Mac terminal handles mixed Hebrew + English)* |
+| **macOS support** | ✅ | ❌ Deprecated as of v1.2.4 *(no native Mac terminal handles mixed Hebrew + English)* |
 | **Linux support** | ❌ | ✅ apt / dnf / pacman / zypper |
 
 > **Pick Launchpad CLI** if you want the lightest, fastest install. On Windows it now right-aligns Hebrew, Arabic and other RTL replies too.
