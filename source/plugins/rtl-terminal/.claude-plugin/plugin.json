@@ -1,0 +1,27 @@
+{
+  "name": "rtl-terminal",
+  "displayName": "RTL Terminal",
+  "version": "1.0.4",
+  "description": "Right-to-left layout for Arabic, Hebrew, Persian, Urdu and every RTL language in the Claude Code terminal",
+  "author": {
+    "name": "MohammedSaud404",
+    "url": "https://github.com/MohammedSaud404"
+  },
+  "homepage": "https://github.com/MohammedSaud404/rtl-terminal",
+  "repository": "https://github.com/MohammedSaud404/rtl-terminal",
+  "documentationUrl": "https://github.com/MohammedSaud404/rtl-terminal#usage",
+  "supportUrl": "https://github.com/MohammedSaud404/rtl-terminal/issues",
+  "privacyPolicyUrl": "https://github.com/MohammedSaud404/rtl-terminal#privacy-and-security",
+  "termsOfServiceUrl": "https://github.com/MohammedSaud404/rtl-terminal/blob/main/LICENSE",
+  "license": "MIT",
+  "keywords": [
+    "rtl",
+    "bidi",
+    "arabic",
+    "hebrew",
+    "persian",
+    "urdu",
+    "terminal",
+    "unicode"
+  ]
+}

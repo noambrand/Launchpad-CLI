@@ -6,3 +6,6 @@
 *.bat text eol=crlf
 
 mac/scripts/postinstall eol=lf
+
+# Vendored third-party plugin: keep bytes identical to upstream (checked by validate-rtl-plugin.yml)
+source/plugins/** -text

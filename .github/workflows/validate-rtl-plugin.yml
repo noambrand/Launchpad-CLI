@@ -1,0 +1,89 @@
+name: Validate bundled rtl-terminal plugin
+
+# The rtl-terminal plugin (MohammedSaud404/rtl-terminal, MIT) ships unmodified
+# inside the Windows installer, from source/plugins/. These checks keep it
+# byte-identical to the pinned upstream release, prove it still loads on the
+# Claude Code Launchpad users get (the `latest` channel), and keep the
+# installer's register / unregister steps from being dropped. The weekly run
+# catches a Claude Code release that breaks the plugin before a user does.
+
+on:
+  push:
+    paths:
+      - 'source/plugins/**'
+      - 'ClaudeCode_Launchpad_CLI_Setup.nsi'
+      - '.github/workflows/validate-rtl-plugin.yml'
+  pull_request:
+  schedule:
+    - cron: '17 5 * * 1'
+  workflow_dispatch:
+
+jobs:
+  rtl-plugin:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install Claude Code from the latest channel, as Launchpad users get it
+        run: |
+          npm install -g @anthropic-ai/claude-code@latest
+          claude --version
+
+      - name: UT_RTL_CI_01 vendored files match the pinned upstream release byte for byte
+        run: |
+          set -eu
+          cd source/plugins/rtl-terminal
+          sha256sum -c --strict --quiet ../rtl-terminal.sha256
+          diff <(find . -type f | sed 's#^\./##' | LC_ALL=C sort) \
+               <(awk '{print $2}' ../rtl-terminal.sha256 | LC_ALL=C sort) \
+            || (echo "FAIL: files on disk differ from the checksum list"; exit 1)
+          echo "PASS: identical to $(cat ../rtl-terminal.upstream)"
+
+      - name: UT_RTL_CI_02 marketplace and plugin pass strict validation
+        run: |
+          set -eu
+          claude plugin validate --strict source/plugins
+          claude plugin validate --strict source/plugins/rtl-terminal
+
+      - name: UT_RTL_CI_03 the plugin's own tests pass on this Claude Code
+        run: claude plugin test source/plugins/rtl-terminal
+
+      - name: UT_RTL_CI_04 installs from the folder, lays out on Windows only, removes cleanly
+        run: |
+          set -eu
+          export CLAUDE_CONFIG_DIR="$(mktemp -d)"
+          claude plugin marketplace add "$PWD/source/plugins"
+          claude plugin install rtl-terminal@launchpad-plugins --scope user
+          claude plugin list | grep -q 'rtl-terminal@launchpad-plugins' \
+            || (echo "FAIL: plugin not installed"; exit 1)
+          OS=Windows_NT claude -p "/rtl mode" | tee "$RUNNER_TEMP/win.txt"
+          grep -q 'Claude Code reorders RTL rows here, and the plugin lays them out' "$RUNNER_TEMP/win.txt" \
+            || (echo "FAIL: plugin is not active on Windows"; exit 1)
+          env -u OS claude -p "/rtl mode" | tee "$RUNNER_TEMP/other.txt"
+          grep -q 'the plugin leaves them to it' "$RUNNER_TEMP/other.txt" \
+            || (echo "FAIL: plugin should stand aside outside Windows"; exit 1)
+          claude plugin marketplace remove launchpad-plugins
+          if claude plugin list | grep -q 'rtl-terminal'; then echo "FAIL: removal left the plugin installed"; exit 1; fi
+          echo "PASS: install, Windows detection and removal"
+
+      - name: UT_RTL_CI_05 installer packages, registers and unregisters the plugin
+        run: |
+          set -eu
+          NSI=ClaudeCode_Launchpad_CLI_Setup.nsi
+          grep -qF 'File /r /x tests /x *.sha256 /x *.upstream "source\plugins\*.*"' "$NSI" \
+            || (echo "FAIL: NSI does not package source/plugins"; exit 1)
+          grep -qF 'plugin marketplace add "$INSTDIR\plugins"' "$NSI" \
+            || (echo "FAIL: NSI never registers the plugins folder"; exit 1)
+          grep -qF 'plugin install rtl-terminal@launchpad-plugins --scope user' "$NSI" \
+            || (echo "FAIL: NSI never installs rtl-terminal"; exit 1)
+          awk '/^Section "Uninstall"/{u=1}
+               u && /plugin marketplace remove launchpad-plugins/{r=NR}
+               u && /RMDir \/r "\$INSTDIR"$/{d=NR}
+               END{exit !(r && d && r < d)}' "$NSI" \
+            || (echo "FAIL: uninstaller must remove the marketplace before deleting INSTDIR"; exit 1)
+          echo "PASS: packaged, registered on install, unregistered before files are deleted"

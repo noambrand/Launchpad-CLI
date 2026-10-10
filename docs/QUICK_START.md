@@ -73,6 +73,7 @@ Tip: save a folder + options combo as a **named profile** using the chip row at 
 All settings live in one plain-text file: `%LOCALAPPDATA%\Kivun\config.txt`. Open it in Notepad and change anything - nothing is permanent. Common keys:
 
 - `RESPONSE_LANGUAGE` - the language Claude replies in (e.g. `english`, `hebrew`)
+- On Windows, Hebrew, Arabic and other right-to-left replies are right-aligned automatically. Type `/rtl off` inside Claude to turn it off, `/rtl on` to turn it back on.
 - `TERMINAL_COLOR` - `kivun` (light blue), `dark`, `black`, `white`, `default`, or a custom `#RRGGBB`
 - `CLAUDE_FLAGS` - default flags added to every launch (e.g. `--model opus`)
 - `STARTUP_CMD` - a slash command typed in automatically after Claude opens

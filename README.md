@@ -92,17 +92,47 @@ There are **two** projects in this family. Pick whichever fits how you work:
 | **Right-click "Open with..." on a folder** | ✅ Windows Explorer | ✅ Windows Explorer + Linux file managers |
 | **Folder picker dialog with model + flag chips** | ✅ | ✅ |
 | **Named profiles per project** (folder + model + flags + env vars + startup slash-commands) | ✅ v2.6.0 | ✅ v1.4.0 |
-| **Hebrew / Arabic / Persian text right-aligned** | ❌ shows left-aligned | ✅ aligns to the right where it belongs |
-| **English/code mixed inside a Hebrew sentence** | ❌ words pushed to the wrong edge | ✅ words land at the correct position in the sentence |
-| **Supported RTL languages** | 0 (LTR only) | 11 (Hebrew, Arabic, Persian, Urdu, Pashto, Kurdish, Dari, Uyghur, Sindhi, Yiddish, Syriac) |
+| **Hebrew / Arabic / Persian text right-aligned** | ✅ in Claude's replies, via the bundled [rtl-terminal](https://github.com/MohammedSaud404/rtl-terminal) plugin (Windows) | ✅ whole screen |
+| **English/code mixed inside a Hebrew sentence** | ✅ in Claude's replies (Windows) | ✅ |
+| **Supported RTL languages** | All RTL scripts in replies (Windows); macOS: LTR only | 11 (Hebrew, Arabic, Persian, Urdu, Pashto, Kurdish, Dari, Uyghur, Sindhi, Yiddish, Syriac) |
 | **Startup time** | ~2 s | ~6 s |
 | **Install size on Windows** | ~150 MB | ~2 GB *(includes Ubuntu + Konsole via WSL2)* |
 | **Windows support** | Native (Windows Terminal) | WSL2 + Ubuntu + Konsole |
 | **macOS support** | ✅ | ❌ Deprecated as of v1.2.4 *(no Mac terminal handles mixed Hebrew + English)* |
 | **Linux support** | ❌ | ✅ apt / dnf / pacman / zypper |
 
-> **Pick Launchpad CLI** if you work in English (or any LTR language), use macOS, or want the lightest fastest install.
-> **Pick [Kivun Terminal](https://github.com/noambrand/kivun-terminal-wsl)** if you work in Hebrew, Arabic, Persian, Urdu, or another RTL language — or you're on Linux.
+> **Pick Launchpad CLI** if you want the lightest, fastest install. On Windows it now right-aligns Hebrew, Arabic and other RTL replies too.
+> **Pick [Kivun Terminal](https://github.com/noambrand/kivun-terminal-wsl)** if you're on Linux, or you need RTL across the whole screen (tool output, dialogs, the input box) and clean mouse copy of Hebrew text.
+
+## Hebrew and Arabic replies on Windows
+
+New in 3.2.0: Claude's replies in Hebrew, Arabic, Persian, Urdu and the other right-to-left languages now read right to left in Windows Terminal. They sit against the right edge, bullets and numbers move to the right, and brackets face the right way. This comes from the bundled [rtl-terminal](https://github.com/MohammedSaud404/rtl-terminal) plugin and is on after you install or upgrade. Type `/rtl off` inside Claude to turn it off.
+
+Real screenshots from two Windows Terminal windows of the same size, Launchpad 3.1.0 above and 3.2.0 below.
+
+**A real answer in Hebrew.** Before, lines that start with an English word came out scrambled and the list numbers sat at the wrong end.
+
+<p align="center">
+  <img src="assets/rtl/rtl-conversation.png" width="760" alt="A Hebrew answer about Git and GitHub: left-aligned and partly scrambled in Launchpad 3.1.0, right-aligned with numbers on the right in 3.2.0">
+</p>
+
+**Bullets and nested bullets.**
+
+<p align="center">
+  <img src="assets/rtl/rtl-bullets.png" width="760" alt="A Hebrew bullet list: bullets on the left and English-first lines scrambled in 3.1.0, bullets on the right and every line in order in 3.2.0">
+</p>
+
+**Brackets, dates and prices.**
+
+<p align="center">
+  <img src="assets/rtl/rtl-brackets.png" width="760" alt="Hebrew text with a version number, a date, a percentage and a price: brackets face backwards in 3.1.0 and the right way in 3.2.0">
+</p>
+
+**A preview while you type.** The input box itself stays as Claude Code draws it, so the plugin shows above it how your message will read.
+
+<p align="center">
+  <img src="assets/rtl/rtl-preview.png" width="760" alt="A Hebrew draft in the input box: no preview in 3.1.0, a right-aligned preview line above the input box in 3.2.0">
+</p>
 
 ## Quick Start
 
@@ -259,7 +289,7 @@ Contributions are welcome! Areas where help is especially useful:
 - **Windows on ARM** -- the NSIS installer is x64-only today
 - **macOS notarization** -- the .pkg is currently unsigned; users on stricter Gatekeeper settings have to right-click → Open
 
-> **Looking for Linux + RTL (Hebrew/Arabic/Persian)?** Use the sister project [kivun-terminal-wsl](https://github.com/noambrand/kivun-terminal-wsl) — Windows-via-WSL + Linux installers with full BiDi rendering.
+> **Looking for Linux, or RTL across the whole screen?** Use the sister project [kivun-terminal-wsl](https://github.com/noambrand/kivun-terminal-wsl) — Windows-via-WSL + Linux installers with full BiDi rendering.
 
 Fork the repo, make your changes, and open a PR.
 
@@ -270,6 +300,10 @@ Submitted to awesome lists (pending review):
 - [awesome-claude-code](https://github.com/jqueryscript/awesome-claude-code/pull/166)
 - [awesome-claude](https://github.com/webfuse-com/awesome-claude/pull/159)
 - [awesome-claude-plugins](https://github.com/quemsah/awesome-claude-plugins/pull/85)
+
+## Credits
+
+Right-to-left layout in Claude's replies comes from [rtl-terminal](https://github.com/MohammedSaud404/rtl-terminal) by MohammedSaud404 (MIT), bundled unmodified in `source/plugins/rtl-terminal/` with its license. Turn it off any time with `/rtl off` inside Claude.
 
 ## License
 

@@ -5,7 +5,7 @@
 Unicode True
 
 !define PRODUCT_NAME "ClaudeCode Launchpad CLI"
-!define PRODUCT_VERSION "3.1.0"
+!define PRODUCT_VERSION "3.2.0"
 !define PRODUCT_PUBLISHER "Noam Brand"
 !define PRODUCT_WEB_SITE "https://github.com"
 !define PRODUCT_DESCRIPTION "Claude Code installer for Windows"
@@ -36,7 +36,7 @@ InstallDir "${INSTALL_DIR}"
 ShowInstDetails show
 
 ; Version info
-VIProductVersion "3.1.0.0"
+VIProductVersion "3.2.0.0"
 VIAddVersionKey "ProductName" "${PRODUCT_NAME}"
 VIAddVersionKey "ProductVersion" "${PRODUCT_VERSION}"
 VIAddVersionKey "CompanyName" "${PRODUCT_PUBLISHER}"
@@ -53,7 +53,7 @@ VIAddVersionKey "LegalCopyright" "(C) 2026 ${PRODUCT_PUBLISHER}"
 
 ; Welcome page
 !define MUI_WELCOMEPAGE_TITLE "Welcome to ${PRODUCT_NAME}"
-!define MUI_WELCOMEPAGE_TEXT "This installer will set up ${PRODUCT_NAME} on your computer.$\r$\n$\r$\n${PRODUCT_DESCRIPTION}$\r$\n$\r$\nWhat will be installed:$\r$\n  - Claude Code (via Anthropic native installer)$\r$\n  - Node.js (for statusline display)$\r$\n  - Windows Terminal (recommended)$\r$\n  - Git (optional)$\r$\n$\r$\nFeatures:$\r$\n  - Light blue terminal color scheme$\r$\n  - Folder shortcuts and right-click integration$\r$\n  - One-click launch from desktop$\r$\n$\r$\nClick Next to continue."
+!define MUI_WELCOMEPAGE_TEXT "This installer will set up ${PRODUCT_NAME} on your computer.$\r$\n$\r$\n${PRODUCT_DESCRIPTION}$\r$\n$\r$\nWhat will be installed:$\r$\n  - Claude Code (via Anthropic native installer)$\r$\n  - Node.js (for statusline display)$\r$\n  - Windows Terminal (recommended)$\r$\n  - Git (optional)$\r$\n$\r$\nFeatures:$\r$\n  - Light blue terminal color scheme$\r$\n  - Right-to-left layout for Hebrew/Arabic replies$\r$\n  - Folder shortcuts and right-click integration$\r$\n  - One-click launch from desktop$\r$\n$\r$\nClick Next to continue."
 !insertmacro MUI_PAGE_WELCOME
 
 ; Configuration page
@@ -104,6 +104,10 @@ Var ConfigExisted
 ; That was the "statusline only shows after I hand-edit settings.json on a new PC"
 ; bug. We call Node by full path instead. (v2.9.3)
 Var NodeExe
+; Command that runs Claude Code: the native claude.exe by full path when it is
+; there (this process's PATH is stale right after install, same as NodeExe),
+; else `cmd /c claude` so an npm-installed claude.cmd on PATH still works.
+Var ClaudeCmd
 
 ; Pre-install warning: remind users to finish active CLI sessions
 Function .onInit
@@ -285,6 +289,14 @@ Section "!Core Components (Required)" SecCore
   ; Copy the voice-alert sounds toolkit (bundled under $INSTDIR\sounds)
   SetOutPath "$INSTDIR\sounds"
   File /r "source\sounds\*.*"
+  SetOutPath "$INSTDIR"
+
+  ; Bundled Claude Code plugins (rtl-terminal: right-to-left layout for Hebrew,
+  ; Arabic, Persian and Urdu replies). Cleared first so files a newer upstream
+  ; release drops don't linger. Registered with Claude in SecClaudeCode.
+  RMDir /r "$INSTDIR\plugins"
+  SetOutPath "$INSTDIR\plugins"
+  File /r /x tests /x *.sha256 /x *.upstream "source\plugins\*.*"
   SetOutPath "$INSTDIR"
 
   ; Copy documentation
@@ -617,6 +629,27 @@ Section "!Install Claude Code (Required)" SecClaudeCode
     DetailPrint "WARNING: Could not configure voice alerts (exit code: $0)"
   ${EndIf}
 
+  ; Register the bundled plugins folder with Claude Code and turn on rtl-terminal.
+  ; Both commands are idempotent (an upgrade re-runs them harmlessly) and need no
+  ; login or network. Claude reads the plugin in place from $INSTDIR\plugins, so
+  ; an upgrade that replaces those files takes effect at the next session.
+  StrCpy $ClaudeCmd 'cmd /c claude'
+  ${If} ${FileExists} "$PROFILE\.local\bin\claude.exe"
+    StrCpy $ClaudeCmd '"$PROFILE\.local\bin\claude.exe"'
+  ${EndIf}
+  DetailPrint "Turning on right-to-left layout (rtl-terminal plugin)..."
+  nsExec::ExecToLog /TIMEOUT=120000 '$ClaudeCmd plugin marketplace add "$INSTDIR\plugins"'
+  Pop $0
+  ${If} $0 S== "0"
+    nsExec::ExecToLog /TIMEOUT=120000 '$ClaudeCmd plugin install rtl-terminal@launchpad-plugins --scope user'
+    Pop $0
+  ${EndIf}
+  ${If} $0 S== "0"
+    DetailPrint "Right-to-left layout is on"
+  ${Else}
+    DetailPrint "WARNING: Could not turn on right-to-left layout (result: $0)"
+  ${EndIf}
+
   ; Apply the Windows Terminal profile plumbing (commandline, cursor, font) —
   ; always, so a materialized profile keeps launching via our launcher no matter
   ; the theme choice.
@@ -676,6 +709,16 @@ Section "Uninstall"
   ; while we delete $INSTDIR (best-effort; the closer is still present here,
   ; it is removed by the RMDir below). See CHANGELOG v2.6.8.
   nsExec::Exec 'cscript.exe //B //Nologo "$INSTDIR\close-launchers.js"'
+  Pop $0
+
+  ; Unregister the bundled plugins BEFORE their folder is deleted, so Claude
+  ; doesn't report a missing marketplace at every start. Removing the
+  ; marketplace also uninstalls rtl-terminal and clears both settings keys.
+  StrCpy $ClaudeCmd 'cmd /c claude'
+  ${If} ${FileExists} "$PROFILE\.local\bin\claude.exe"
+    StrCpy $ClaudeCmd '"$PROFILE\.local\bin\claude.exe"'
+  ${EndIf}
+  nsExec::ExecToLog /TIMEOUT=60000 '$ClaudeCmd plugin marketplace remove launchpad-plugins'
   Pop $0
 
   ; Remove install directory

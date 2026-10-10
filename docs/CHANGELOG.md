@@ -1,5 +1,51 @@
 # Changelog
 
+## [3.2.0] - 2026-10-10
+
+### Added: right-to-left replies read right to left on Windows
+
+Claude's replies in Hebrew, Arabic, Persian, Urdu and the other right-to-left languages now
+read the way they are written. Each right-to-left paragraph sits against the right edge,
+bullets, numbers and quote bars move to the right, brackets face the right way, and a line
+that starts with an English word no longer comes out scrambled. While you type a
+right-to-left message, a preview above the input box shows how it will read.
+
+This comes from [rtl-terminal](https://github.com/MohammedSaud404/rtl-terminal) v1.0.4 by
+MohammedSaud404 (MIT), bundled unmodified with its license in `plugins\rtl-terminal`. Type
+`/rtl off` inside Claude to turn it off and `/rtl on` to bring it back. The choice is
+remembered.
+
+What it does not change:
+
+- Tool output, question dialogs, permission prompts, tables, code blocks and the input box
+  itself stay exactly as Claude Code draws them.
+- Copying right-to-left text with the mouse still pastes it scrambled, as it did before.
+  `/copy` copies Claude's last reply as clean text.
+
+Install, upgrade and uninstall:
+
+- The installer registers the bundled plugin folder with Claude Code and turns rtl-terminal
+  on. Neither step needs a login or the network, and running the installer again changes
+  nothing.
+- An upgrade that ships a newer copy of the plugin takes effect at the next Claude session.
+- Uninstalling Launchpad removes the plugin and its two settings entries before it deletes
+  the files, so Claude does not report a missing plugin afterwards.
+- The macOS package is unchanged.
+
+When Windows Terminal is missing, Launchpad runs Claude in the old console window
+(conhost), which cannot show clickable links. There the plugin printed a web link in a
+right-to-left reply twice and pushed the next line into the middle of the screen. The
+launcher now sets `FORCE_HYPERLINK=1` in that window only, so the link appears once.
+Starting `claude` yourself in the old console window skips the launcher, and such a link can
+still appear twice there. Windows Terminal is not affected.
+
+### Changed
+
+- A new weekly GitHub check confirms the bundled plugin is still byte for byte the pinned
+  upstream release, still passes its own tests on the newest Claude Code, and is still
+  registered by the installer and removed by the uninstaller.
+- The README shows before and after screenshots of right-to-left replies.
+
 ## [3.1.0] - 2026-09-03
 
 ### Added: Claude Code now stays on Anthropic's current release channel
