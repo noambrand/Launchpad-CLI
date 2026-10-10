@@ -69,3 +69,4 @@ assets/kivun_terminal_Hebrew_2_0_2.mp4
 | `build-mac.yml` | Manual only | Test macOS build without releasing |
 | `build-and-test-mac.yml` | Push to `mac/**` | CI test for macOS installer changes |
 | `test-mac.yml` | Push to `mac/**` | Dry-run macOS postinstall script |
+| `validate-rtl-plugin.yml` | Push to plugin/NSI paths, PRs, weekly | Bundled rtl-terminal unchanged, loads on latest Claude Code, installer registers/unregisters it |

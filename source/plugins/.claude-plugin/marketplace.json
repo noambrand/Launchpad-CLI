@@ -1,0 +1,8 @@
+{
+  "name": "launchpad-plugins",
+  "description": "Plugins bundled with ClaudeCode Launchpad CLI",
+  "owner": { "name": "Noam Brand" },
+  "plugins": [
+    { "name": "rtl-terminal", "source": "./rtl-terminal", "description": "Right-to-left layout for Hebrew, Arabic, Persian and Urdu replies (by MohammedSaud404, MIT)" }
+  ]
+}
