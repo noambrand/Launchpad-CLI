@@ -318,15 +318,6 @@ if exist "%LOCALAPPDATA%\Kivun\kivun-claude-startcmd.txt" (
     start "" /b wscript.exe //nologo "!SCRIPT_DIR!inject-startup-cmd.js"
 )
 
-REM --- Links outside Windows Terminal (v3.2.0) ---
-REM     The old console window (conhost) cannot show clickable links, so Claude
-REM     Code prints each link in a fallback form. Inside the bundled rtl-terminal
-REM     plugin's right-to-left layout that fallback runs wider than planned and
-REM     the link shows twice. FORCE_HYPERLINK=1 makes Claude send a normal link,
-REM     which conhost shows once as plain text. Windows Terminal sets WT_SESSION
-REM     and already gets real links, so it is left alone.
-if not defined WT_SESSION set "FORCE_HYPERLINK=1"
-
 REM --- Launch Claude Code ---
 REM Resume-flag safety net (v2.7.6): if FINAL_FLAGS asks to resume a previous
 REM conversation (--continue / -c / --resume / -r) but THIS folder has no prior

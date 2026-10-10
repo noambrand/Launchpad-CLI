@@ -1,7 +1,7 @@
 {
   "name": "rtl-terminal",
   "displayName": "RTL Terminal",
-  "version": "1.0.4",
+  "version": "1.0.6",
   "description": "Right-to-left layout for Arabic, Hebrew, Persian, Urdu and every RTL language in the Claude Code terminal",
   "author": {
     "name": "MohammedSaud404",

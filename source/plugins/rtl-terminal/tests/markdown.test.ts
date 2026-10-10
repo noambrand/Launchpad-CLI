@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'claude-code/testing'
 
 import { RLM, widthOf } from '../hooks/bidi'
-import { itemMarker, layoutRtl, parseInline, prepareSpans, splitBlocks, wrapSpans } from '../hooks/markdown'
+import { itemMarker, layoutRtl, parseInline, prepareSpans, splitBlocks, wrapSpans, writeOutLinks } from '../hooks/markdown'
 
 import { drawn } from './draw'
 
@@ -138,5 +138,28 @@ describe('itemMarker', () => {
     expect(itemMarker('12.', 0)).toBe('.12')
     expect(itemMarker('-', 0)).toBe('•')
     expect(itemMarker('*', 1)).toBe('◦')
+  })
+})
+
+describe('writeOutLinks', () => {
+  test("puts a link's URL after its text, and a bare URL once", async () => {
+    const spans = writeOutLinks(parseInline('اقرأ [**دليل** التثبيت](https://x.dev/a) أو https://x.dev/b و <https://x.dev/c>'))
+    expect(spans.map(s => s.text).join('')).toBe(
+      'اقرأ دليل التثبيت (https://x.dev/a) أو https://x.dev/b و https://x.dev/c',
+    )
+  })
+
+  // conhost: the URL Claude Code added after each link overflowed the row.
+  test('rows with links written out keep to the width', async () => {
+    const line =
+      'هذا رابط المشروع https://github.com/MohammedSaud404/rtl-terminal وفيه كل التفاصيل / واقرأ ' +
+      '[دليل التثبيت](https://github.com/MohammedSaud404/rtl-terminal#install) قبل البدء'
+    const rows = layoutRtl(writeOutLinks(parseInline(line)), 60)
+    for (const row of rows) {
+      expect(widthOf(row.map(s => s.text).join(''))).toBeLessThanOrEqual(60)
+    }
+    const text = rows.map(drawn).join(' | ')
+    expect(text.split('https://github.com/MohammedSaud404/rtl-terminal').length).toBe(3)
+    expect(text).toContain(' | (https://github.com/MohammedSaud404/rtl-terminal#install) | ')
   })
 })
