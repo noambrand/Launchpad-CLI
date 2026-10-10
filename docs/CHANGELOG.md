@@ -1,5 +1,19 @@
 # Changelog
 
+## [3.2.1] - 2026-10-10
+
+### Fixed: web links in right-to-left replies outside Windows Terminal
+
+The bundled [rtl-terminal](https://github.com/MohammedSaud404/rtl-terminal) plugin is now
+v1.0.6 (unmodified, MIT). Where Claude Code cannot show clickable links, as in the old console
+window (conhost) and VS Code's terminal, the plugin now writes each link the way Claude Code
+does there: a bare address once, and a named link as its text followed by the address in
+brackets. Windows Terminal is unchanged.
+
+The launcher no longer sets `FORCE_HYPERLINK=1` in the old console window. That 3.2.0
+workaround stopped a bare link from showing twice, but it also hid the address of a named
+link. v1.0.6 fixes the cause, so the workaround is gone.
+
 ## [3.2.0] - 2026-10-10
 
 ### Added: right-to-left replies read right to left on Windows

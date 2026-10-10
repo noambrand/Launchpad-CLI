@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'claude-code/testing'
 
-import { asMode, reorderedBy } from '../hooks/target'
+import { asMode, hasHyperlinks, reorderedBy } from '../hooks/target'
 
 describe('reorderedBy', () => {
   test('Claude Code reorders on Windows and in VS Code, the terminal elsewhere', async () => {
@@ -22,5 +22,19 @@ describe('asMode', () => {
     expect(asMode('terminal')).toBe('terminal')
     expect(asMode(undefined)).toBe('auto')
     expect(asMode('rtl')).toBe('auto')
+  })
+})
+
+describe('hasHyperlinks', () => {
+  test('Windows Terminal and JetBrains show links, conhost and VS Code do not', async () => {
+    expect(hasHyperlinks({ wtSession: '3e2c973d' })).toBe(true)
+    expect(hasHyperlinks({ terminalEmulator: 'JetBrains-JediTerm' })).toBe(true)
+    expect(hasHyperlinks({})).toBe(false)
+    expect(hasHyperlinks({ termProgram: 'vscode' })).toBe(false)
+  })
+
+  test('FORCE_HYPERLINK decides when set', async () => {
+    expect(hasHyperlinks({ forceHyperlink: '1' })).toBe(true)
+    expect(hasHyperlinks({ forceHyperlink: '0', wtSession: '3e2c973d' })).toBe(false)
   })
 })

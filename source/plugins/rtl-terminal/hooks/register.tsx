@@ -1,10 +1,10 @@
-import type { Elements as SurfaceElements, EngineInterface, Register } from 'claude-code'
+import type { Elements as SurfaceElements, EngineInterface, Register, RenderElement } from 'claude-code'
 
 import { LRM } from './bidi'
-import { itemMarker, layoutRtl, parseInline, splitBlocks } from './markdown'
+import { itemMarker, layoutRtl, parseInline, splitBlocks, writeOutLinks } from './markdown'
 import type { Block, RtlBlock, Span } from './markdown'
 import { layoutPlainText, needsPreview, previewRows } from './preview'
-import { asMode, reorderedBy } from './target'
+import { asMode, hasHyperlinks, reorderedBy } from './target'
 import type { Mode } from './target'
 
 // Cells the transcript keeps left of a reply's text for its `●` mark.
@@ -24,7 +24,7 @@ const PREVIEW_CHECK_MS = 300
 
 type Elements = SurfaceElements['terminal']
 
-function spanElement(els: Elements, span: Span) {
+function spanElement(els: Elements, span: Span, hasLinks: boolean) {
   const { Link, Text } = els
   const props: Record<string, unknown> = {}
   if (span.bold) props.bold = true
@@ -33,6 +33,7 @@ function spanElement(els: Elements, span: Span) {
   if (span.strike) props.strikethrough = true
   if (span.code) props.color = 'permission'
   if (span.href && !span.code) {
+    if (!hasLinks) return <Text {...props} color="blueBright">{span.text}</Text>
     return (
       <Text {...props} color="blueBright">
         <Link href={span.href}>{span.text}</Link>
@@ -50,7 +51,7 @@ function gutterOf(block: RtlBlock): { text: string; isDim: boolean } {
   return { text: '', isDim: false }
 }
 
-function blockRows(els: Elements, block: RtlBlock, width: number) {
+function blockRows(els: Elements, block: RtlBlock, width: number, hasLinks: boolean) {
   const { Box, Text } = els
   const gutter = gutterOf(block)
   const room = width - gutter.text.length
@@ -62,13 +63,16 @@ function blockRows(els: Elements, block: RtlBlock, width: number) {
       : block.role === 'quote'
         ? { italic: true }
         : {}
-  const rows = block.lines.flatMap(line => layoutRtl(parseInline(line, style), room))
+  const rows = block.lines.flatMap(line => {
+    const spans = parseInline(line, style)
+    return layoutRtl(hasLinks ? spans : writeOutLinks(spans), room)
+  })
 
   return rows.map((row, r) => {
     const mark = r === 0 || block.role === 'quote' ? gutter.text : ' '.repeat(gutter.text.length)
     return (
       <Box flexDirection="row">
-        <Text>{row.map(span => spanElement(els, span))}</Text>
+        <Text>{row.map(span => spanElement(els, span, hasLinks))}</Text>
         {gutter.text !== '' && (
           <Text dimColor={gutter.isDim}>{LRM + mark}</Text>
         )}
@@ -77,7 +81,7 @@ function blockRows(els: Elements, block: RtlBlock, width: number) {
   })
 }
 
-function drawBlocks(els: Elements, blocks: Block[], width: number, isFirstOfReply: boolean) {
+function drawBlocks(els: Elements, blocks: Block[], width: number, isFirstOfReply: boolean, hasLinks: boolean) {
   const { Box, Markdown, Text } = els
   return (
     <Box flexDirection="row">
@@ -96,7 +100,7 @@ function drawBlocks(els: Elements, blocks: Block[], width: number, isFirstOfRepl
         }
         return (
           <Box marginTop={marginTop} flexDirection="column" alignItems="flex-end">
-            {blockRows(els, block, width)}
+            {blockRows(els, block, width, hasLinks)}
           </Box>
         )
       })}
@@ -113,10 +117,23 @@ function drawPreview(els: Elements, text: string, width: number, maxRows: number
     <Box flexDirection="column" width={width}>
       {rows.map((row, r) => (
         <Box flexDirection="row" alignSelf={row.isRtl ? 'flex-end' : 'flex-start'}>
-          <Text>{row.spans.map(span => spanElement(els, span))}</Text>
+          <Text>{row.spans.map(span => spanElement(els, span, false))}</Text>
           {row.isRtl && <Text dimColor>{LRM + (r === 0 ? PREVIEW_GUTTER : '  ')}</Text>}
         </Box>
       ))}
+    </Box>
+  )
+}
+
+// The band above the prompt is shared with the engine and other plugins: what
+// they draw there stays, and the preview goes under it, next to the prompt.
+export function drawBand(els: Elements, beneath: RenderElement, text: string, width: number, maxRows: number) {
+  const { Box } = els
+
+  return (
+    <Box flexDirection="column">
+      {beneath}
+      {drawPreview(els, text, width, maxRows)}
     </Box>
   )
 }
@@ -139,12 +156,23 @@ async function resolveReorderedBy($: EngineInterface, mode: Mode): Promise<'clau
   return reorderedBy(mode, { os, termProgram })
 }
 
+// Whether this terminal shows clickable links, as Claude Code decides it.
+async function resolveHasLinks($: EngineInterface): Promise<boolean> {
+  return hasHyperlinks({
+    forceHyperlink: await $.env.get('FORCE_HYPERLINK'),
+    wtSession: await $.env.get('WT_SESSION'),
+    termProgram: await $.env.get('TERM_PROGRAM'),
+    terminalEmulator: await $.env.get('TERMINAL_EMULATOR'),
+  })
+}
+
 export const register: Register = on => {
   // The session's settings, loaded from the plugin's store when the session
   // starts (and again on every reload); a change redraws what they shape.
   let isEnabled = true
   let isPreviewOn = true
   let whoReorders: 'claude' | 'terminal' = 'claude'
+  let hasLinks = false
   let draft = ''
 
   // Lays rows out only where Claude Code reorders them, and only when on.
@@ -156,6 +184,7 @@ export const register: Register = on => {
     const savedPreview = await $.store.get('isPreviewOn')
     if (typeof savedPreview === 'boolean') isPreviewOn = savedPreview
     whoReorders = await resolveReorderedBy($, asMode(await $.store.get('mode')))
+    hasLinks = await resolveHasLinks($)
     $.ui.invalidate('ui.render')
 
     await $.command.register({
@@ -236,7 +265,8 @@ export const register: Register = on => {
     if (!isLaidOut() || !isPreviewOn) return next(e)
     if (!needsPreview(draft, e.props.bodyColumns - 4)) return next(e)
 
-    return drawPreview($.ui.resolve(e), draft, e.props.bodyColumns, e.props.maxRows)
+    const beneath = await next(e)
+    return drawBand($.ui.resolve(e), beneath, draft, e.props.bodyColumns, e.props.maxRows)
   })
 
   on('ui.render', { component: 'AssistantMessage' }, async ($, e, next) => {
@@ -247,7 +277,7 @@ export const register: Register = on => {
 
     const columns = e.viewport?.columns ?? 80
     const width = Math.max(20, columns - MESSAGE_GUTTER - RIGHT_MARGIN)
-    return drawBlocks($.ui.resolve(e), blocks, width, e.props.isFirstOfReply)
+    return drawBlocks($.ui.resolve(e), blocks, width, e.props.isFirstOfReply, hasLinks)
   })
 
   on('ui.render', { component: 'UserMessage' }, async ($, e, next) => {

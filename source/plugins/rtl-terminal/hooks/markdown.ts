@@ -367,6 +367,29 @@ export function parseInline(src: string, style: Style = {}): Span[] {
   return out
 }
 
+/**
+ * The spans of a line for a terminal that can't show clickable links, written
+ * out as Claude Code's own markdown writes them there: a link's URL after its
+ * text, in brackets, unless the text is the URL itself.
+ */
+export function writeOutLinks(spans: Span[]): Span[] {
+  const out: Span[] = []
+  let label = ''
+  spans.forEach((span, n) => {
+    out.push(span)
+    const href = span.href
+    if (!href) return
+    label += span.text
+    if (spans[n + 1]?.href === href) return
+    if (label !== href) {
+      const style = { bold: span.bold, italic: span.italic, underline: span.underline, strike: span.strike }
+      out.push({ ...style, text: ' ' }, { ...style, href, text: `(${href})` })
+    }
+    label = ''
+  })
+  return out
+}
+
 function sameStyle(a: Span, b: Span): boolean {
   return (
     !!a.bold === !!b.bold &&
