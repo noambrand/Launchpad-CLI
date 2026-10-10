@@ -7,13 +7,8 @@
 </p>
 
 <p align="center">
-  <video src="https://github.com/noambrand/launchpad-cli/releases/download/v2.6.9/claudecode-launchpad_v2.6.9.mp4" width="700" controls muted playsinline></video>
-</p>
-
-<p align="center">
-  <em>📹 Demo: ClaudeCode Launchpad CLI - one-click install, folder picker, and launch -
-  <a href="https://github.com/noambrand/launchpad-cli/releases/download/v2.6.9/claudecode-launchpad_v2.6.9.mp4">download MP4 (2.2 MB)</a>
-  if your browser doesn't autoplay above.</em>
+  <em>📹 Demo: ClaudeCode Launchpad CLI, one-click install, folder picker, and launch.
+  Full video (1:56): <a href="https://github.com/noambrand/launchpad-cli/releases/download/v2.6.9/claudecode-launchpad_v2.6.9.mp4">download MP4 (2.2 MB)</a>.</em>
 </p>
 
 <p align="center">
