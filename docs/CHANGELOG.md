@@ -1,5 +1,16 @@
 # Changelog
 
+## [3.2.2] - 2026-10-12
+
+### Fixed: slash commands in right-to-left replies
+
+The bundled [rtl-terminal](https://github.com/MohammedSaud404/rtl-terminal) plugin is now
+v1.0.7 (unmodified, MIT). When a Hebrew or Arabic reply mentions a slash command outside code
+formatting, such as /rtl off or /copy, the slash now sits on the left of the word, where it
+belongs. Before, it showed on the far side, as in "rtl off/". The same holds for a flag such as
+--model, a file type such as .env, and a path such as ~/notes. A slash or hyphen inside a word
+stays where it is. Reported by Noam Brand, fixed upstream from his pull request.
+
 ## [3.2.1] - 2026-10-10
 
 ### Fixed: web links in right-to-left replies outside Windows Terminal

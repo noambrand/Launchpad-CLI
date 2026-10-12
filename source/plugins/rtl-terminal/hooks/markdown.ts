@@ -516,6 +516,13 @@ export function prepareSpans(spans: Span[]): Span[] {
 const LRI = '\u2066'
 const PDI = '\u2069'
 
+// Punctuation that opens a Latin word: a slash command (`/rtl`), a flag
+// (`--model`), a file type (`.env`) or a path (`~/notes`, `@scope/pkg`).
+const LATIN_LEAD = /(^|[\s([{\u00ab"'])([/.\-~@#$]+)(?=[A-Za-z])/g
+// Stands in for code and links when looking for those words, so punctuation
+// right after them never counts as opening one.
+const HELD_OUT = '\uFFFC'
+
 // Opens a row with RLM and puts each run between two marks of its level's
 // direction, RLM for odd and LRM for even: a renderer that knows only strong
 // characters then has nothing of its own left to resolve.
@@ -539,25 +546,43 @@ function pinRow(row: Span[]): Span[] {
  * for the whole paragraph as a browser does, with code and links isolated
  * left-to-right as a browser isolates `<code>`. Characters at odd levels are
  * drawn mirrored, and every row is pinned to those levels.
+ *
+ * Punctuation that opens a Latin word in prose (`/rtl`, `--model`, `.env`)
+ * is joined to the word: on its own the algorithm gives it the paragraph's
+ * direction and draws it on the word's far side (`rtl/`). An LRM before it,
+ * there for resolving only, keeps it on the left, where the reader expects it.
  */
 export function layoutRtl(spans: Span[], width: number): Span[][] {
   const prepared = prepareSpans(spans)
+  const plain = prepared
+    .map(span => (span.code || span.href ? HELD_OUT.repeat(span.text.length) : span.text))
+    .join('')
+  const leads = new Set<number>()
+  for (const match of plain.matchAll(LATIN_LEAD)) leads.add((match.index ?? 0) + (match[1]?.length ?? 0))
+
   let paragraph = ''
-  const starts: number[] = []
+  let offset = 0
+  const places: number[][] = []
   for (const span of prepared) {
     const isIsolated = span.code || span.href
     if (isIsolated) paragraph += LRI
-    starts.push(paragraph.length)
-    paragraph += span.text
+    const own: number[] = []
+    for (let i = 0; i < span.text.length; i++) {
+      if (leads.has(offset + i)) paragraph += LRM
+      own.push(paragraph.length)
+      paragraph += span.text[i]
+    }
+    places.push(own)
+    offset += span.text.length
     if (isIsolated) paragraph += PDI
   }
   const { levels, mirrors } = resolveRtl(paragraph)
 
   const runs: Span[] = []
   prepared.forEach((span, n) => {
-    const start = starts[n] ?? 0
+    const own = places[n] ?? []
     for (let i = 0; i < span.text.length; i++) {
-      const at = start + i
+      const at = own[i] ?? 0
       const unit = { ...span, text: mirrors.get(at) ?? span.text[i] ?? '', level: levels[at] ?? 1 }
       const last = runs[runs.length - 1]
       if (last && sameStyle(last, unit)) last.text += unit.text
