@@ -54,7 +54,7 @@ gh release create v2.X.Y \
 1. Clone the new tag with `git -c core.autocrlf=false clone --depth 1 --branch rtl-terminal--vX.Y.Z https://github.com/MohammedSaud404/rtl-terminal.git` into a temp folder.
 2. `git diff --no-index source/plugins/rtl-terminal <clone>` and read every changed line in `hooks/`. Reject new network, file, command or `eval` use. New environment reads must be terminal flags only, never secrets.
 3. Copy the same file set over (`.claude-plugin/plugin.json`, `.claude-plugin/icon.png`, `LICENSE`, `hooks/`, `tests/`), then rewrite `rtl-terminal.sha256` as `<hash>  <path>` with two spaces. Git Bash's `sha256sum` writes `<hash> *<path>`, which fails the CI file-list check. Update `rtl-terminal.upstream` with the new tag and commit.
-4. Run the CI steps locally, then check cases 02, 03, 05, 05b, 06 and 13 (slash commands in prose) in Windows Terminal and in the old console window (conhost). `.rtl-ab-results/ab_run.py <sandbox> v107` runs all six in both, through the installed launcher, after the new plugin files are copied into `%LOCALAPPDATA%\Kivun\pluginstl-terminal` (the plugin loads in place from there).
+4. Run the CI steps locally, then check cases 02, 03, 05, 05b, 06 and 13 (slash commands in prose) in Windows Terminal and in the old console window (conhost). `.rtl-ab-results/ab_run.py <sandbox> v107` runs all six in both, through the installed launcher, after the new plugin files are copied into `%LOCALAPPDATA%\Kivun\plugins\rtl-terminal` (the plugin loads in place from there).
 5. Bump the patch version and add a CHANGELOG entry.
 
 ## Verification
