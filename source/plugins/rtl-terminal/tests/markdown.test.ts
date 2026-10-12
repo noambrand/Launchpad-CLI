@@ -116,6 +116,30 @@ describe('layoutRtl', () => {
     }
   })
 
+  // Windows Terminal: `/rtl off` written in prose, not in backticks, was drawn
+  // `rtl off/`, its slash on the far side of the word.
+  test('keeps the punctuation that opens a Latin word on its left', async () => {
+    const lines: [string, string][] = [
+      ['כדי לכבות, מקלידים /rtl off בתוך Claude.', '.Claude ךותב /rtl off םידילקמ ,תובכל ידכ'],
+      ['טקסט נקי (/copy) או claude --model opus', 'claude --model opus וא (/copy) יקנ טסקט'],
+      ['اكتب /rtl off علشان توقفه', 'هفقوت ناشلع /rtl off بتكا'],
+      ['ملف .env و ~/notes و @scope/pkg هون', 'نوه @scope/pkg و ~/notes و .env فلم'],
+    ]
+    for (const [line, expected] of lines) {
+      expect(layoutRtl(parseInline(line), 200).map(drawn)).toEqual([expected])
+    }
+  })
+
+  test('leaves punctuation inside a word where it is', async () => {
+    const lines: [string, string][] = [
+      ['כן ו/או לא', 'אל וא/ו ןכ'],
+      ['עובד ב-Windows ו-macOS', 'macOS-ו Windows-ב דבוע'],
+    ]
+    for (const [line, expected] of lines) {
+      expect(layoutRtl(parseInline(line), 200).map(drawn)).toEqual([expected])
+    }
+  })
+
   test('wraps to the width, every row opening with RLM', async () => {
     const rows = layoutRtl(parseInline('كلمة Google Mobile Ads كلمة كلمة'), 12)
     for (const row of rows) {
