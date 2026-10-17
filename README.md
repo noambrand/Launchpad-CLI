@@ -149,6 +149,10 @@ Real screenshots from two Windows Terminal windows of the same size, Launchpad 3
 
 > **First time?** You'll need a Claude Pro/Max subscription or [Anthropic API key](https://console.anthropic.com).
 
+## Want a hand with your first real task?
+
+Launchpad gets Claude Code running. If you'd like someone beside you for the first real piece of work, Noam Brand, who makes Launchpad, runs guided Zoom sessions for people who live in Excel and don't code, one for an individual and one for a company. Claude Code works on a copy of your own file, and you approve every step. Details and prices: [Claude Code for Excel](https://excel-claude-code.netlify.app/en?utm_source=github&utm_medium=owned&utm_campaign=20261017-launchpad-1&utm_content=20261017-launchpad-1)
+
 ## Status Bar
 
 A two-line live status bar at the bottom of every session:
