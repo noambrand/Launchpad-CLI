@@ -39,14 +39,11 @@ const HOOK_EVENTS = ['SessionStart', 'UserPromptSubmit', 'PreToolUse', 'Permissi
 // Our two hooks. Q4 was verified at Gate 0 (S8): Stop fires once per completed turn, never on
 // interrupt or refusal, so the done hook is installed.
 const OUR_HOOKS = [['PermissionRequest', 'permission'], ['Stop', 'done']];
-// Same wording as the Claude path (claudecode-launchpad.bat, LANG_PROMPT).
-const LANGUAGES = {
-  hebrew: 'Hebrew', arabic: 'Arabic', persian: 'Persian (Farsi)', urdu: 'Urdu', kurdish: 'Kurdish', pashto: 'Pashto',
-  sindhi: 'Sindhi', yiddish: 'Yiddish', syriac: 'Syriac', dhivehi: 'Dhivehi', nko: "N'Ko", adlam: 'Fulani (Adlam script)',
-  mandaic: 'Mandaic', samaritan: 'Samaritan', dari: 'Dari (Afghan Persian)', uyghur: 'Uyghur', balochi: 'Balochi',
-  kashmiri: 'Kashmiri', shahmukhi: 'Punjabi (Shahmukhi)', azeri_south: 'South Azerbaijani', jawi: 'Malay (Jawi script)',
-  hausa_ajami: 'Hausa (Ajami script)', rohingya: 'Rohingya', turoyo: 'Turoyo (Neo-Aramaic)',
-};
+// Tokenizer, startup text, language line and the argument array come from agent-helpers.js,
+// the same file the folder picker loads, so its preview is built by this very code (handout 7.7).
+const AH = require('./agent-helpers');
+const { LANGUAGES, tokenize, startupText, languageLine, languageArg } = AH;
+const compose = AH.composeCodex;
 
 // ---------------------------------------------------------------- paths
 function paths(env) {
@@ -157,88 +154,6 @@ function setAgent(agent, env) {
   if (effectiveAgent(text) === agent) return false;
   atomicWrite(p.config, setConfigValue(text, 'AGENT', agent), 'set-agent-before-rename');
   return true;
-}
-
-// ---------------------------------------------------------------- flags and startup text
-// One tokenizer, used everywhere (handout 7.5): whitespace separates, "..." keeps text together
-// and the quotes are removed, nothing else is special.
-function tokenize(s) {
-  const out = [];
-  let cur = '', inQ = false, had = false;
-  for (const ch of String(s || '')) {
-    if (ch === '"') { inQ = !inQ; had = true; continue; }
-    if (!inQ && /\s/.test(ch)) { if (had || cur) out.push(cur); cur = ''; had = false; continue; }
-    cur += ch;
-  }
-  if (inQ) { const e = new Error('A quote mark in the custom options is not closed.'); e.code = 'UNCLOSED_QUOTE'; throw e; }
-  if (had || cur) out.push(cur);
-  return out;
-}
-
-// Codex takes one first message. Entries are joined with a space; a line break or other control
-// character, or an entry starting with "/" (a slash command, Q2), is refused.
-function startupText(entries) {
-  const list = (Array.isArray(entries) ? entries : [entries]).map(e => String(e == null ? '' : e)).map(e => e.trim()).filter(Boolean);
-  for (const e of list) {
-    if (/[\u0000-\u001f\u007f]/.test(e)) return { text: null, error: 'CONTROL', message: 'The startup message can only be one line.' };
-    if (e[0] === '/') return { text: null, error: 'SLASH', message: "Codex can't run commands at startup. Type it yourself once Codex opens." };
-  }
-  return { text: list.length ? list.join(' ') : null };
-}
-
-function languageLine(code) {
-  const name = LANGUAGES[String(code || '').toLowerCase()];
-  return name ? 'Always respond in ' + name + '.' : null;
-}
-// A TOML literal string: handles the N'Ko apostrophe and is never parsed as another type.
-function languageArg(line) { return "developer_instructions='''" + line + "'''"; }
-
-const isModelFlag = t => t === '-m' || t === '--model' || t.startsWith('--model=');
-
-// Build the exact argument array (D11, D15). Returns { args, errors, notices }.
-//   launch: { conv: fresh|last|pick, model, customFlags, codexFlags, startup, language,
-//             skipLanguage, noDaemon, relaunch }
-function compose(launch) {
-  const errors = [], notices = [];
-  let user = [];
-  try { user = tokenize(launch.codexFlags).concat(tokenize(launch.customFlags)); } catch (e) { errors.push(e.message); user = []; }
-  if (user.length && /^(resume|fork)$/i.test(user[0])) {
-    errors.push('Choose "continue last" or "pick from history" in the picker instead of typing ' + user[0] + '.');
-    user = [];
-  }
-  const bad = user.filter(t => /^--dangerously-/.test(t) || t === '--yolo');
-  if (bad.length) { errors.push('Launchpad does not start Codex with ' + bad.join(' ') + '.'); user = user.filter(t => !bad.includes(t)); }
-  for (let i = 0; i < user.length; i++) {
-    const t = user[i];
-    const v = t === '-a' || t === '--ask-for-approval' ? user[i + 1] : (t.startsWith('--ask-for-approval=') ? t.split('=')[1] : undefined);
-    if ((t === '-a' || t === '--ask-for-approval' || t.startsWith('--ask-for-approval=')) && v !== 'on-request' && v !== 'never') {
-      errors.push('The approval option (-a) can only be on-request or never.');
-    }
-  }
-  if (user.filter(isModelFlag).length > 1) errors.push('The custom options name a model more than once. Codex will not start with two models.');
-  const userModel = user.some(isModelFlag);
-  const userInstructions = user.some(t => /developer_instructions\s*=/.test(t));
-
-  const args = [];
-  if (launch.noDaemon) args.push('--no-daemon');
-  if (launch.conv === 'last') args.push('resume', '--last');
-  else if (launch.conv === 'pick') args.push('resume');
-  if (launch.model && !userModel) args.push('-m', launch.model);
-  const lang = !launch.skipLanguage && !userInstructions ? languageLine(launch.language) : null;
-  if (lang) args.push('-c', languageArg(lang));
-  args.push(...user);
-  if (!launch.relaunch) {
-    const st = startupText(launch.startup);
-    if (st.error) { errors.push(st.message); notices.push('startup message not sent'); }
-    else if (st.text && launch.conv === 'pick') {
-      // `codex resume <text>` would read the text as a conversation name.
-      notices.push('The startup message is not sent when you pick a conversation from the list.');
-    } else if (st.text) {
-      if (st.text[0] === '-') args.push('--'); // otherwise Codex reads it as an option (Gate 0: "-h..." shows help)
-      args.push(st.text);
-    }
-  }
-  return { args, errors, notices };
 }
 
 // ---------------------------------------------------------------- hooks.json
@@ -604,7 +519,13 @@ function plan(id, env, relaunch, codex) {
   const wantsLanguage = !!languageLine(launch.language);
   const skipLanguage = wantsLanguage ? hasExistingInstructions(launch, runEnv, codex, userTokens) : false;
   const noDaemon = socketPath(runEnv).length >= SOCKET_LIMIT;
-  const c = compose(Object.assign({}, launch, { skipLanguage, noDaemon, relaunch: !!relaunch }));
+  // A saved model the last ONLINE list no longer offers: Codex's default model instead (handout 7.5).
+  // With only the bundled list, or no list, the saved model is kept as it is.
+  let models = null;
+  try { models = JSON.parse(fs.readFileSync(paths(env).models, 'utf8')); } catch (e) { models = null; }
+  const modelGone = AH.modelUnavailable(launch.model, models);
+  const c = compose(Object.assign({}, launch, { model: modelGone ? null : launch.model, skipLanguage, noDaemon, relaunch: !!relaunch }));
+  if (modelGone) c.notices.push('The model saved in this profile is no longer offered. Codex will use its default model.');
   if (skipLanguage) c.notices.push('Your Codex settings already contain your own instructions, so Launchpad didn\'t add the language line. Codex follows your instructions.');
   if (noDaemon) c.notices.push('Codex runs without its background server: its settings folder path is too long for it.');
   return { launch, runEnv, compose: c };

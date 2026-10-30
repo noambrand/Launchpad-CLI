@@ -409,6 +409,7 @@
     font-weight: 600;
   }
 </style>
+<script language="JScript" src="agent-helpers.js"></script>
 <script language="JScript">
   // Resize to fit all four sections WITHOUT scrolling. We use a generous
   // 1040x980 baseline and then re-fit to actual content height after
@@ -604,6 +605,10 @@
   // no-history folder with "No conversation found to continue".
   var oneTimeFlagsFile = kivunDir + "\\kivun-claude-flags.txt";
   var profilesFile = kivunDir + "\\profiles.json";
+  // v3.3.0 Codex: the installer writes kivun-codex-path.txt once Codex is verified; the runner
+  // keeps kivun-codex-models.json up to date. Codex launches use their own launch\<id> folders.
+  var codexPathFile = kivunDir + "\\kivun-codex-path.txt";
+  var codexModelsFile = kivunDir + "\\kivun-codex-models.json";
   var configFile = installDir + "\\config.txt";
 
   // Voice-alert ("Sound alerts") controls. The live config the alert scripts
@@ -809,6 +814,7 @@
   }
 
   function updateFlagPreview() {
+    if (currentAgent === "codex") { updateCodexPreview(); return; }
     var s = composeFlags();
     var flagsEl = document.getElementById("flag-effective");
     if (flagsEl) flagsEl.innerText = s ? s : "(none — default Claude behavior)";
@@ -832,7 +838,11 @@
       }
     }
 
-    // Env-vars secondary line (masked unless toggled)
+    renderEnvPreview();
+  }
+
+  // Env-vars secondary line (masked unless toggled); the same for both agents.
+  function renderEnvPreview() {
     var envEl = document.getElementById("preview-env");
     if (envEl) {
       var entries = parseEnvVars((document.getElementById("env-vars") || {value: ""}).value || "");
@@ -957,6 +967,8 @@
       document.getElementById("path").focus();
       return;
     }
+    // Codex (v3.3.0): its own launch folder, never Claude's hand-off files (D19).
+    if (currentAgent === "codex") { launchCodex(p); return; }
     // Persist current dialog state to the active profile + write the
     // sidecar files the launcher consumes (startup cmds, env vars).
     try {
@@ -1025,6 +1037,15 @@
         if (el) el.onclick = function() { addCustomFlag(template); };
       })(chips[i][1]);
     }
+    var codexChips = [["chip-cx-search", "--search"], ["chip-cx-readonly", "-s read-only"]];
+    for (var j = 0; j < codexChips.length; j++) {
+      (function(template) {
+        var el = document.getElementById(codexChips[j][0]);
+        if (el) el.onclick = function() { addCodexFlag(template, false); };
+      })(codexChips[j][1]);
+    }
+    var addDir = document.getElementById("chip-cx-adddir");
+    if (addDir) addDir.onclick = function() { addCodexFolder(); };
   }
 
   // Catch any unhandled JScript error and display it instead of letting
@@ -1112,6 +1133,7 @@
     // also goes through the scrubber so a stale CLAUDE_FLAGS=--effort low
     // in config.txt doesn't end up in the new Default profile.
     var def = migrateFromConfigToDefault();
+    if (readGlobalAgent() === "codex") AgentHelpers.setProfileAgent(def, "codex");
     scrubDeprecatedFlags(def);
     profilesState = {
       version: 1,
@@ -1149,6 +1171,18 @@
 
   function captureDialogToProfile(target) {
     target.folder      = (document.getElementById("path").value || "").replace(/^\s+|\s+$/g, "");
+    if (currentAgent === "codex") {
+      // Codex settings live in their own sub-object; the Claude fields keep their values (D16).
+      target.codex = {
+        model: getRadioValue("codex-model"),
+        conv: AgentHelpers.codexConv(getRadioValue("flag-conv")),
+        customFlags: (document.getElementById("flag-custom").value || "").replace(/^\s+|\s+$/g, ""),
+        startupCmds: document.getElementById("startup-cmds").value || ""
+      };
+      target.envVars = document.getElementById("env-vars").value || "";
+      AgentHelpers.setProfileAgent(target, "codex");
+      return;
+    }
     // Default profile never persists the model — it always resets to opus on
     // open so the user is never surprised by a stale Sonnet/Haiku choice.
     // Named project profiles remember their model as an explicit per-project choice.
@@ -1157,9 +1191,26 @@
     target.customFlags = (document.getElementById("flag-custom").value || "").replace(/^\s+|\s+$/g, "");
     target.startupCmds = document.getElementById("startup-cmds").value || "";
     target.envVars     = document.getElementById("env-vars").value || "";
+    // A profile never used with Codex keeps exactly the fields v3.2.2 wrote (D16).
+    AgentHelpers.setProfileAgent(target, "claude");
   }
 
   function applyProfileToDialog(p) {
+    var info = AgentHelpers.resolveAgent(p.agent, detectInstalled());
+    currentAgent = info.agent;
+    if (currentAgent === "codex") {
+      var c = AgentHelpers.codexFields(p);
+      document.getElementById("path").value         = p.folder || "";
+      renderCodexModels(c.model);
+      setRadioValue("flag-conv", AgentHelpers.convRadio(c.conv));
+      document.getElementById("flag-custom").value  = c.customFlags;
+      document.getElementById("startup-cmds").value = c.startupCmds;
+      document.getElementById("env-vars").value     = p.envVars || "";
+      applyAgentUI("codex", info);
+      updateFlagPreview();
+      return;
+    }
+    applyAgentUI("claude", info);
     document.getElementById("path").value         = p.folder || "";
     // Default profile always shows Opus — model is not persisted there.
     setRadioValue("flag-model", (p.name === "Default") ? "opus" : (p.model || "opus"));
@@ -1557,6 +1608,215 @@
     flashColorStatus("✓ applied");
   }
 
+  // ---- Codex (v3.3.0) ------------------------------------------------
+  // The agent shown in the dialog. A profile without an agent field is Claude (D6). The choice is
+  // saved to the active profile, never to AGENT in config.txt: only the installer writes that (D13).
+  // Codex launches write their own launch\<id> folder and none of Claude's hand-off files (D19).
+  var currentAgent = "claude";
+  var claudeTexts = null;   // the Claude wording of the shared controls, restored when switching back
+
+  function readConfigValue(key) {
+    var content = readUtf8(configFile);
+    var m = content ? content.match(new RegExp("^[ \\t]*" + key + "[ \\t]*=(.*)$", "m")) : null;
+    return m ? m[1].replace(/^\s+|\s+$/g, "") : "";
+  }
+  function readGlobalAgent() { return readConfigValue("AGENT") === "codex" ? "codex" : "claude"; }
+
+  function claudeInstalled() {
+    var home = wshShell.ExpandEnvironmentStrings("%USERPROFILE%");
+    if (fso.FileExists(home + "\\.local\\bin\\claude.exe")) return true;
+    var dirs = wshShell.ExpandEnvironmentStrings("%PATH%").split(";");
+    for (var i = 0; i < dirs.length; i++) {
+      var d = dirs[i].replace(/^\s+|\s+$/g, "").replace(/\\$/, "");
+      if (!d) continue;
+      if (fso.FileExists(d + "\\claude.exe") || fso.FileExists(d + "\\claude.cmd")) return true;
+    }
+    return false;
+  }
+  // Codex counts as installed once the installer has verified it (kivun-codex-path.txt).
+  function detectInstalled() { return { claude: claudeInstalled(), codex: fso.FileExists(codexPathFile) }; }
+
+  function loadCodexModels() {
+    try { var raw = readUtf8(codexModelsFile); return raw ? JSON.parse(raw) : null; } catch (e) { return null; }
+  }
+
+  // Model choices from Codex's own list (never hard-coded), plus "Let Codex decide". A saved model
+  // missing from the list stays selectable, marked when the last online list no longer offers it.
+  function renderCodexModels(selected) {
+    var box = document.getElementById("codex-models");
+    if (!box) return;
+    var cache = loadCodexModels();
+    var list = (cache && cache.models instanceof Array) ? cache.models : [];
+    var html = "", found = false, i;
+    for (i = 0; i < list.length; i++) {
+      var slug = list[i].slug, isSel = (slug === selected);
+      if (isSel) found = true;
+      html += '<label><input type="radio" name="codex-model" value="' + escapeHtml(slug) + '" onclick="updateFlagPreview()"' + (isSel ? ' checked' : '') + ' /> ' + escapeHtml(list[i].name || slug) + '</label>';
+    }
+    if (selected && !found) {
+      var gone = AgentHelpers.modelUnavailable(selected, cache);
+      html += '<label><input type="radio" name="codex-model" value="' + escapeHtml(selected) + '" onclick="updateFlagPreview()" checked /> ' + escapeHtml(selected) +
+              (gone ? ' <span style="color:#b00020">(no longer offered)</span>' : '') + '</label>';
+    }
+    html += '<label><input type="radio" name="codex-model" value="" onclick="updateFlagPreview()"' + (selected ? '' : ' checked') + ' /> Let Codex decide</label>';
+    box.innerHTML = html;
+  }
+
+  function setText(id, text) { var el = document.getElementById(id); if (el) el.innerText = text; }
+  function showEl(id, on) { var el = document.getElementById(id); if (el) el.style.display = on ? "" : "none"; }
+
+  function applyAgentUI(agent, info) {
+    if (!claudeTexts) {
+      var st0 = document.getElementById("startup-cmds");
+      claudeTexts = {
+        flags: (document.getElementById("flags-title") || {}).innerText || "",
+        custom: (document.getElementById("custom-help") || {}).innerText || "",
+        startupTitle: (document.getElementById("startup-title") || {}).innerText || "",
+        startupHelp: (document.getElementById("startup-help") || {}).innerText || "",
+        startupPh: st0 ? st0.placeholder : ""
+      };
+    }
+    var codex = (agent === "codex");
+    setRadioValue("agent", agent);
+    showEl("agent-row", info.showChoice);
+    setText("agent-note", info.missing ? (codex ? "Codex is not installed on this PC." : "Claude Code is not installed on this PC.") : "");
+    showEl("claude-models", !codex); showEl("codex-models", codex);
+    showEl("claude-chips", !codex); showEl("codex-chips", codex);
+    setText("flags-title", codex ? "Codex options (optional):" : claudeTexts.flags);
+    setText("custom-help", codex ? "Anything in this box is passed to Codex as extra options. Put quotes around text that contains spaces." : claudeTexts.custom);
+    setText("preview-cmd", codex ? "codex" : "claude");
+    setText("startup-title", codex ? "Startup message (optional):" : claudeTexts.startupTitle);
+    setText("startup-help", codex ? "Sent to Codex as your first message once it opens. Several lines are joined into one message. Commands that start with / can't run at startup." : claudeTexts.startupHelp);
+    var st = document.getElementById("startup-cmds");
+    if (st) st.placeholder = codex ? "e.g. Explain what this project does" : claudeTexts.startupPh;
+    showEl("codex-notes", codex);
+    try { autoSizeToContent(); } catch (e) {}
+  }
+
+  function onAgentChange(agent) {
+    try {
+      if (agent === currentAgent) return;
+      var p = getActiveProfile();
+      captureDialogToProfile(p);              // keep what was typed for the agent being left
+      AgentHelpers.setProfileAgent(p, agent);
+      applyProfileToDialog(p);
+    } catch (e) {
+      try { showError("agent switch error: " + (e.message || e.description || e)); } catch (_) {}
+    }
+  }
+
+  // Everything a Codex launch carries, from the dialog. The runner reads CODEX_FLAGS and the
+  // response language from config.txt itself.
+  function codexLaunchData(folder) {
+    var lines = (document.getElementById("startup-cmds").value || "").split(/\r?\n/), startup = [], i;
+    for (i = 0; i < lines.length; i++) { var ln = lines[i].replace(/^\s+|\s+$/g, ""); if (ln) startup.push(ln); }
+    var env = {}, entries = parseEnvVars(document.getElementById("env-vars").value || "");
+    for (i = 0; i < entries.length; i++) env[entries[i].key] = entries[i].val;
+    return {
+      agent: "codex", workdir: folder,
+      conv: AgentHelpers.codexConv(getRadioValue("flag-conv")),
+      model: getRadioValue("codex-model") || null,
+      customFlags: (document.getElementById("flag-custom").value || "").replace(/^\s+|\s+$/g, ""),
+      startup: startup, env: env
+    };
+  }
+
+  // The preview is built by the same composeCodex the runner uses (agent-helpers.js).
+  function composeForDialog() {
+    var d = codexLaunchData("");
+    return AgentHelpers.composeCodex({ conv: d.conv, model: d.model, customFlags: d.customFlags,
+      codexFlags: readConfigValue("CODEX_FLAGS"), startup: d.startup, language: readConfigValue("RESPONSE_LANGUAGE") });
+  }
+
+  function updateCodexPreview() {
+    var r = composeForDialog(), i;
+    setText("flag-effective", r.args.length ? AgentHelpers.previewLine(r.args) : "(none — default Codex behavior)");
+    var stEl = document.getElementById("preview-startup");
+    if (stEl) { stEl.style.display = "none"; stEl.innerHTML = ""; }   // the first message is part of the line above
+    renderEnvPreview();
+    var html = "";
+    for (i = 0; i < r.errors.length; i++) html += '<span style="color:#b00020">' + escapeHtml(r.errors[i]) + '</span><br>';
+    for (i = 0; i < r.notices.length; i++) if (r.notices[i] !== "startup message not sent") html += escapeHtml(r.notices[i]) + '<br>';
+    if (AgentHelpers.modelUnavailable(getRadioValue("codex-model"), loadCodexModels())) {
+      html += escapeHtml("The model saved in this profile is no longer offered. Codex will use its default model.") + '<br>';
+    }
+    if (AgentHelpers.languageLine(readConfigValue("RESPONSE_LANGUAGE"))) {
+      html += escapeHtml("If your Codex settings already contain your own instructions, Launchpad doesn't add the language line. Codex follows your instructions.") + '<br>';
+    }
+    if (getRadioValue("flag-conv") === "--continue") {
+      html += escapeHtml("If Codex says this conversation is open in another window, close that window or press R.") + '<br>';
+    }
+    html += escapeHtml("Codex shows Hebrew and Arabic left to right. Right-to-left display works only with Claude Code.");
+    var n = document.getElementById("codex-notes");
+    if (n) n.innerHTML = html;
+  }
+
+  // Add a quick option once (the extra-folder chip may repeat). Tokens are compared whole, so
+  // "-s" is never mistaken for part of "--search".
+  function addCodexFlag(template, allowRepeat) {
+    try {
+      var box = document.getElementById("flag-custom");
+      var current = (box.value || "").replace(/^\s+|\s+$/g, "");
+      var tokens = [];
+      try { tokens = AgentHelpers.tokenize(current); } catch (e) { tokens = []; }
+      if (!allowRepeat && AgentHelpers.contains(tokens, AgentHelpers.tokenize(template)[0])) return;
+      box.value = current ? (current + " " + template) : template;
+      updateFlagPreview();
+      if (box.focus) box.focus();
+    } catch (e) {
+      try { showError("addCodexFlag error: " + (e.message || e.description || e)); } catch (_) {}
+    }
+  }
+
+  function addCodexFolder() {
+    var startPath = wshShell.ExpandEnvironmentStrings("%USERPROFILE%");
+    var folder = shell.BrowseForFolder(0, "Pick an extra folder Codex may use", 0x50, startPath);
+    if (folder != null) addCodexFlag('--add-dir "' + folder.Self.Path + '"', true);
+  }
+
+  // A fresh launch\<id> folder holding launch.json (UTF-8). The id is the only value the batch
+  // file receives (32 lowercase hex characters).
+  function createLaunchFolder(data) {
+    var root = kivunDir + "\\launch";
+    if (!fso.FolderExists(root)) fso.CreateFolder(root);
+    for (var t = 0; t < 5; t++) {
+      var id = AgentHelpers.newLaunchId();
+      var dir = root + "\\" + id;
+      if (fso.FolderExists(dir)) continue;
+      fso.CreateFolder(dir);
+      writeUtf8NoBom(dir + "\\launch.json", JSON.stringify(data, null, 2));
+      return id;
+    }
+    throw new Error("could not create a launch folder");
+  }
+
+  function launchCodex(folder) {
+    if (!detectInstalled().codex) {
+      showError("Codex is not installed. Run the ClaudeCode Launchpad CLI installer again and choose Codex.");
+      return;
+    }
+    var r = composeForDialog();
+    if (r.errors.length) { showError(r.errors[0]); return; }
+    try {
+      var active = getActiveProfile();
+      captureDialogToProfile(active);
+      saveProfiles();
+    } catch (e) {}
+    // The terminal color is one window-wide setting for both agents (handout 7.2).
+    try { var _cv = currentColorValue(); if (_cv) writeTerminalColorToConfig(_cv); } catch (e) {}
+    var id;
+    try { id = createLaunchFolder(codexLaunchData(folder)); } catch (e) {
+      showError("Could not prepare the Codex launch: " + (e.message || e.description || e));
+      return;
+    }
+    window.__ccLaunched = true;
+    try {
+      var batPath = kivunDir + "\\claudecode-launchpad.bat";
+      if (fso.FileExists(batPath)) wshShell.Run("\"" + batPath + "\" \"LAUNCH\" \"" + id + "\"", 0, false);
+    } catch (e) {}
+    window.close();
+  }
+
   function init() {
     try {
       deleteIfExists(startupFile);   // start each session fresh
@@ -1594,6 +1854,12 @@
     <button type="button" onclick="deleteProfile()" title="Delete the current profile (Default cannot be deleted)">Delete</button>
     <span class="status" id="profile-status"></span>
   </div>
+  <div id="agent-row" class="profile-bar" style="display:none">
+    <span class="lbl">Agent:</span>
+    <label><input type="radio" name="agent" value="claude" onclick="onAgentChange('claude')" /> Claude Code</label>
+    <label><input type="radio" name="agent" value="codex" onclick="onAgentChange('codex')" /> Codex <span style="color:#707070">(OpenAI)</span></label>
+    <span class="status" id="agent-note" style="color:#b00020"></span>
+  </div>
 
   <h1>Pick a folder for ClaudeCode Launchpad CLI</h1>
   <p class="hint">
@@ -1621,16 +1887,16 @@
   <div id="advanced-body" class="advanced-body">
 
   <div class="option" style="margin-top:12px">
-    <div class="opt-label"><span class="opt-num">3</span> Claude flags (optional):</div>
+    <div class="opt-label"><span class="opt-num">3</span> <span id="flags-title">Claude flags (optional):</span></div>
     <div class="flag-grid">
 
       <div class="lbl">Model:</div>
-      <div class="radio-row">
+      <div><div class="radio-row" id="claude-models">
         <label for="m-opus"><input type="radio" id="m-opus" name="flag-model" value="opus" onclick="setRadioValue('flag-model','opus');updateFlagPreview()" checked /> Opus <span style="color:#707070">(most capable)</span></label>
         <label for="m-sonnet"><input type="radio" id="m-sonnet" name="flag-model" value="sonnet" onclick="setRadioValue('flag-model','sonnet');updateFlagPreview()" /> Sonnet <span style="color:#707070">(balanced)</span></label>
         <label for="m-haiku"><input type="radio" id="m-haiku" name="flag-model" value="haiku" onclick="setRadioValue('flag-model','haiku');updateFlagPreview()" /> Haiku <span style="color:#707070">(fastest)</span></label>
         <label for="m-auto"><input type="radio" id="m-auto" name="flag-model" value="" onclick="setRadioValue('flag-model','');updateFlagPreview()" /> Let Claude decide</label>
-      </div>
+      </div><div class="radio-row" id="codex-models" style="display:none"></div></div>
 
       <div class="lbl">Conversation:</div>
       <div class="radio-row">
@@ -1640,7 +1906,7 @@
       </div>
 
       <div class="lbl">Quick options:</div>
-      <div class="chip-row">
+      <div><div class="chip-row" id="claude-chips">
         <button type="button" class="chip" id="chip-hebrew"      title="Asks Claude to reply in Hebrew">+ Respond in Hebrew</button>
         <button type="button" class="chip" id="chip-effort-high" title="--effort high — Claude thinks harder before answering; slower and more thorough">+ High effort</button>
         <button type="button" class="chip" id="chip-concise"     title="Tells Claude to keep replies short and to the point">+ Concise responses</button>
@@ -1650,29 +1916,34 @@
         <button type="button" class="chip" id="chip-readonly"    title="Disable Edit/Write/MultiEdit tools — Claude can read and explain code but can't modify files">+ Read-only (no file edits)</button>
         <button type="button" class="chip" id="chip-fallback"    title="--fallback-model sonnet — if Opus is at capacity at launch, auto-switch to Sonnet so the session still starts">+ Don't fail if Opus is busy</button>
         <button type="button" class="chip" id="chip-confirm"     title="Tells Claude to describe planned changes before making them">+ Confirm before changes</button>
-      </div>
+      </div><div class="chip-row" id="codex-chips" style="display:none">
+        <button type="button" class="chip" id="chip-cx-search"   title="--search: lets Codex search the web">+ Web search</button>
+        <button type="button" class="chip" id="chip-cx-readonly" title="-s read-only: Codex can read and explain files but can't change them">+ Read-only (no file edits)</button>
+        <button type="button" class="chip" id="chip-cx-adddir"   title="--add-dir: lets Codex also work in another folder you pick">+ Extra folder...</button>
+      </div></div>
 
       <div class="lbl">Custom:</div>
       <div>
         <input type="text" id="flag-custom" onkeyup="updateFlagPreview()" placeholder="" />
-        <div class="flag-help">Anything in this box is appended verbatim to the Claude command. Chips above append into here; you can also edit freely.</div>
+        <div class="flag-help" id="custom-help">Anything in this box is appended verbatim to the Claude command. Chips above append into here; you can also edit freely.</div>
       </div>
     </div>
 
     <div class="flag-preview">
       <span class="label">Will run:</span>
       <div class="cmd-line">
-        <div class="arg-line">$ claude <span id="flag-effective">(none)</span></div>
+        <div class="arg-line">$ <span id="preview-cmd">claude</span> <span id="flag-effective">(none)</span></div>
         <div class="secondary" id="preview-startup" style="display:none"></div>
         <div class="secondary" id="preview-env" style="display:none"></div>
       </div>
     </div>
+    <div class="flag-help" id="codex-notes" style="display:none"></div>
   </div>
 
   <div class="option" style="margin-top:12px">
-    <div class="opt-label"><span class="opt-num">4</span> Startup slash commands (optional):</div>
+    <div class="opt-label"><span class="opt-num">4</span> <span id="startup-title">Startup slash commands (optional):</span></div>
     <textarea id="startup-cmds" rows="3" onkeyup="updateFlagPreview()" placeholder="One per line, e.g.&#10;/voicemode:converse&#10;/model opus"></textarea>
-    <div class="flag-help">Each line is typed into Claude after the session opens. Use this to auto-launch voice mode, switch to a specific model, etc. Leave empty for normal launch.</div>
+    <div class="flag-help" id="startup-help">Each line is typed into Claude after the session opens. Use this to auto-launch voice mode, switch to a specific model, etc. Leave empty for normal launch.</div>
   </div>
 
   <div class="option" style="margin-top:12px">
