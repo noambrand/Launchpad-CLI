@@ -12,6 +12,8 @@
 //   commit                  verify the installed Codex, cache its path, then set-agent codex
 //   prepare <folder>        create a launch folder for a right-click / shortcut launch, print its id
 //   info <id> workdir       print a launch's work folder (the batch file needs it for the tab)
+//   check <id>              exit 0 when the launch's work folder is reachable, 1 when not
+//   missing <id>            print the 'folder could not be opened' message and wait for Enter
 //   compose <id>            print the exact argument array `run` would start Codex with (JSON)
 //   run <id> [--relaunch]   start Codex for a launch: argument array, no shell (D15)
 //
@@ -725,6 +727,23 @@ function installCodex(env) {
   return 0;
 }
 
+// The launcher's message when the chosen folder can't be reached (it names the folder, so Node
+// prints it rather than cmd). Never opens Codex somewhere the user didn't choose.
+function missingFolder(id) {
+  let w = '(unknown)';
+  try { w = readLaunch(id).workdir; } catch (e) { /* keep the generic text */ }
+  console.log('');
+  console.log('  This folder could not be opened:');
+  console.log('    ' + w);
+  console.log('');
+  console.log('  Codex was NOT started, so nothing opened in the wrong place.');
+  console.log('  If it is on a network drive, connect that drive and launch again.');
+  console.log('');
+  console.log('  Press Enter to close.');
+  try { const b = Buffer.alloc(1); while (fs.readSync(0, b, 0, 1) === 1 && b[0] !== 10) { /* wait for Enter */ } } catch (e) { /* no keyboard */ }
+  return 1;
+}
+
 function prepare(folder, env) {
   if (!folder) throw new Error('prepare needs a folder');
   return createLaunch({ agent: 'codex', workdir: folder }, env);
@@ -762,6 +781,8 @@ function main(argv) {
       return 0;
     }
     case 'run': return run(a1, a2 === '--relaunch');
+    case 'check': { let w; try { w = readLaunch(a1).workdir; } catch (e) { return 1; } try { return fs.statSync(w).isDirectory() ? 0 : 1; } catch (e) { return 1; } }
+    case 'missing': return missingFolder(a1);
     default:
       console.log('usage: node configure-codex.js install|uninstall|models [--bundled]|set-agent <claude|codex>|commit|prepare <folder>|info <id> workdir|compose <id>|run <id> [--relaunch]');
       return 2;

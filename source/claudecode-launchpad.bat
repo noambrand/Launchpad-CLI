@@ -32,6 +32,8 @@ if exist "%LOCALAPPDATA%\Programs\nodejs\node.exe" set "PATH=%PATH%;%LOCALAPPDAT
 
 REM --- Phase 2: inside terminal, apply colors and run Claude ---
 if "%~1"=="--run" goto :run_claude
+REM --- Phase 2 for Codex (v3.3.0): the only argument after it is the launch id ---
+if "%~1"=="--run-codex" goto :run_codex
 
 title ClaudeCode Launchpad CLI
 
@@ -55,6 +57,20 @@ if exist "!SCRIPT_DIR!config.txt" (
         )
     )
 )
+
+REM --- Which agent (v3.3.0) ----------------------------------------------
+REM LAUNCH <id> is a Codex picker launch. READFILE is a Claude picker launch, whatever AGENT
+REM says. Every other launch (right-click, desktop shortcut) follows AGENT in config.txt;
+REM missing or unknown means Claude. Nothing set here reaches Claude's environment.
+if /i "%~1"=="LAUNCH" goto :codex_phase1
+if /i "%~1"=="READFILE" goto :agent_done
+call :read_agent
+if /i "!KV_AGENT!"=="codex" (
+    set "KV_AGENT="
+    goto :codex_phase1
+)
+set "KV_AGENT="
+:agent_done
 
 REM --- Determine work directory ---
 set "WORK_DIR=%USERPROFILE%"
@@ -416,4 +432,120 @@ REM %TIME% (HH:MM:SS.cc). `!TIME: =0!` zero-pads the space-padded hour (" 9:05"
 REM -> "09:05"); the 1HH-100 trick strips leading zeros without octal errors.
 set "_TT=!TIME: =0!"
 for /f "tokens=1-3 delims=:.," %%a in ("!_TT!") do set /a "%~1=(((1%%a-100)*60)+(1%%b-100))*60+(1%%c-100)"
+exit /b
+
+:read_agent
+REM Sets KV_AGENT from config.txt. The Claude picker rewrites config.txt without a temp file,
+REM so a right-click at that exact moment can find it empty: wait for it (about 5 seconds at
+REM most) instead of guessing which agent the user chose.
+set "KV_AGENT="
+if not exist "!SCRIPT_DIR!config.txt" exit /b 0
+for /l %%T in (1,1,5) do (
+    for %%F in ("!SCRIPT_DIR!config.txt") do if %%~zF GTR 0 goto :read_agent_now
+    ping -n 2 127.0.0.1 >nul
+)
+:read_agent_now
+for /f "usebackq tokens=1,* delims==" %%A in ("!SCRIPT_DIR!config.txt") do if "%%A"=="AGENT" set "KV_AGENT=%%B"
+exit /b 0
+
+REM ========================================
+REM   Codex (v3.3.0)
+REM ========================================
+REM This file carries no Codex user data: no startup text, flag or environment value ever
+REM passes through cmd (handout D15). It handles only the launch id (32 lowercase hex
+REM characters) and, for the terminal tab itself, the work folder, with delayed expansion OFF
+REM so a "!" in a folder name survives. configure-codex.js builds the launch folder, prints
+REM every message that contains user text, and starts Codex with an argument array.
+:codex_phase1
+setlocal disabledelayedexpansion
+set "KV_ID="
+if /i "%~1"=="LAUNCH" set "KV_ID=%~2"
+if /i "%~1"=="LAUNCH" goto :codex_have_id
+set "KV_FOLDER=%~1"
+if "%~1"=="" set "KV_FOLDER=%USERPROFILE%"
+for /f "delims=" %%I in ('node "%~dp0configure-codex.js" prepare "%KV_FOLDER%"') do set "KV_ID=%%I"
+:codex_have_id
+if not defined KV_ID goto :codex_bad_id
+echo(%KV_ID%| findstr /r /x "[0123456789abcdef]*" >nul || goto :codex_bad_id
+if "%KV_ID:~31,1%"=="" goto :codex_bad_id
+if not "%KV_ID:~32%"=="" goto :codex_bad_id
+node "%~dp0configure-codex.js" check %KV_ID% >nul 2>&1 || goto :codex_missing_folder
+for /f "delims=" %%W in ('node "%~dp0configure-codex.js" info %KV_ID% workdir') do set "WORK_DIR=%%W"
+REM Same folder normalising as the Claude path: never end in a backslash, never a bare drive.
+if "%WORK_DIR:~-1%"=="\" set "WORK_DIR=%WORK_DIR:~0,-1%"
+if "%WORK_DIR:~-1%"==":" set "WORK_DIR=%WORK_DIR%\."
+set "WT_TAB=%WORK_DIR%"
+for %%I in ("%WT_TAB%") do set "WT_TAB=%%~nxI"
+if not defined WT_TAB set "WT_TAB=ClaudeCode Launchpad CLI"
+REM Codex auto-continue is always off; Claude's watcher is never started for Codex.
+where node >nul 2>&1 && node "%~dp0apply-terminal-color.js" >nul 2>&1
+where node >nul 2>&1 && node "%~dp0dedupe-launch-tab.js" "%WT_TAB%" "%WORK_DIR%" >nul 2>&1
+where wt.exe >nul 2>&1 || goto :codex_fallback
+start "" wt.exe -w "ClaudeCodeLaunchpad" --maximized new-tab --title "%WT_TAB%" -p "ClaudeCode Launchpad CLI" -d "%WORK_DIR%" -- "%~dp0claudecode-launchpad.bat" --run-codex %KV_ID%
+exit /b 0
+
+:codex_fallback
+cd /d "%WORK_DIR%"
+goto :run_codex_body
+
+:codex_bad_id
+echo.
+echo   Launchpad could not prepare Codex for this folder.
+echo   Run the ClaudeCode Launchpad CLI installer again, then try once more.
+echo.
+pause
+exit /b 1
+
+:codex_missing_folder
+REM The message names the folder, so Node prints it (a folder name could break an echo).
+where wt.exe >nul 2>&1 && goto :codex_missing_wt
+node "%~dp0configure-codex.js" missing %KV_ID%
+exit /b 1
+:codex_missing_wt
+start "" wt.exe -w "ClaudeCodeLaunchpad" new-tab --title "Folder not found" -p "ClaudeCode Launchpad CLI" -d "%USERPROFILE%" -- node "%~dp0configure-codex.js" missing %KV_ID%
+exit /b 1
+
+:run_codex
+setlocal disabledelayedexpansion
+set "KV_ID=%~2"
+:run_codex_body
+title ClaudeCode Launchpad CLI
+set "TERMINAL_COLOR=kivun"
+if exist "%~dp0config.txt" for /f "usebackq tokens=1,* delims==" %%A in ("%~dp0config.txt") do if "%%A"=="TERMINAL_COLOR" set "TERMINAL_COLOR=%%B"
+call :codex_paint
+node "%~dp0configure-codex.js" run %KV_ID%
+:codex_shell
+REM Codex has exited. As for Claude, stay in the tab at a normal prompt: typing codex there
+REM relaunches it with the same options (and without the startup message); exit closes the tab.
+echo.
+echo  ------------------------------------------------------------
+echo   Codex ended. You're now at a normal command prompt.
+echo   Type  codex  to return to Codex, or  exit  to close.
+echo  ------------------------------------------------------------
+echo.
+cmd /k "doskey codex=exit 43"
+if %ERRORLEVEL% EQU 43 goto :codex_relaunch
+REM The session is over: remove this launch's folder (a closed tab is swept by later launches).
+rmdir /s /q "%LOCALAPPDATA%\Kivun\launch\%KV_ID%" >nul 2>&1
+exit /b 0
+:codex_relaunch
+node "%~dp0configure-codex.js" run %KV_ID% --relaunch
+goto :codex_shell
+
+:codex_paint
+REM The same instant ANSI repaint as the Claude path (phase 2), in its own scope.
+setlocal enabledelayedexpansion
+set "BG_RGB="
+set "FG_RGB="
+if /i "!TERMINAL_COLOR!"=="kivun" ( set "BG_RGB=200;230;255" & set "FG_RGB=12;12;12" )
+if /i "!TERMINAL_COLOR!"=="dark"  ( set "BG_RGB=30;30;30"    & set "FG_RGB=242;242;242" )
+if /i "!TERMINAL_COLOR!"=="black" ( set "BG_RGB=12;12;12"    & set "FG_RGB=242;242;242" )
+if /i "!TERMINAL_COLOR!"=="white" ( set "BG_RGB=255;255;255" & set "FG_RGB=12;12;12" )
+if not defined BG_RGB if "!TERMINAL_COLOR:~0,1!"=="#" call :resolve_hex "!TERMINAL_COLOR!"
+if defined BG_RGB (
+    for /f %%a in ('echo prompt $E ^| cmd') do set "ESC=%%a"
+    <nul set /p="!ESC![48;2;!BG_RGB!m!ESC![38;2;!FG_RGB!m"
+    cls
+)
+endlocal
 exit /b
