@@ -59,9 +59,20 @@ set "DO_NODE=0"
 set "DO_GIT=0"
 set "DO_CLAUDE=0"
 set "DO_WT=0"
+set "DO_CODEX=0"
+set "CODEX_NODE="
 
 :parse_args
 if "%~1"=="" goto :args_done
+REM /codex [full path of node.exe] - the installer passes the Node it resolved (v3.3.0).
+if /i "%~1"=="/codex" (
+    set "DO_CODEX=1"
+    set "NEXT_ARG=%~2"
+    if defined NEXT_ARG if not "!NEXT_ARG:~0,1!"=="/" (
+        set "CODEX_NODE=!NEXT_ARG!"
+        shift
+    )
+)
 if /i "%~1"=="/node"   set "DO_NODE=1"
 if /i "%~1"=="/git"    set "DO_GIT=1"
 if /i "%~1"=="/claude" set "DO_CLAUDE=1"
@@ -91,6 +102,8 @@ if not "!EXIT_CODE!"=="0" goto :cleanup
 if "!DO_GIT!"=="1" call :install_git
 if not "!EXIT_CODE!"=="0" goto :cleanup
 if "!DO_CLAUDE!"=="1" call :install_claude
+if not "!EXIT_CODE!"=="0" goto :cleanup
+if "!DO_CODEX!"=="1" call :install_codex
 if not "!EXIT_CODE!"=="0" goto :cleanup
 if "!DO_WT!"=="1" call :install_wt
 
@@ -263,6 +276,22 @@ if errorlevel 1 (
 )
 call :refresh_path
 call :say "[Claude Code] Installed."
+goto :eof
+
+:install_codex
+REM Codex (v3.3.0). Exit code 5 on failure (0-3 and 10 are taken, and the installer checks 4).
+REM All Codex logic - finding an existing copy, the version checks, the pinned npm install and
+REM its recovery - lives in configure-codex.js, where it is unit-tested. It prints its own
+REM progress and appends it to %KIVUN_LOG%. It never starts an interactive Codex session.
+call :refresh_path
+if not defined CODEX_NODE for /f "delims=" %%N in ('where node.exe 2^>nul') do if not defined CODEX_NODE set "CODEX_NODE=%%N"
+if not defined CODEX_NODE (
+    call :say "[Codex] ERROR: Node.js was not found. Run this installer again so it can install Node.js first."
+    set "EXIT_CODE=5"
+    goto :eof
+)
+"!CODEX_NODE!" "%~dp0configure-codex.js" install-codex
+if errorlevel 1 set "EXIT_CODE=5"
 goto :eof
 
 :install_wt
