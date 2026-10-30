@@ -44,3 +44,6 @@ dev/screenshots/
 
 # Keep VBScript helpers (they're small)
 !*.vbs
+
+# Launcher test harness work folder (source/test/launcher)
+.test-run/
