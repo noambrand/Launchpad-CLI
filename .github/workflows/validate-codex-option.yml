@@ -1,0 +1,45 @@
+name: Validate the Codex option (v3.3.0)
+
+# Derived from docs/REQUIREMENTS-codex-option.md. Runs on real Windows, because the launcher,
+# the installer script and the picker only exist there. Every step uses cmd: Launchpad's own
+# code never uses PowerShell, and the Windows runner's default shell would be PowerShell.
+
+on:
+  push:
+    paths:
+      - 'source/**'
+      - 'picker-app/**'
+      - 'ClaudeCode_Launchpad_CLI_Setup.nsi'
+      - '.gitattributes'
+      - '.github/workflows/validate-codex-option.yml'
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: cmd
+    env:
+      # Short and outside %TEMP%: Codex refuses its helpers under Temp, and its background
+      # server needs a connection-file path under 108 characters (Gate 0 findings).
+      KIVUN_TEST_ROOT: C:\kt
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Node unit tests and the Claude golden comparison (requirement A1)
+        run: node source\test\run-node-tests.js
+
+      - name: Existing auto-continue unit tests (Windows Script Host)
+        run: cscript //nologo source\test\RunUT.wsf
+
+      - name: The committed picker HTML is exactly what the builder makes from the HTA
+        run: |
+          node picker-app\build-picker.js source\folder-picker.hta "%RUNNER_TEMP%\folder-picker.html" || exit /b 1
+          fc /b source\folder-picker.html "%RUNNER_TEMP%\folder-picker.html" >nul || (echo FAIL: source\folder-picker.html is out of date. Rebuild it from the HTA. & exit /b 1)
+          echo PASS: picker HTML matches the HTA
