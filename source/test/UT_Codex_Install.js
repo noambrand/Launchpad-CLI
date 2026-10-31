@@ -90,7 +90,7 @@ test('UT_Install_Fail_Fresh: no Codex and no registry: a plain repair message, e
 function installCmd(d, args, extra) {
   const lad = path.join(d.root, 'lad');
   fs.mkdirSync(path.join(lad, 'Kivun'), { recursive: true });
-  for (const f of ['install.cmd', 'configure-codex.js']) fs.copyFileSync(path.join(fx.SOURCE, f), path.join(lad, 'Kivun', f));
+  for (const f of ['install.cmd', 'configure-codex.js', 'agent-helpers.js']) fs.copyFileSync(path.join(fx.SOURCE, f), path.join(lad, 'Kivun', f));
   const env = Object.assign({}, d.env, offline(d), { LOCALAPPDATA: lad, TEMP: path.join(d.root, 'tmp'), TMP: path.join(d.root, 'tmp') }, extra || {});
   delete env.KIVUN_DIR; delete env.KIVUN_LOG;      // install.cmd sets both itself
   fs.mkdirSync(env.TEMP, { recursive: true });

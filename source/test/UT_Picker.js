@@ -1,5 +1,5 @@
 // The folder picker's real script, run invisibly against a sealed folder (handout 7.7, D3, D6,
-// D16, D19; acceptance A2, A4, A5, A27, A31, A38).
+// D16, D19; acceptance A2, A4, A5, A27, A31, A38, A46).
 'use strict';
 const test = require('node:test');
 const assert = require('node:assert');
@@ -79,7 +79,9 @@ test('UT_Picker_CodexLaunch: launch.json, LAUNCH <id>, and none of Claude\'s han
   assert.strictEqual(after['config.txt'], before['config.txt'], 'config.txt unchanged (same color)');
   const saved = JSON.parse(after['profiles.json']).profiles[0];
   assert.strictEqual(saved.agent, 'codex');
-  assert.deepStrictEqual(saved.codex, { model: 'gpt-b', conv: 'last', customFlags: '--search', startupCmds: 'Read "README" & say 50% שלום\r\nthen continue' });
+  assert.deepStrictEqual(saved.codex, { model: 'gpt-b', conv: 'last', customFlags: '--search', startupCmds: 'Read "README" & say 50% שלום\r\nthen continue',
+    envVars: 'OPENAI_API_KEY=sk-test\r\nMY_VAR=a b' }, 'Codex keeps its own environment variables (A46)');
+  assert.strictEqual(saved.envVars, '', "Claude's environment variables untouched (A46)");
   assert.strictEqual(saved.model, 'opus', 'Claude fields kept');
 });
 

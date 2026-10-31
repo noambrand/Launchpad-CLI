@@ -12,6 +12,9 @@ REM ============================================================
 setlocal
 cscript //nologo "%~dp0RunUT.wsf"
 set "RC=%ERRORLEVEL%"
+REM v3.3.0: the Node suite too (Codex option, Claude golden comparison, picker, installer logic).
+node "%~dp0run-node-tests.js"
+if errorlevel 1 set "RC=1"
 echo.
 if "%RC%"=="0" (
     echo ALL TESTS PASSED

@@ -12,7 +12,7 @@ const isRun = r => r.args && !r.args.includes('--version') && !r.args.includes('
 function runCodexCase(c) {
   const launcher = fs.readFileSync(path.join(h.SOURCE, 'claudecode-launchpad.bat'), 'utf8');
   const d = h.makeSandbox(c.id, launcher);
-  fs.copyFileSync(path.join(h.SOURCE, 'configure-codex.js'), path.join(d.kivun, 'configure-codex.js'));
+  for (const f of ['configure-codex.js', 'agent-helpers.js']) fs.copyFileSync(path.join(h.SOURCE, f), path.join(d.kivun, f));
   const standins = h.buildStandIns();
   if (c.mode !== 'fallback') fs.copyFileSync(path.join(standins, 'wt.exe'), path.join(d.bin, 'wt.exe'));
   fs.copyFileSync(path.join(standins, 'claude.exe'), path.join(d.bin, 'claude.exe'));
@@ -34,10 +34,24 @@ function runCodexCase(c) {
   }
   const codexRuns = fx.records(fake).filter(isRun);
   return {
-    d, p1, p2, wt, phase2, codexRuns, before, after: h.snapshot(d.kivun),
+    d, p1, p2, wt, phase2, codexRuns, before, after: settledSnapshot(d.kivun),
     standIns: h.readStandIns(d.log),
     launches: fs.existsSync(path.join(d.kivun, 'launch')) ? fs.readdirSync(path.join(d.kivun, 'launch')) : [],
   };
+}
+
+// Each launch starts a hidden model-list refresh that writes kivun-codex-models.json through a
+// temporary file at its own pace: read the folder once that has settled (5 s at most).
+function settledSnapshot(dir) {
+  let last = null;
+  for (let i = 0; i < 25; i++) {
+    let snap = null;
+    try { snap = h.snapshot(dir); } catch (e) { /* a temporary file vanished while being read */ }
+    if (snap && !Object.keys(snap).some(n => n.endsWith('.tmp')) && JSON.stringify(snap) === JSON.stringify(last)) return snap;
+    last = snap;
+    fx.sleep(200);
+  }
+  return h.snapshot(dir);
 }
 
 // Load configure-codex.js with this sandbox's environment, to create picker launch folders.

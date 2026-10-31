@@ -4,7 +4,8 @@
 // the real configure-codex.js, a fake Codex, and stand-ins for install.cmd and the other helpers.
 // Nothing touches this PC's real Launchpad, and no window opens.
 // Test seams, applied to the cut-out text only: ExecWait becomes nsExec::Exec with the same
-// command line (hidden), and $PROFILE / $LOCALAPPDATA point into the sealed folder.
+// command line (hidden), $PROFILE / $LOCALAPPDATA point into the sealed folder, and $PROGRAMFILES
+// (both views) to the folder a test names (by default this PC's Program Files, where Node is).
 'use strict';
 const test = require('node:test');
 const assert = require('node:assert');
@@ -25,7 +26,8 @@ function cut(text, start, end, includeEnd) {
 }
 function seams(s) {
   return s.replace(/ExecWait ('[^\n]*') (\$\d)/g, 'nsExec::Exec $1\n  Pop $2')
-    .replace(/\$PROFILE\b/g, '$TestProfile').replace(/\$LOCALAPPDATA\b/g, '$TestLocal');
+    .replace(/\$PROFILE\b/g, '$TestProfile').replace(/\$LOCALAPPDATA\b/g, '$TestLocal')
+    .replace(/\$PROGRAMFILES(64)?\b/g, '$TestProgramFiles');
 }
 
 function testScript(out) {
@@ -41,9 +43,9 @@ function testScript(out) {
     '!include "LogicLib.nsh"', '!include "FileFunc.nsh"', '!include "Sections.nsh"', '!include "TextFunc.nsh"',
     'Name "AgentTest"', 'OutFile "' + out + '"', 'RequestExecutionLevel user', 'SilentInstall silent', 'InstallDir "$TEMP\\unused"',
     ...defines,
-    'Var ConfigAgent', 'Var NodeExe', 'Var CodexOK', 'Var FinishText', 'Var TestProfile', 'Var TestLocal',
+    'Var ConfigAgent', 'Var NodeExe', 'Var CodexOK', 'Var FinishText', 'Var TestProfile', 'Var TestLocal', 'Var TestProgramFiles',
     'Function .onInit',
-    '  ReadEnvStr $INSTDIR TEST_INSTDIR', '  ReadEnvStr $TestProfile TEST_PROFILE', '  ReadEnvStr $TestLocal TEST_LOCALAPPDATA',
+    '  ReadEnvStr $INSTDIR TEST_INSTDIR', '  ReadEnvStr $TestProfile TEST_PROFILE', '  ReadEnvStr $TestLocal TEST_LOCALAPPDATA', '  ReadEnvStr $TestProgramFiles TEST_PROGRAMFILES',
     '  StrCpy $CodexOK ""',
     seams(preselect),
     '  ReadEnvStr $R8 TEST_CHOICE',
@@ -119,7 +121,7 @@ function sandbox(name, opts) {
 function runInstaller(d, env) {
   const r = cp.spawnSync(build(), [], {
     env: Object.assign({}, d.env, {
-      TEST_INSTDIR: d.kivun, TEST_PROFILE: d.profile, TEST_LOCALAPPDATA: path.dirname(d.kivun), TEST_NODE: process.execPath,
+      TEST_INSTDIR: d.kivun, TEST_PROFILE: d.profile, TEST_LOCALAPPDATA: path.dirname(d.kivun), TEST_NODE: process.execPath, TEST_PROGRAMFILES: process.env.ProgramFiles,
       STUB_CALLS: d.calls, STUB_INSTALL_EXIT: '0', TEMP: d.root, TMP: d.root,
     }, env || {}),
     windowsHide: true, timeout: 180000,
@@ -253,6 +255,16 @@ test('UT_Installer_UninstallStopsOnFailure: the record survives, nothing after t
   assert.notStrictEqual(r.status, 0, 'the uninstaller reports a stop');
   assert.deepStrictEqual(r.lines, [], 'stopped before deleting anything');
   assert.ok(fs.existsSync(path.join(d.kivun, 'kivun-codex-changes.json')));
+});
+
+test('UT_Installer_UninstallWithoutNode: A44, Node.js removed first: a plain message, and the uninstall still finishes', { skip: SKIP }, () => {
+  const d = sandbox('uninstall no node', { config: CLAUDE_TEMPLATE() });
+  assert.strictEqual(fx.cli(d, ['install']).status, 0);
+  const noNode = path.join(d.root, 'no program files');
+  fs.mkdirSync(noNode, { recursive: true });
+  const r = runInstaller(d, { TEST_UNINSTALL: '1', TEST_PROGRAMFILES: noNode, PATH: path.join(process.env.SystemRoot || 'C:\\Windows', 'System32') });
+  assert.strictEqual(r.status, 0);
+  assert.deepStrictEqual(r.lines, ['uninstall-continued'], 'the uninstall goes on');
 });
 
 test('UT_Installer_UninstallWithoutRecord: a Claude-only PC needs no Node at uninstall', { skip: SKIP }, () => {
