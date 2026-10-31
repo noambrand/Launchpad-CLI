@@ -1,9 +1,13 @@
 # ClaudeCode Launchpad CLI Configuration
-# Claude Code response language
+# Response language (used by Claude Code and Codex)
 #
 # Options: english, hebrew, arabic, persian, urdu, kurdish, pashto, sindhi, yiddish, syriac, dhivehi, nko, adlam, mandaic, samaritan, dari, uyghur, balochi, kashmiri, shahmukhi, azeri_south, jawi, hausa_ajami, rohingya, turoyo
 # Default: english
 RESPONSE_LANGUAGE=english
+# AI agent for launches that skip the folder picker (right-click a folder, Send To):
+# empty or claude = Claude Code, codex = Codex. Chosen in the installer; run the
+# installer again to change it. The folder picker keeps its own choice per profile.
+AGENT=
 # Terminal background color
 #   kivun   - light blue (the default look)
 #   dark    - dark gray        black - almost black        white - white
@@ -27,6 +31,13 @@ CLAUDE_FLAGS=
 # Default startup command auto-typed into Claude after the TUI loads (e.g. /voicemode:converse)
 # Leave empty to skip. Do NOT put passwords here (it will be typed visibly).
 STARTUP_CMD=
+# Codex startup options (optional, applied on every Codex launch)
+# Example: CODEX_FLAGS=--search -s read-only
+CODEX_FLAGS=
+# First message sent to Codex on launches that skip the folder picker (optional).
+# Commands that start with / can't run at startup.
+CODEX_STARTUP_CMD=
+# Claude Code only (Codex never auto-continues).
 # Auto-continue when the 5-hour usage limit resets (opt-in, default off).
 # When true, a small background watcher waits until the limit's real reset time
 # passes, then focuses this tab and types "continue" once so work resumes on its

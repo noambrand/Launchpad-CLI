@@ -5,7 +5,7 @@
 Unicode True
 
 !define PRODUCT_NAME "ClaudeCode Launchpad CLI"
-!define PRODUCT_VERSION "3.2.2"
+!define PRODUCT_VERSION "3.3.0"
 !define PRODUCT_PUBLISHER "Noam Brand"
 !define PRODUCT_WEB_SITE "https://github.com"
 !define PRODUCT_DESCRIPTION "Claude Code installer for Windows"
@@ -20,6 +20,10 @@ Unicode True
 ; WinVer.nsh gives ${AtLeastWin10}, used in .onInit to warn on old Windows
 ; (Server 2012 R2 / 8.1 and older) that lack the modern pieces this app needs.
 !include "WinVer.nsh"
+; v3.3.0: Sections.nsh selects the Claude or Codex section from the agent choice;
+; TextFunc.nsh reads the AGENT line of an existing config.txt.
+!include "Sections.nsh"
+!include "TextFunc.nsh"
 
 
 ; Per-user install — no admin needed. Everything lands under
@@ -36,12 +40,12 @@ InstallDir "${INSTALL_DIR}"
 ShowInstDetails show
 
 ; Version info
-VIProductVersion "3.2.2.0"
+VIProductVersion "3.3.0.0"
 VIAddVersionKey "ProductName" "${PRODUCT_NAME}"
 VIAddVersionKey "ProductVersion" "${PRODUCT_VERSION}"
 VIAddVersionKey "CompanyName" "${PRODUCT_PUBLISHER}"
 VIAddVersionKey "FileDescription" "${PRODUCT_DESCRIPTION}"
-VIAddVersionKey "FileVersion" "2.9.3.0"
+VIAddVersionKey "FileVersion" "3.3.0.0"
 VIAddVersionKey "LegalCopyright" "(C) 2026 ${PRODUCT_PUBLISHER}"
 
 ; Modern UI Configuration
@@ -69,8 +73,13 @@ Page custom ConfigPage ConfigPageLeave
 !insertmacro MUI_PAGE_INSTFILES
 
 ; Finish page
+; v3.3.0: the text depends on the agent chosen on the configuration page. The Claude text is
+; exactly the v3.2.2 one. Declared here because the finish page code below reads it.
+Var FinishText
+!define FINISH_TEXT_CLAUDE "${PRODUCT_NAME} has been installed successfully.$\r$\n$\r$\n${PRODUCT_DESCRIPTION}$\r$\n$\r$\nTIP: Pin it to your taskbar for one-click access — click Start, type '${PRODUCT_NAME}', right-click the result and choose 'Pin to taskbar'. No need to hunt for the desktop icon.$\r$\n$\r$\nYou will need an Anthropic API key to use Claude Code.$\r$\nGet one at: https://console.anthropic.com/"
+!define FINISH_TEXT_CODEX "Codex is ready. When it first opens, sign in with your ChatGPT account or an OpenAI API key. Then type /hooks in Codex and approve Launchpad's sounds.$\r$\n$\r$\nThe Quick Start Guide explains the sandbox question Codex asks on its first run."
 !define MUI_FINISHPAGE_TITLE "${PRODUCT_NAME} Installation Complete!"
-!define MUI_FINISHPAGE_TEXT "${PRODUCT_NAME} has been installed successfully.$\r$\n$\r$\n${PRODUCT_DESCRIPTION}$\r$\n$\r$\nTIP: Pin it to your taskbar for one-click access — click Start, type '${PRODUCT_NAME}', right-click the result and choose 'Pin to taskbar'. No need to hunt for the desktop icon.$\r$\n$\r$\nYou will need an Anthropic API key to use Claude Code.$\r$\nGet one at: https://console.anthropic.com/"
+!define MUI_FINISHPAGE_TEXT "$FinishText"
 !define MUI_FINISHPAGE_RUN
 !define MUI_FINISHPAGE_RUN_TEXT "Create Desktop Shortcut"
 !define MUI_FINISHPAGE_RUN_FUNCTION CreateDesktopShortcut
@@ -108,6 +117,15 @@ Var NodeExe
 ; there (this process's PATH is stale right after install, same as NodeExe),
 ; else `cmd /c claude` so an npm-installed claude.cmd on PATH still works.
 Var ClaudeCmd
+; v3.3.0: the agent chosen on the configuration page, "claude" or "codex". .onInit starts it
+; from AGENT in an existing config.txt (missing or anything else = claude), so an upgrade,
+; also a silent one, keeps the agent the PC already uses.
+Var ConfigAgent
+Var AgentClaudeRadio
+Var AgentCodexRadio
+Var AgentCodexNote
+; "1" once SecCodex installed Codex and committed it as the agent (D18).
+Var CodexOK
 
 ; Pre-install warning: remind users to finish active CLI sessions
 Function .onInit
@@ -132,11 +150,19 @@ Function .onInit
     /SD IDOK IDOK continueInstall
   Abort
   continueInstall:
+
+  ; v3.3.0: start from the agent this PC already uses (see Var ConfigAgent).
+  StrCpy $ConfigAgent "claude"
+  ${ConfigRead} "$INSTDIR\config.txt" "AGENT=" $0
+  ${If} $0 S== "codex"
+    StrCpy $ConfigAgent "codex"
+  ${EndIf}
+  Call ApplyAgentChoice
 FunctionEnd
 
 ; Configuration page
 Function ConfigPage
-  !insertmacro MUI_HEADER_TEXT "Configuration" "Choose your display name and language preference"
+  !insertmacro MUI_HEADER_TEXT "Configuration" "Choose your AI agent, display name and language preference"
 
 nsDialogs::Create 1018
   Pop $0
@@ -147,14 +173,24 @@ nsDialogs::Create 1018
   ; Display name
   ${NSD_CreateLabel} 0 0 100% 12u "Your name (for display purposes):"
   Pop $0
-  ${NSD_CreateText} 0 15u 100% 12u ""
+  ${NSD_CreateText} 0 13u 100% 12u ""
   Pop $ConfigUsername
 
-  ; Language selection
-  ${NSD_CreateLabel} 0 40u 100% 12u "Claude Code response language:"
+  ; v3.3.0: the AI agent Launchpad installs and starts (D17). Claude Code is the default.
+  ${NSD_CreateLabel} 0 31u 100% 12u "AI agent:"
+  Pop $0
+  ${NSD_CreateFirstRadioButton} 0 43u 48% 12u "Claude Code (Anthropic)"
+  Pop $AgentClaudeRadio
+  ${NSD_CreateAdditionalRadioButton} 50% 43u 50% 12u "Codex (OpenAI)"
+  Pop $AgentCodexRadio
+  ${NSD_OnClick} $AgentClaudeRadio AgentRadioClicked
+  ${NSD_OnClick} $AgentCodexRadio AgentRadioClicked
+
+  ; Language selection (used by both agents; on an upgrade config.txt keeps its own)
+  ${NSD_CreateLabel} 0 61u 100% 12u "Response language:"
   Pop $0
 
-  ${NSD_CreateDropList} 0 55u 100% 200u ""
+  ${NSD_CreateDropList} 0 73u 100% 200u ""
   Pop $ConfigLanguage
   ${NSD_CB_AddString} $ConfigLanguage "English"
   ${NSD_CB_AddString} $ConfigLanguage "Hebrew"
@@ -184,9 +220,19 @@ nsDialogs::Create 1018
   ${NSD_CB_SelectString} $ConfigLanguage "English"
 
   ; Terminal color theme checkbox
-  ${NSD_CreateCheckbox} 0 95u 100% 12u "Apply Kivun light-blue terminal theme (recommended)"
+  ${NSD_CreateCheckbox} 0 93u 100% 12u "Apply Kivun light-blue terminal theme (recommended)"
   Pop $ConfigTerminalColor
   ${NSD_Check} $ConfigTerminalColor
+
+  ; Shown only while Codex is selected.
+  ${NSD_CreateLabel} 0 110u 100% 28u "Codex is a large download (about 500 MB). Codex shows Hebrew and Arabic left to right. Right-to-left display works only with Claude Code."
+  Pop $AgentCodexNote
+  ${If} $ConfigAgent == "codex"
+    ${NSD_Check} $AgentCodexRadio
+  ${Else}
+    ${NSD_Check} $AgentClaudeRadio
+    ShowWindow $AgentCodexNote ${SW_HIDE}
+  ${EndIf}
 
 nsDialogs::Show
 FunctionEnd
@@ -195,6 +241,23 @@ Function ConfigPageLeave
   ${NSD_GetText} $ConfigLanguage $ConfigLanguage
   ${NSD_GetText} $ConfigUsername $ConfigUsername
   ${NSD_GetState} $ConfigTerminalColor $ConfigTerminalColor
+  ${NSD_GetState} $AgentCodexRadio $0
+  ${If} $0 == ${BST_CHECKED}
+    StrCpy $ConfigAgent "codex"
+  ${Else}
+    StrCpy $ConfigAgent "claude"
+  ${EndIf}
+  Call ApplyAgentChoice
+FunctionEnd
+
+Function AgentRadioClicked
+  Pop $0
+  ${NSD_GetState} $AgentCodexRadio $0
+  ${If} $0 == ${BST_CHECKED}
+    ShowWindow $AgentCodexNote ${SW_SHOW}
+  ${Else}
+    ShowWindow $AgentCodexNote ${SW_HIDE}
+  ${EndIf}
 FunctionEnd
 
 ; Installation sections
@@ -258,6 +321,8 @@ Section "!Core Components (Required)" SecCore
   Delete "$INSTDIR\folder-picker.hta.bak.*"
   File "source\LaunchpadPicker.exe"
   File "source\folder-picker.html"
+  ; v3.3.0: helpers the picker page shares with configure-codex.js.
+  File "source\agent-helpers.js"
   File "source\webview-shim.js"
   File "source\Microsoft.Web.WebView2.Core.dll"
   File "source\Microsoft.Web.WebView2.WinForms.dll"
@@ -276,6 +341,8 @@ Section "!Core Components (Required)" SecCore
   File "source\statusline.mjs"
   File "source\configure-statusline.js"
   File "source\configure-fast-updates.js"
+  ; v3.3.0: Codex setup, launch and uninstall (Node built-ins only).
+  File "source\configure-codex.js"
   File "source\install.cmd"
   File "source\launchpad-diagnostics.cmd"
   File "source\install-node-elevated.js"
@@ -314,7 +381,7 @@ Section "!Core Components (Required)" SecCore
   Delete "$INSTDIR\config.txt"
   FileOpen $0 "$INSTDIR\config.txt" w
   FileWrite $0 "# ClaudeCode Launchpad CLI Configuration$\r$\n"
-  FileWrite $0 "# Claude Code response language$\r$\n"
+  FileWrite $0 "# Response language (used by Claude Code and Codex)$\r$\n"
   FileWrite $0 "#$\r$\n"
   FileWrite $0 "# Options: english, hebrew, arabic, persian, urdu, kurdish, pashto, sindhi, yiddish, syriac, dhivehi, nko, adlam, mandaic, samaritan, dari, uyghur, balochi, kashmiri, shahmukhi, azeri_south, jawi, hausa_ajami, rohingya, turoyo$\r$\n"
   FileWrite $0 "# Default: english$\r$\n"
@@ -371,6 +438,11 @@ Section "!Core Components (Required)" SecCore
     FileWrite $0 "RESPONSE_LANGUAGE=english$\r$\n"
   ${EndIf}
 
+  FileWrite $0 "# AI agent for launches that skip the folder picker (right-click a folder, Send To):$\r$\n"
+  FileWrite $0 "# empty or claude = Claude Code, codex = Codex. Chosen in the installer; run the$\r$\n"
+  FileWrite $0 "# installer again to change it. The folder picker keeps its own choice per profile.$\r$\n"
+  FileWrite $0 "AGENT=$\r$\n"
+
   FileWrite $0 "# Terminal background color$\r$\n"
   FileWrite $0 "#   kivun   - light blue (the default look)$\r$\n"
   FileWrite $0 "#   dark    - dark gray        black - almost black        white - white$\r$\n"
@@ -392,6 +464,14 @@ Section "!Core Components (Required)" SecCore
   FileWrite $0 "# Leave empty to skip. Do NOT put passwords here (typed visibly).$\r$\n"
   FileWrite $0 "STARTUP_CMD=$\r$\n"
 
+  FileWrite $0 "# Codex startup options (optional, applied on every Codex launch)$\r$\n"
+  FileWrite $0 "# Example: CODEX_FLAGS=--search -s read-only$\r$\n"
+  FileWrite $0 "CODEX_FLAGS=$\r$\n"
+  FileWrite $0 "# First message sent to Codex on launches that skip the folder picker (optional).$\r$\n"
+  FileWrite $0 "# Commands that start with / can't run at startup.$\r$\n"
+  FileWrite $0 "CODEX_STARTUP_CMD=$\r$\n"
+
+  FileWrite $0 "# Claude Code only (Codex never auto-continues).$\r$\n"
   FileWrite $0 "# Auto-continue when the 5-hour usage limit resets (opt-in, default off).$\r$\n"
   FileWrite $0 "# A background watcher waits past the real reset time, then focuses this$\r$\n"
   FileWrite $0 "# tab and types 'continue' once. Needs the PC awake and the tab open. It$\r$\n"
@@ -665,6 +745,103 @@ Section "!Install Claude Code (Required)" SecClaudeCode
   Pop $0
 SectionEnd
 
+; v3.3.0 (D13): Claude chosen on a PC that was set to Codex switches the launcher back to
+; Claude Code. Everywhere else (AGENT missing or claude) it runs nothing, so a Claude
+; install or upgrade leaves config.txt exactly as v3.2.2 did.
+Section "-Use Claude Code" SecAgentClaude
+  ${If} $ConfigAgent == "claude"
+    ${ConfigRead} "$INSTDIR\config.txt" "AGENT=" $0
+    ${If} $0 S== "codex"
+      DetailPrint "Switching Launchpad back to Claude Code..."
+      nsExec::ExecToLog '"$NodeExe" "$INSTDIR\configure-codex.js" set-agent claude'
+      Pop $0
+      ${If} $0 S!= "0"
+        MessageBox MB_OK|MB_ICONEXCLAMATION "Launchpad couldn't switch back to Claude Code because its settings file is in use.$\n$\nClose the ClaudeCode Launchpad CLI window, then run this installer again." /SD IDOK
+      ${EndIf}
+    ${EndIf}
+  ${EndIf}
+SectionEnd
+
+; v3.3.0: Codex instead of Claude Code (D17). Selected only when Codex is chosen. AGENT is
+; switched to codex only after the installed copy is verified (D18, handout 7.4 and 7.8).
+Section /o "!Install Codex (Required)" SecCodex
+  SectionIn RO
+  StrCpy $CodexOK "0"
+
+  ; Node by full path, exactly as SecClaudeCode resolves it (this process's PATH is stale).
+  StrCpy $NodeExe "node"
+  ${If} ${FileExists} "$PROGRAMFILES64\nodejs\node.exe"
+    StrCpy $NodeExe "$PROGRAMFILES64\nodejs\node.exe"
+  ${ElseIf} ${FileExists} "$PROGRAMFILES\nodejs\node.exe"
+    StrCpy $NodeExe "$PROGRAMFILES\nodejs\node.exe"
+  ${ElseIf} ${FileExists} "$LOCALAPPDATA\Programs\nodejs\node.exe"
+    StrCpy $NodeExe "$LOCALAPPDATA\Programs\nodejs\node.exe"
+  ${EndIf}
+  DetailPrint "Using Node at: $NodeExe"
+
+  DetailPrint "Installing Codex via install.cmd (a download of about 500 MB)..."
+  ExecWait 'cmd /c ""$INSTDIR\install.cmd" /codex "$NodeExe""' $0
+  DetailPrint "install.cmd /codex exit code: $0"
+
+  ${If} $0 == 0
+    ; The shared sounds only; a Codex-only PC gets no Claude settings.json.
+    DetailPrint "Deploying voice alerts for Codex..."
+    nsExec::ExecToLog '"$NodeExe" "$INSTDIR\sounds\configure-sound-hooks.js" --deploy-only'
+    Pop $1
+    DetailPrint "Configuring Codex (status line and sound hooks)..."
+    nsExec::ExecToLog '"$NodeExe" "$INSTDIR\configure-codex.js" install'
+    Pop $1
+    ${If} $1 S!= "0"
+      DetailPrint "WARNING: Could not configure Codex settings (result: $1)"
+    ${EndIf}
+    DetailPrint "Reading the Codex model list..."
+    nsExec::ExecToLog '"$NodeExe" "$INSTDIR\configure-codex.js" models --bundled'
+    Pop $1
+  ${EndIf}
+
+  ; Windows Terminal profile and color, as at the end of SecClaudeCode.
+  DetailPrint "Applying Windows Terminal profile settings..."
+  nsExec::ExecToLog '"$NodeExe" "$INSTDIR\apply-wt-settings.js"'
+  Pop $1
+  DetailPrint "Applying terminal color from config..."
+  nsExec::ExecToLog '"$NodeExe" "$INSTDIR\apply-terminal-color.js"'
+  Pop $1
+
+  ; The one commit point: verify the copy, cache its path, then AGENT=codex.
+  ${If} $0 == 0
+    nsExec::ExecToLog '"$NodeExe" "$INSTDIR\configure-codex.js" commit'
+    Pop $1
+    ${If} $1 S== "0"
+      StrCpy $CodexOK "1"
+      DetailPrint "Codex installed and selected"
+    ${EndIf}
+  ${EndIf}
+
+  ${If} $CodexOK != "1"
+    DetailPrint "WARNING: Codex could not be installed"
+    ; With Claude Code on this PC nothing changes (D8). On a PC with no agent, AGENT records
+    ; Codex, so the launcher shows the repair message rather than trying Claude.
+    StrCpy $2 "0"
+    ${If} ${FileExists} "$PROFILE\.local\bin\claude.exe"
+      StrCpy $2 "1"
+    ${Else}
+      nsExec::ExecToStack 'where claude'
+      Pop $3
+      Pop $4
+      ${If} $3 S== "0"
+        StrCpy $2 "1"
+      ${EndIf}
+    ${EndIf}
+    ${If} $2 == "1"
+      MessageBox MB_OK|MB_ICONEXCLAMATION "Codex could not be installed, so nothing was changed: Launchpad keeps starting the AI agent it used before.$\n$\nDetails: $LOCALAPPDATA\Kivun\install-log.txt$\n$\nRun this installer again to try once more." /SD IDOK
+    ${Else}
+      nsExec::ExecToLog '"$NodeExe" "$INSTDIR\configure-codex.js" set-agent codex'
+      Pop $1
+      MessageBox MB_OK|MB_ICONEXCLAMATION "Codex could not be installed.$\n$\nDetails: $LOCALAPPDATA\Kivun\install-log.txt$\n$\nRun this installer again to finish installing Codex. Until then, Launchpad shows a repair message instead of starting Codex." /SD IDOK
+    ${EndIf}
+  ${EndIf}
+SectionEnd
+
 Section "Install Windows Terminal (Recommended)" SecWindowsTerminal
   DetailPrint "Installing Windows Terminal via install.cmd..."
   ExecWait 'cmd /c "$INSTDIR\install.cmd" /wt' $0
@@ -692,9 +869,28 @@ SectionEnd
   !insertmacro MUI_DESCRIPTION_TEXT ${SecCore} "Core files: launcher scripts, shortcuts, configuration, and Windows Terminal profile."
   !insertmacro MUI_DESCRIPTION_TEXT ${SecNodeJS} "Node.js runtime (required for statusline display). Skipped if already installed."
   !insertmacro MUI_DESCRIPTION_TEXT ${SecClaudeCode} "Claude Code CLI tool (installed via Anthropic native installer)."
+  !insertmacro MUI_DESCRIPTION_TEXT ${SecCodex} "Codex CLI by OpenAI, installed with npm (a download of about 500 MB). Chosen on the configuration page instead of Claude Code."
   !insertmacro MUI_DESCRIPTION_TEXT ${SecWindowsTerminal} "Windows Terminal with light blue color scheme. Falls back to cmd.exe if not installed."
   !insertmacro MUI_DESCRIPTION_TEXT ${SecGit} "Git version control (optional, for development workflows)."
 !insertmacro MUI_FUNCTION_DESCRIPTION_END
+
+; v3.3.0 (D17): a Codex choice skips the Claude install and installs Codex; a Claude choice is
+; exactly the v3.2.2 install. An empty section name hides the section on the components page.
+Function ApplyAgentChoice
+  ${If} $ConfigAgent == "codex"
+    !insertmacro UnselectSection ${SecClaudeCode}
+    SectionSetText ${SecClaudeCode} ""
+    !insertmacro SelectSection ${SecCodex}
+    SectionSetText ${SecCodex} "Install Codex (Required)"
+    StrCpy $FinishText "${FINISH_TEXT_CODEX}"
+  ${Else}
+    !insertmacro SelectSection ${SecClaudeCode}
+    SectionSetText ${SecClaudeCode} "Install Claude Code (Required)"
+    !insertmacro UnselectSection ${SecCodex}
+    SectionSetText ${SecCodex} ""
+    StrCpy $FinishText "${FINISH_TEXT_CLAUDE}"
+  ${EndIf}
+FunctionEnd
 
 ; Desktop shortcut creation function (called from finish page)
 Function CreateDesktopShortcut
@@ -710,6 +906,27 @@ Section "Uninstall"
   ; it is removed by the RMDir below). See CHANGELOG v2.6.8.
   nsExec::Exec 'cscript.exe //B //Nologo "$INSTDIR\close-launchers.js"'
   Pop $0
+
+  ; v3.3.0: take out only what Launchpad added to Codex's settings (status line, sound hooks).
+  ; The record of those additions lives in this folder, so this runs before anything is
+  ; deleted; if it fails, stop here and keep the record for the next run (handout 7.8).
+  ; Neither AI agent is ever uninstalled.
+  ${If} ${FileExists} "$LOCALAPPDATA\Kivun\kivun-codex-changes.json"
+    StrCpy $NodeExe "node"
+    ${If} ${FileExists} "$PROGRAMFILES64\nodejs\node.exe"
+      StrCpy $NodeExe "$PROGRAMFILES64\nodejs\node.exe"
+    ${ElseIf} ${FileExists} "$PROGRAMFILES\nodejs\node.exe"
+      StrCpy $NodeExe "$PROGRAMFILES\nodejs\node.exe"
+    ${ElseIf} ${FileExists} "$LOCALAPPDATA\Programs\nodejs\node.exe"
+      StrCpy $NodeExe "$LOCALAPPDATA\Programs\nodejs\node.exe"
+    ${EndIf}
+    nsExec::ExecToLog '"$NodeExe" "$INSTDIR\configure-codex.js" uninstall'
+    Pop $0
+    ${If} $0 S!= "0"
+      MessageBox MB_OK|MB_ICONSTOP "Launchpad couldn't remove its Codex settings. Close Codex and run the uninstaller again." /SD IDOK
+      Abort "Launchpad couldn't remove its Codex settings."
+    ${EndIf}
+  ${EndIf}
 
   ; Unregister the bundled plugins BEFORE their folder is deleted, so Claude
   ; doesn't report a missing marketplace at every start. Removing the

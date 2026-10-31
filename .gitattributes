@@ -9,3 +9,6 @@ mac/scripts/postinstall eol=lf
 
 # Vendored third-party plugin: keep bytes identical to upstream (checked by validate-rtl-plugin.yml)
 source/plugins/** -text
+
+# The installer ships config.txt verbatim and cmd reads it: keep it CRLF in every build.
+source/config.txt text eol=crlf

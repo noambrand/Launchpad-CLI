@@ -35,6 +35,11 @@ jobs:
       - name: Node unit tests and the Claude golden comparison (requirement A1)
         run: node source\test\run-node-tests.js
 
+      - name: The installer script compiles with no warnings (handout 7.8)
+        run: |
+          "C:\Program Files (x86)\NSIS\makensis.exe" /V2 /WX ClaudeCode_Launchpad_CLI_Setup.nsi || exit /b 1
+          echo PASS: installer compiled
+
       - name: Existing auto-continue unit tests (Windows Script Host)
         run: cscript //nologo source\test\RunUT.wsf
 
