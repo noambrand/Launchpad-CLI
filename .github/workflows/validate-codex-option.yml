@@ -51,8 +51,10 @@ jobs:
       - name: Existing auto-continue unit tests (Windows Script Host)
         run: cscript //nologo source\test\RunUT.wsf
 
-      - name: The committed picker HTML is exactly what the builder makes from the HTA
+      # Compared with line endings aside: the checkout turns every line end of the committed file
+      # into CRLF, while the builder keeps the mixed ends of its own insertions (first run).
+      - name: The committed picker HTML is what the builder makes from the HTA
         run: |
           node picker-app\build-picker.js source\folder-picker.hta "%RUNNER_TEMP%\folder-picker.html" || exit /b 1
-          fc /b source\folder-picker.html "%RUNNER_TEMP%\folder-picker.html" >nul || (echo FAIL: source\folder-picker.html is out of date. Rebuild it from the HTA. & exit /b 1)
+          node -e "const fs = require('fs'), t = f => fs.readFileSync(f, 'utf8').replace(/\r\n/g, '\n'); process.exit(t('source/folder-picker.html') === t(process.argv[1]) ? 0 : 1)" "%RUNNER_TEMP%\folder-picker.html" || (echo FAIL: source\folder-picker.html is out of date. Rebuild it from the HTA. & exit /b 1)
           echo PASS: picker HTML matches the HTA
