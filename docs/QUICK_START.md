@@ -13,6 +13,7 @@ ClaudeCode Launchpad CLI is a Claude Code installer for Windows and macOS. It se
 1. Double-click `ClaudeCode_Launchpad_CLI_Setup.exe` (no admin needed - it installs just for you)
 2. Follow the wizard:
    - Enter your name
+   - Choose the AI agent: Claude Code (default) or Codex by OpenAI (see [Using Codex](#using-codex))
    - Choose response language (English or Hebrew)
    - Select components (Windows Terminal recommended, Git optional)
 3. Done! Launch from the desktop shortcut.
@@ -68,6 +69,40 @@ Tip: save a folder + options combo as a **named profile** using the chip row at 
 2. **Send To - ClaudeCode Launchpad CLI**
 3. Claude Code opens in that folder
 
+## Using Codex
+
+Choose **Codex** in the installer (Windows only) and Launchpad sets up OpenAI's Codex instead of
+Claude Code. Codex is a download of about 500 MB. A Claude Code already on your PC stays.
+
+**The first time Codex opens:**
+
+1. Sign in with your ChatGPT account or an OpenAI API key. If your company PC blocks the
+   sign-in page, open Command Prompt from the Start menu and run `codex login --device-auth`:
+   it signs you in with a code instead. Then launch again.
+2. Codex asks whether to trust the folder. Trust it if it is your own project.
+3. Codex asks how to set up its sandbox (the safety fence around what it may change). Choose
+   **Set up default sandbox** if you can approve the Windows administrator prompt that follows.
+   Otherwise choose **Use non-admin sandbox**.
+4. Codex says that hooks need review. Type `/hooks` and approve Launchpad's two sounds:
+   *permission* when Codex asks before acting, and *done* when it finishes a reply.
+
+**What works differently from Claude Code:**
+
+- The startup message in the picker is sent as your first message once Codex is ready.
+  Several lines become one message. Commands that start with / can't run at startup. In a few
+  cases (for example while the sandbox is being set up) Codex leaves the message in the input
+  box: press Enter to send it.
+- **Continue last conversation** reopens the last Codex conversation in that folder. If Codex
+  says the conversation is open in another app, close that window or press R.
+- If your Codex settings already hold instructions of your own, Launchpad doesn't add the
+  response-language line, so your instructions are kept.
+- Codex shows Hebrew and Arabic left to right. Right-to-left display works only with Claude Code.
+- No idle reminder sound and no auto-continue after the usage limit resets.
+
+**Both agents on one PC:** the picker shows a Claude Code / Codex choice, and each profile
+keeps its own. Right-click "Open with" and Send To start the agent you chose in the installer;
+run the installer again to change it.
+
 ## Configuration
 
 All settings live in one plain-text file: `%LOCALAPPDATA%\Kivun\config.txt`. Open it in Notepad and change anything - nothing is permanent. Common keys:
@@ -77,7 +112,10 @@ All settings live in one plain-text file: `%LOCALAPPDATA%\Kivun\config.txt`. Ope
 - `TERMINAL_COLOR` - `kivun` (light blue), `dark`, `black`, `white`, `default`, or a custom `#RRGGBB`
 - `CLAUDE_FLAGS` - default flags added to every launch (e.g. `--model opus`)
 - `STARTUP_CMD` - a slash command typed in automatically after Claude opens
-- `AUTO_CONTINUE` - `true` to resume automatically after the 5-hour limit resets (off by default)
+- `AUTO_CONTINUE` - `true` to resume automatically after the 5-hour limit resets (off by default, Claude Code only)
+- `AGENT` - the agent right-click launches start: empty for Claude Code, `codex` for Codex (the installer sets it)
+- `CODEX_FLAGS` - Codex options added to every Codex launch (e.g. `--search`)
+- `CODEX_STARTUP_CMD` - a first message sent to Codex on right-click launches
 
 Most of these can also be set per-launch in the folder picker's **Advanced options**.
 

@@ -1,5 +1,48 @@
 # Changelog
 
+## [3.3.0] - unreleased
+
+### Added: Codex (OpenAI) as a second AI agent, on Windows
+
+The installer now asks which AI agent to set up: Claude Code (the default, unchanged) or Codex,
+OpenAI's coding agent. Everything Launchpad does for Claude Code stays exactly as it was in
+3.2.2: the same launch, the same files, the same settings. macOS stays Claude-only.
+
+When you choose Codex:
+
+- The installer downloads Codex with npm (about 500 MB) and uses a copy you already have if it
+  is version 0.166.0 or newer. An older copy that npm installed is updated after a notice;
+  any other older copy is left alone with a message. Claude Code is not installed, and a
+  Claude Code you already have stays.
+- The folder picker, right-click "Open with" and Send To start Codex. The picker shows an agent
+  choice when both agents are installed, and each profile remembers its own agent, model,
+  options and startup message.
+- Codex gets a status bar (model, context, tokens, usage limits, folder) and two sounds:
+  permission, when Codex asks before acting, and done, when it finishes a reply. Codex asks you
+  to approve them once: type `/hooks` in Codex.
+- The response language is passed to Codex, unless your Codex settings already hold
+  instructions of your own: then yours are kept.
+- The picker's startup message is sent to Codex as your first message. Commands that start
+  with / can't run at startup.
+
+Not available with Codex: right-to-left display (Codex shows Hebrew and Arabic left to
+right), the idle reminder sound, and auto-continue after the usage limit resets.
+
+Install, upgrade and uninstall:
+
+- An upgrade keeps the agent you use. Running the installer again and choosing the other agent
+  switches right-click launches to it; profiles keep their own choice.
+- If Codex can't be installed and Claude Code is on the PC, nothing changes. On a PC with no
+  agent yet, Launchpad shows a repair message until the installer is run again.
+- Uninstalling removes only what Launchpad added to Codex's settings. Neither agent is
+  uninstalled, and your sign-in and conversations stay.
+
+### Fixed: the diagnostic report always said the folder picker was missing
+
+It looked for the old `folder-picker.hta`, which the installer removes since 3.0.0. It now
+checks `LaunchpadPicker.exe` and `folder-picker.html`, and also reports the chosen agent and
+the Codex version.
+
 ## [3.2.2] - 2026-10-12
 
 ### Fixed: slash commands in right-to-left replies

@@ -250,6 +250,81 @@ What to do:
 
 ---
 
+## Codex
+
+These apply when you chose **Codex** in the installer (Windows, v3.3.0+). The install log is
+`%LOCALAPPDATA%\Kivun\install-log.txt`; the diagnostic report above includes it.
+
+### "Codex could not be installed"
+
+Run the installer again and choose Codex: it picks up where it stopped. If Claude Code is on the
+PC, nothing was changed in the meantime. Common causes, as the log names them:
+
+- **No internet, or the npm registry is blocked** ("couldn't reach the npm registry"): connect,
+  or ask IT to allow `registry.npmjs.org`, then run the installer again.
+- **"Missing optional dependency @openai/codex-win32-x64"**: a known npm problem on Windows.
+  The installer already retries with the Windows part named explicitly; running it again
+  repairs a half-finished copy.
+- **"Node.js ... is too old"** or **"npm was not found"**: update or reinstall Node.js from
+  <https://nodejs.org/>, then run the installer again.
+- **An older Codex that npm did not install** (for example from winget or OpenAI's own
+  installer): Launchpad doesn't change it. Update it the way you installed it, then run the
+  installer again.
+- **"The Codex folder path is too long for Windows"**: Windows can't start a program whose full
+  path is over 260 characters. Install Codex into a shorter folder, then run the installer again.
+
+### Launchpad says Codex was not found when it opens
+
+`AGENT=codex` is set, but no usable Codex was found (it was removed, moved, or never finished
+installing). Run the installer again and choose Codex. Launchpad never switches to Claude Code
+on its own.
+
+### No sounds in Codex
+
+Codex runs new hooks only after you approve them. Type `/hooks` in Codex and approve
+Launchpad's two entries. Starting Codex with `--disable hooks` (or a company policy that turns
+hooks off) silences them. Codex has no idle reminder sound.
+
+### Codex shows "This conversation is open in another app"
+
+**Continue last conversation** found that conversation still open in another Codex window.
+Close that window, or press R in this one.
+
+### The startup message is still in the input box
+
+Codex sends it once it is ready. While its sandbox is being set up, or when input is blocked,
+it puts the message back in the input box instead: press Enter to send it. Commands that start
+with / are never run at startup.
+
+### The response-language line was not added
+
+If your Codex settings (or your Codex options) already hold `developer_instructions` of your
+own, Launchpad keeps them and doesn't add its language line. Add the language to your own
+instructions, or remove them, if you want Launchpad's line.
+
+### Codex uses a lot of disk space
+
+Codex keeps a second copy of itself (about 400 MB) in `.codex\packages\app-server-daemon` for
+its background server. If the path to your `.codex` folder is very long, the background server
+can't start ("app server did not become ready"), so Launchpad starts Codex without it
+(`--no-daemon`) and says so when it opens.
+
+### The sign-in page is blocked on a company PC
+
+Open Command Prompt from the Start menu and run `codex login --device-auth`. Codex shows a code
+to enter in any browser instead of opening its own sign-in page. Then launch again.
+
+### `CODEX_HOME` in a picker profile
+
+Not supported: Codex reads Launchpad's status bar and sound hooks from one settings folder. Set
+`CODEX_HOME` for your whole Windows account (or leave it unset), then run the installer again.
+
+### Hebrew or Arabic shows left to right in Codex
+
+Expected: right-to-left display works only with Claude Code.
+
+---
+
 ## macOS
 
 ### Installer blocked by Gatekeeper
