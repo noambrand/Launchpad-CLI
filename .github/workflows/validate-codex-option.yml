@@ -32,6 +32,14 @@ jobs:
         with:
           node-version: '20'
 
+      # The windows-2025 image has no NSIS (found on the first run: the installer tests were
+      # skipped and the compile step failed). Installed as release.yml does, before the Node
+      # tests, so the installer-logic tests run instead of skipping.
+      - name: Install NSIS
+        run: |
+          choco install nsis -y --no-progress || exit /b 1
+          if not exist "C:\Program Files (x86)\NSIS\makensis.exe" (echo FAIL: makensis.exe not found after install & exit /b 1)
+
       - name: Node unit tests and the Claude golden comparison (requirement A1)
         run: node source\test\run-node-tests.js
 
