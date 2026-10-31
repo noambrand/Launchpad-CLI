@@ -10,7 +10,8 @@
 //   models [--bundled]      refresh the model list cache (kivun-codex-models.json)
 //   set-agent <claude|codex>  the ONLY writer of AGENT in config.txt (D13), one atomic replace (D18)
 //   commit                  verify the installed Codex, cache its path, then set-agent codex
-//   prepare <folder>        create a launch folder for a right-click / shortcut launch, print its id
+//   prepare [folder]        create a launch folder for a right-click / shortcut launch, print its id
+//                           (the launcher passes the folder in KV_FOLDER, not as an argument)
 //   info <id> workdir       print a launch's work folder (the batch file needs it for the tab)
 //   check <id>              exit 0 when the launch's work folder is reachable, 1 when not
 //   missing <id>            print the 'folder could not be opened' message and wait for Enter
@@ -217,9 +218,20 @@ function hasStatusLine(text) {
   return false;
 }
 
+// tui set at the top level by dotted keys (tui.x = ...) or as an inline table (tui = {...}).
+// TOML forbids a [tui] header after either, and adding one would leave a config.toml that no
+// longer parses (Codex would then not start at all), so such a file is left as it is.
+function tuiOutsideTable(text) {
+  for (const line of String(text || '').replace(/^\uFEFF/, '').split(/\r?\n/)) {
+    if (tomlTable(line) !== null) return false;   // keys after a header belong to that table
+    if (/^\s*["']?tui["']?\s*[.=]/.test(line)) return true;
+  }
+  return false;
+}
+
 // Add the default status line only when the user has none (handout 7.5).
 function ensureStatusLine(text) {
-  if (hasStatusLine(text)) return { text, added: null };
+  if (hasStatusLine(text) || tuiOutsideTable(text)) return { text, added: null };
   text = text || '';
   const bom = text.startsWith('\uFEFF') ? '\uFEFF' : '';
   const body = text.slice(bom.length);
@@ -327,12 +339,17 @@ function uninstall(env) {
 function triple(arch) { return arch === 'arm64' ? 'aarch64-pc-windows-msvc' : 'x86_64-pc-windows-msvc'; }
 function hostArch(env) { return /arm64/i.test(env.PROCESSOR_ARCHITEW6432 || env.PROCESSOR_ARCHITECTURE || '') ? 'arm64' : 'x64'; }
 
-// npm prefix folder -> the codex.js entry point and the native exe npm put beside it.
+// npm prefix folder -> the codex.js entry point and the native exe it starts. The exe is found
+// the way codex.js finds it: the Windows package inside Codex's own folder (a normal install),
+// then beside it (where the pinned-pair repair puts it), then Codex's own vendor folder.
 function npmCandidate(prefix, env) {
-  const codexJs = path.join(prefix, 'node_modules', '@openai', 'codex', 'bin', 'codex.js');
+  const pkg = path.join(prefix, 'node_modules', '@openai', 'codex');
+  const codexJs = path.join(pkg, 'bin', 'codex.js');
   if (!fs.existsSync(codexJs)) return null;
   const arch = hostArch(env);
-  const nativeExe = path.join(prefix, 'node_modules', '@openai', 'codex', 'node_modules', '@openai', 'codex-win32-' + arch, 'vendor', triple(arch), 'bin', 'codex.exe');
+  const win = path.join('@openai', 'codex-win32-' + arch), exe = path.join('vendor', triple(arch), 'bin', 'codex.exe');
+  const places = [path.join(pkg, 'node_modules', win, exe), path.join(prefix, 'node_modules', win, exe), path.join(pkg, exe)];
+  const nativeExe = places.find(f => fs.existsSync(f)) || places[0];
   return { kind: 'npm', codexJs, nativeExe, prefix };
 }
 
@@ -354,7 +371,10 @@ function discover(env) {
   const standalone = path.join(env.LOCALAPPDATA || '', 'Programs', 'OpenAI', 'Codex', 'bin', 'codex.exe');
   if (env.LOCALAPPDATA && fs.existsSync(standalone)) found.push({ kind: 'exe', exe: standalone });
   if (!found.length) {
-    const r = cp.spawnSync(env.ComSpec || 'cmd.exe', ['/d', '/c', 'npm prefix -g'], { encoding: 'utf8', windowsHide: true, timeout: 30000, env });
+    // npm by its full path: on a fresh PC the installer's own PATH predates Node, so a bare
+    // `npm` (or `where codex`) would find nothing although Codex was just installed.
+    const npmCmd = npmCommand(env);
+    const r = npmCmd ? npm(env, npmCmd, ['prefix', '-g'], null, 30000) : {};
     const prefix = String(r.stdout || '').trim().split(/\r?\n/).pop();
     if (prefix) { const c = npmCandidate(prefix, env); if (c) found.push(c); }
   }
@@ -442,17 +462,28 @@ function hasExistingInstructions(launch, env, codex, userTokens) {
   if (root) files.push(path.join(root, '.codex', 'config.toml'));
   userTokens.forEach((t, i) => { if ((t === '-p' || t === '--profile') && userTokens[i + 1]) files.push(path.join(p.codexHome, userTokens[i + 1] + '.config.toml')); });
   const key = crypto.createHash('sha256').update(JSON.stringify({ w: launch.workdir, h: p.codexHome, t: userTokens, f: files.map(f => [f, fileStamp(f)]) })).digest('hex');
-  try { const c = JSON.parse(fs.readFileSync(p.langCache, 'utf8')); if (c.key === key) return c.skip; } catch (e) { /* recompute */ }
+  let cache = {};
+  try { const c = JSON.parse(fs.readFileSync(p.langCache, 'utf8')); if (c && c.entries && typeof c.entries === 'object') cache = c.entries; } catch (e) { /* recompute */ }
+  if (Object.prototype.hasOwnProperty.call(cache, key)) return cache[key] === true;
   let skip = files.some(f => tomlHasInstructions(readIfExists(f)));
-  if (!skip && codex && !codex.missing) {
+  let sure = skip || !!(codex && !codex.missing);
+  if (!skip && sure) {
     const passthrough = [];
     userTokens.forEach((t, i) => { if (t === '-c' || t === '--enable' || t === '--disable') passthrough.push(t, userTokens[i + 1]); });
     const file = codex.kind === 'npm' ? process.execPath : codex.exe;
     const args = (codex.kind === 'npm' ? [codex.codexJs] : []).concat(['--no-daemon', 'debug', 'prompt-input'], passthrough, ['hi']);
     const r = cp.spawnSync(file, args, { cwd: launch.workdir, encoding: 'utf8', timeout: 5000, windowsHide: true, env });
-    try { skip = promptInputHasUserInstructions(JSON.parse(r.stdout)); } catch (e) { skip = true; }
+    try { skip = promptInputHasUserInstructions(JSON.parse(r.stdout)); } catch (e) { skip = true; sure = false; }
   }
-  try { atomicWrite(p.langCache, JSON.stringify({ key, skip }) + '\n'); } catch (e) { /* cache is optional */ }
+  // Only a clear answer is remembered, one per folder and settings (the newest 32). A check that
+  // failed or timed out (a cold start can take over 5 seconds) skips the line this once, and the
+  // next launch checks again.
+  if (sure) {
+    cache[key] = skip;
+    const keys = Object.keys(cache);
+    for (const k of keys.slice(0, Math.max(0, keys.length - 32))) delete cache[k];
+    try { atomicWrite(p.langCache, JSON.stringify({ entries: cache }) + '\n'); } catch (e) { /* cache is optional */ }
+  }
   return skip;
 }
 
@@ -549,6 +580,14 @@ function run(id, relaunch, env) {
   }
   const pl = plan(id, env, relaunch, codex);
   for (const m of pl.compose.errors.concat(pl.compose.notices)) console.log('  ' + m);
+  if (pl.compose.fatal.length) {
+    // Starting without the refused option would quietly change what the user asked for.
+    console.log('');
+    console.log('  Codex was not started. Change the Codex options in the folder picker, or CODEX_FLAGS');
+    console.log('  in config.txt, then launch again.');
+    console.log('');
+    return 1;
+  }
   testPause('run-before-start');
   // Refresh the model list in the background; never delays the start.
   try { cp.spawn(process.execPath, [__filename, 'models'], { detached: true, stdio: 'ignore', windowsHide: true, env }).unref(); } catch (e) { /* optional */ }
@@ -580,10 +619,10 @@ function npmCommand(env) {
 }
 
 // npm.cmd needs cmd to run. Every argument here is ours (package names, versions, a folder), never user text.
-function npm(env, npmCmd, args, logFile) {
+function npm(env, npmCmd, args, logFile, timeout) {
   const q = s => '"' + s + '"';
   const line = '/d /s /c "' + [q(npmCmd)].concat(args.map(q)).join(' ') + (logFile ? ' >>' + q(logFile) + ' 2>&1' : '') + '"';
-  return cp.spawnSync(env.ComSpec || 'cmd.exe', [line], { encoding: 'utf8', windowsHide: true, windowsVerbatimArguments: true, env, timeout: 30 * 60 * 1000 });
+  return cp.spawnSync(env.ComSpec || 'cmd.exe', [line], { encoding: 'utf8', windowsHide: true, windowsVerbatimArguments: true, env, timeout: timeout || 30 * 60 * 1000 });
 }
 
 // The newest stable version >= MIN_VERSION whose Windows package for this PC is published (D14).
@@ -665,9 +704,20 @@ function missingFolder(id) {
   return 1;
 }
 
+// The launcher passes the clicked folder in KV_FOLDER, never on a command line: cmd would expand
+// a %NAME% in it once more, and Node would read the quoted drive root "D:\" as D:" (A40).
+// Explorer may add a trailing backslash; a drive root keeps its own.
+function workFolder(folder) {
+  let f = String(folder);
+  while (f.length > 3 && /[\\/]$/.test(f)) f = f.slice(0, -1);
+  return /^[A-Za-z]:$/.test(f) ? f + '\\' : f;
+}
+
 function prepare(folder, env) {
+  env = env || process.env;
+  folder = folder || env.KV_FOLDER;
   if (!folder) throw new Error('prepare needs a folder');
-  return createLaunch({ agent: 'codex', workdir: folder }, env);
+  return createLaunch({ agent: 'codex', workdir: workFolder(folder) }, env);
 }
 
 function commit(env) {
@@ -721,10 +771,10 @@ module.exports = {
   paths, atomicWrite, compareVersions, parseConfig, setConfigValue, effectiveAgent, setAgent,
   tokenize, startupText, languageLine, languageArg, compose,
   hookCommand, hookGroup, ensureHooks, hookPresent, removeHook,
-  hasStatusLine, ensureStatusLine, statusLinePresent, removeStatusLine,
+  hasStatusLine, tuiOutsideTable, ensureStatusLine, statusLinePresent, removeStatusLine,
   loadRecord, reconcile, install, uninstall,
   npmCandidate, discover, resolveCodex, parseModels, refreshModels,
   promptInputHasUserInstructions, tomlHasInstructions, gitRoot, hasExistingInstructions,
-  createLaunch, readLaunch, cleanupLaunches, launchFromConfig, socketPath, plan, run, prepare, commit, main,
+  createLaunch, readLaunch, cleanupLaunches, launchFromConfig, socketPath, plan, run, workFolder, prepare, commit, main,
   nodeTooOld, chooseVersion, installCodex,
 };

@@ -922,7 +922,11 @@ Section "Uninstall"
     ${EndIf}
     nsExec::ExecToLog '"$NodeExe" "$INSTDIR\configure-codex.js" uninstall'
     Pop $0
-    ${If} $0 S!= "0"
+    ${If} $0 S== "error"
+      ; Node.js could not be started (it was uninstalled first), so nothing can read the record.
+      ; Stopping here would block the uninstall for good; the entries left are valid Codex settings.
+      MessageBox MB_OK|MB_ICONINFORMATION "Node.js is not installed, so Launchpad couldn't take its status line and sound hooks out of your Codex settings (the .codex folder in your user folder). Codex keeps working. The rest of Launchpad is removed now." /SD IDOK
+    ${ElseIf} $0 S!= "0"
       MessageBox MB_OK|MB_ICONSTOP "Launchpad couldn't remove its Codex settings. Close Codex and run the uninstaller again." /SD IDOK
       Abort "Launchpad couldn't remove its Codex settings."
     ${EndIf}

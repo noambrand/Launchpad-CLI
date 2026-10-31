@@ -1154,14 +1154,16 @@
   function captureDialogToProfile(target) {
     target.folder      = (document.getElementById("path").value || "").replace(/^\s+|\s+$/g, "");
     if (currentAgent === "codex") {
-      // Codex settings live in their own sub-object; the Claude fields keep their values (D16).
+      // Codex settings live in their own sub-object; the Claude fields keep their values (D16),
+      // environment variables included, so a key typed here never reaches Claude (A46).
       target.codex = {
         model: getRadioValue("codex-model"),
         conv: AgentHelpers.codexConv(getRadioValue("flag-conv")),
         customFlags: (document.getElementById("flag-custom").value || "").replace(/^\s+|\s+$/g, ""),
         startupCmds: document.getElementById("startup-cmds").value || ""
       };
-      target.envVars = document.getElementById("env-vars").value || "";
+      var codexEnv = document.getElementById("env-vars").value || "";
+      if (codexEnv) target.codex.envVars = codexEnv;
       AgentHelpers.setProfileAgent(target, "codex");
       return;
     }
@@ -1187,7 +1189,7 @@
       setRadioValue("flag-conv", AgentHelpers.convRadio(c.conv));
       document.getElementById("flag-custom").value  = c.customFlags;
       document.getElementById("startup-cmds").value = c.startupCmds;
-      document.getElementById("env-vars").value     = p.envVars || "";
+      document.getElementById("env-vars").value     = c.envVars;
       applyAgentUI("codex", info);
       updateFlagPreview();
       return;

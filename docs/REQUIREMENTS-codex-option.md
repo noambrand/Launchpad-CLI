@@ -95,3 +95,18 @@ Each line is observable on Windows 11 x64, normal user, Windows Terminal, unless
 | A37 | Hebrew startup text in a Hebrew-named folder arrives intact and displays readably |
 | A38 | Startup text and custom flags with quotes, `%`, `!`, `^`, `&` and Hebrew reach Codex exactly as typed and match the picker preview |
 | A39 | Installer stopped right after Codex is verified, then rerun: Codex selected; stopped before verifying: the previous agent still works |
+
+Added after the independent review of the build (2026-10-31); each closes one finding.
+
+| ID | Observable result |
+|---|---|
+| A40 | Right-click or Send To on a drive root (`D:\`) or on a folder ending in a backslash: Codex opens in exactly that folder. The launcher passes the folder to Node through the environment, never on a command line, so it never reads a `%NAME%` in the folder name a second time (the one reading Windows does before any launcher starts is the same for Claude and outside Launchpad's control) |
+| A41 | Fresh PC, Codex chosen, Node.js installed in the same installer run: the installer finds the new Codex, selects it and reports no failure |
+| A42 | Options Codex can't be started with (an unclosed quote, a `resume` or bypass option, a wrong `-a`, two models) reach a right-click launch from `CODEX_FLAGS`: the reason is shown and Codex is not started. An invalid startup message alone is left out with a message, and Codex starts |
+| A43 | A user `config.toml` that sets `tui` through dotted keys (`tui.x = ...`) or an inline table (`tui = { ... }`) is left unchanged, so it still parses |
+| A44 | Uninstall after Node.js was removed: a plain message says Launchpad's Codex entries stay, and the uninstall finishes |
+| A45 | The terminal tab's step started without a valid launch id: a plain message, Codex not started, no launch folder or other file deleted |
+| A46 | A profile's environment variables belong to one agent: a variable typed in Codex mode never reaches a Claude launch, and Claude's never reach Codex; a profile used only with Claude keeps the v3.2.2 bytes |
+| A47 | A language check that fails or times out is not remembered (the next launch checks again); two folders used in turn each keep their own remembered answer |
+| A48 | A Codex installed by the pinned-pair repair (Windows package beside the main package): later launches trust the path cache and do not check the version again |
+| A49 | A right-click while the picker rewrites `config.txt` (the file is briefly empty) waits for it, about 5 seconds at most; a file that stays empty gives a plain message instead of a guessed agent; any written file is read at once, as in v3.2.2, with no wait |

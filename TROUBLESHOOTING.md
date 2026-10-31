@@ -279,6 +279,19 @@ PC, nothing was changed in the meantime. Common causes, as the log names them:
 installing). Run the installer again and choose Codex. Launchpad never switches to Claude Code
 on its own.
 
+### "Codex was not started"
+
+An option in `CODEX_FLAGS` (in `config.txt`) or in the picker's Codex options can't be used: a
+quote mark that isn't closed, `resume` (use the picker's conversation choice instead), a bypass
+option such as `--yolo`, an approval option other than `on-request` or `never`, or two models.
+The line above the message names it. Launchpad doesn't start Codex without it, because that
+would quietly change what you asked for. Fix the option, then launch again.
+
+### "Launchpad's settings file is empty"
+
+`config.txt` lost its contents, so Launchpad can't tell which agent to start. Delete
+`%LOCALAPPDATA%\Kivun\config.txt`, then run the installer again: it writes a fresh one.
+
 ### No sounds in Codex
 
 Codex runs new hooks only after you approve them. Type `/hooks` in Codex and approve
@@ -322,6 +335,13 @@ Not supported: Codex reads Launchpad's status bar and sound hooks from one setti
 ### Hebrew or Arabic shows left to right in Codex
 
 Expected: right-to-left display works only with Claude Code.
+
+### Uninstalling after Node.js was removed
+
+The uninstaller needs Node.js to take its status line and two sound hooks out of your Codex
+settings. Without it, the uninstaller says so and removes the rest of Launchpad. The entries left
+in `%USERPROFILE%\.codex\config.toml` and `hooks.json` are ordinary Codex settings; delete them
+there if you want them gone.
 
 ---
 

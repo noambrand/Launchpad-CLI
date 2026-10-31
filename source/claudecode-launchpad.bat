@@ -65,6 +65,7 @@ REM missing or unknown means Claude. Nothing set here reaches Claude's environme
 if /i "%~1"=="LAUNCH" goto :codex_phase1
 if /i "%~1"=="READFILE" goto :agent_done
 call :read_agent
+if "!KV_AGENT!"=="?" goto :config_empty
 if /i "!KV_AGENT!"=="codex" (
     set "KV_AGENT="
     goto :codex_phase1
@@ -437,13 +438,16 @@ exit /b
 :read_agent
 REM Sets KV_AGENT from config.txt. The Claude picker rewrites config.txt without a temp file,
 REM so a right-click at that exact moment can find it empty: wait for it (about 5 seconds at
-REM most) instead of guessing which agent the user chose.
+REM most) instead of guessing which agent the user chose. If it stays empty on a PC where Codex
+REM is set up, KV_AGENT is "?" and the caller says so; a Claude-only PC goes on as in v3.2.2.
 set "KV_AGENT="
 if not exist "!SCRIPT_DIR!config.txt" exit /b 0
 for /l %%T in (1,1,5) do (
     for %%F in ("!SCRIPT_DIR!config.txt") do if %%~zF GTR 0 goto :read_agent_now
     ping -n 2 127.0.0.1 >nul
 )
+if exist "!SCRIPT_DIR!kivun-codex-path.txt" set "KV_AGENT=?"
+exit /b 0
 :read_agent_now
 for /f "usebackq tokens=1,* delims==" %%A in ("!SCRIPT_DIR!config.txt") do if "%%A"=="AGENT" set "KV_AGENT=%%B"
 exit /b 0
@@ -461,14 +465,14 @@ setlocal disabledelayedexpansion
 set "KV_ID="
 if /i "%~1"=="LAUNCH" set "KV_ID=%~2"
 if /i "%~1"=="LAUNCH" goto :codex_have_id
+REM The clicked folder reaches Node in KV_FOLDER, not on the command line below: the cmd that
+REM for /f starts would expand a %NAME% in it again, and Node would read "D:\" as D:".
 set "KV_FOLDER=%~1"
 if "%~1"=="" set "KV_FOLDER=%USERPROFILE%"
-for /f "delims=" %%I in ('node "%~dp0configure-codex.js" prepare "%KV_FOLDER%"') do set "KV_ID=%%I"
+for /f "delims=" %%I in ('node "%~dp0configure-codex.js" prepare') do set "KV_ID=%%I"
+set "KV_FOLDER="
 :codex_have_id
-if not defined KV_ID goto :codex_bad_id
-echo(%KV_ID%| findstr /r /x "[0123456789abcdef]*" >nul || goto :codex_bad_id
-if "%KV_ID:~31,1%"=="" goto :codex_bad_id
-if not "%KV_ID:~32%"=="" goto :codex_bad_id
+call :codex_check_id || goto :codex_bad_id
 node "%~dp0configure-codex.js" check %KV_ID% >nul 2>&1 || goto :codex_missing_folder
 for /f "delims=" %%W in ('node "%~dp0configure-codex.js" info %KV_ID% workdir') do set "WORK_DIR=%%W"
 REM Same folder normalising as the Claude path: never end in a backslash, never a bare drive.
@@ -496,6 +500,24 @@ echo.
 pause
 exit /b 1
 
+:codex_check_id
+REM Exit 0 only for exactly 32 lowercase hex characters. Phase 2 deletes the folder this id
+REM names, so it is checked in both phases.
+if not defined KV_ID exit /b 1
+echo(%KV_ID%| findstr /r /x "[0123456789abcdef]*" >nul || exit /b 1
+if "%KV_ID:~31,1%"=="" exit /b 1
+if not "%KV_ID:~32%"=="" exit /b 1
+exit /b 0
+
+:config_empty
+echo.
+echo   Launchpad's settings file is empty, so it can't tell whether to start Claude Code or Codex:
+echo   !SCRIPT_DIR!config.txt
+echo   Delete that file, then run the ClaudeCode Launchpad CLI installer again.
+echo.
+pause
+exit /b 1
+
 :codex_missing_folder
 REM The message names the folder, so Node prints it (a folder name could break an echo).
 where wt.exe >nul 2>&1 && goto :codex_missing_wt
@@ -508,6 +530,7 @@ exit /b 1
 :run_codex
 setlocal disabledelayedexpansion
 set "KV_ID=%~2"
+call :codex_check_id || goto :codex_bad_id
 :run_codex_body
 title ClaudeCode Launchpad CLI
 set "TERMINAL_COLOR=kivun"

@@ -54,9 +54,12 @@ var AgentHelpers = (function () {
 
   function isModelFlag(t) { return t === "-m" || t === "--model" || startsWith(t, "--model="); }
 
-  // Build Codex's exact argument array (D11, D15). Returns { args, errors, notices }.
+  // Build Codex's exact argument array (D11, D15). Returns { args, errors, notices, fatal }.
   //   launch: { conv: fresh|last|pick, model, customFlags, codexFlags, startup, language,
   //             skipLanguage, noDaemon, relaunch }
+  // fatal: the errors about options. Codex is not started with any of them, because leaving an
+  // option out would quietly change what the user asked for (a read-only sandbox, say). Invalid
+  // startup text is only in errors: it is left out with a message and Codex starts (handout 7.5).
   function composeCodex(launch) {
     var errors = [], notices = [], user = [], i, t, v, bad = [], kept = [];
     try { user = tokenize(launch.codexFlags).concat(tokenize(launch.customFlags)); } catch (err) { errors.push(err.message); user = []; }
@@ -87,6 +90,7 @@ var AgentHelpers = (function () {
     var lang = (!launch.skipLanguage && !userInstructions) ? languageLine(launch.language) : null;
     if (lang) args.push("-c", languageArg(lang));
     for (i = 0; i < user.length; i++) args.push(user[i]);
+    var fatal = errors.slice();   // every error so far is about the options
     if (!launch.relaunch) {
       var st = startupText(launch.startup);
       if (st.error) { errors.push(st.message); notices.push("startup message not sent"); }
@@ -98,7 +102,7 @@ var AgentHelpers = (function () {
         args.push(st.text);
       }
     }
-    return { args: args, errors: errors, notices: notices };
+    return { args: args, errors: errors, notices: notices, fatal: fatal };
   }
 
   // ---- picker helpers --------------------------------------------------
@@ -123,9 +127,10 @@ var AgentHelpers = (function () {
     return profile;
   }
 
+  // envVars is Codex's own: a key typed for one agent never reaches the other (A31, A46).
   function codexFields(profile) {
     var c = profile.codex || {};
-    return { model: c.model || "", conv: c.conv || "fresh", customFlags: c.customFlags || "", startupCmds: c.startupCmds || "" };
+    return { model: c.model || "", conv: c.conv || "fresh", customFlags: c.customFlags || "", startupCmds: c.startupCmds || "", envVars: c.envVars || "" };
   }
 
   // A saved model that the last ONLINE model list no longer offers (handout 7.5).
