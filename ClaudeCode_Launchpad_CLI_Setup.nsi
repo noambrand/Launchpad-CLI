@@ -572,6 +572,10 @@ Section "!Install Claude Code (Required)" SecClaudeCode
   DetailPrint "Installing Claude Code via install.cmd..."
   ExecWait 'cmd /c "$INSTDIR\install.cmd" /claude' $0
   DetailPrint "install.cmd /claude exit code: $0"
+  ; install.cmd adds %USERPROFILE%\.local\bin to the user PATH when Anthropic's
+  ; installer leaves it off. Broadcast so Explorer, and every terminal opened
+  ; from it, sees the new PATH without a log-out.
+  SendMessage ${HWND_BROADCAST} ${WM_SETTINGCHANGE} 0 "STR:Environment" /TIMEOUT=5000
 
   ${If} $0 != 0
     DetailPrint "WARNING: Claude Code installation may have failed"
