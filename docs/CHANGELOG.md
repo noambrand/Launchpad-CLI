@@ -42,6 +42,13 @@ Install, upgrade and uninstall:
 The Session and Weekly bars now show the day and hour of the reset next to the countdown, in your
 PC's local time: `resets in 4d4h (Tue Nov 10 01:47)`.
 
+### Fixed: right-clicking a folder showed a Windows error
+
+Since 2.6.4, a new install left the two right-click entries ("Open with ClaudeCode Launchpad CLI"
+and "Open ClaudeCode Launchpad CLI here") without their command, so choosing one showed "This
+file does not have an app associated with it". The installer now writes them where a normal user
+can. Running this installer repairs an existing install.
+
 ### Fixed: the diagnostic report always said the folder picker was missing
 
 It looked for the old `folder-picker.hta`, which the installer removes since 3.0.0. It now
