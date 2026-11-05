@@ -583,12 +583,12 @@ Section "!Core Components (Required)" SecCore
   ; Add right-click context menu for folders: "Open with ClaudeCode Launchpad CLI"
   WriteRegStr HKCU "Software\Classes\Directory\shell\ClaudeCodeLaunchpad" "" "Open with ClaudeCode Launchpad CLI"
   WriteRegStr HKCU "Software\Classes\Directory\shell\ClaudeCodeLaunchpad" "Icon" "$INSTDIR\claude_icon.ico"
-  WriteRegStr HKCR "Directory\shell\ClaudeCodeLaunchpad\command" "" '"$INSTDIR\claudecode-launchpad.bat" "%1"'
+  WriteRegStr HKCU "Software\Classes\Directory\shell\ClaudeCodeLaunchpad\command" "" '"$INSTDIR\claudecode-launchpad.bat" "%1"'
 
   ; Also add to directory background (right-click inside a folder)
   WriteRegStr HKCU "Software\Classes\Directory\Background\shell\ClaudeCodeLaunchpad" "" "Open ClaudeCode Launchpad CLI here"
   WriteRegStr HKCU "Software\Classes\Directory\Background\shell\ClaudeCodeLaunchpad" "Icon" "$INSTDIR\claude_icon.ico"
-  WriteRegStr HKCR "Directory\Background\shell\ClaudeCodeLaunchpad\command" "" '"$INSTDIR\claudecode-launchpad.bat" "%V"'
+  WriteRegStr HKCU "Software\Classes\Directory\Background\shell\ClaudeCodeLaunchpad\command" "" '"$INSTDIR\claudecode-launchpad.bat" "%V"'
 
   ; Install Windows Terminal fragment
   CreateDirectory "$LOCALAPPDATA\Microsoft\Windows Terminal\Fragments\ClaudeCodeLaunchpad"
