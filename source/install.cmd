@@ -212,6 +212,12 @@ set "EXIT_CODE=10"
 goto :eof
 
 :install_claude
+REM Anthropic's native installer puts claude.exe in %USERPROFILE%\.local\bin but
+REM does NOT always add that folder to the user PATH - it prints "is not in your
+REM PATH" and stops. Then `claude` fails in every terminal outside our launcher,
+REM and the `where claude` check below misses the existing install, so every
+REM re-run downloaded Claude again. Put the folder on the user PATH first.
+if exist "%USERPROFILE%\.local\bin\claude.exe" call :ensure_claude_path
 call :refresh_path
 where claude.cmd >nul 2>&1
 if not errorlevel 1 (
@@ -274,6 +280,7 @@ if errorlevel 1 (
     set "EXIT_CODE=3"
     goto :eof
 )
+if exist "%USERPROFILE%\.local\bin\claude.exe" call :ensure_claude_path
 call :refresh_path
 call :say "[Claude Code] Installed."
 goto :eof
@@ -292,6 +299,15 @@ if not defined CODEX_NODE (
 )
 "!CODEX_NODE!" "%~dp0configure-codex.js" install-codex
 if errorlevel 1 set "EXIT_CODE=5"
+goto :eof
+
+:ensure_claude_path
+REM Append %USERPROFILE%\.local\bin to HKCU\Environment\Path when it is missing.
+REM PowerShell, not setx: setx truncates PATH at 1024 chars and flattens it to
+REM REG_SZ. This reads the raw (unexpanded) value and writes it back as
+REM REG_EXPAND_SZ, so entries like %%USERPROFILE%%\... keep working. The NSIS
+REM side broadcasts WM_SETTINGCHANGE afterwards so new terminals see it.
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$d = Join-Path $env:USERPROFILE '.local\bin'; $k = [Microsoft.Win32.Registry]::CurrentUser.CreateSubKey('Environment'); $p = [string]$k.GetValue('Path', '', [Microsoft.Win32.RegistryValueOptions]::DoNotExpandEnvironmentNames); $have = @($p -split ';' | Where-Object { $_ -and ([Environment]::ExpandEnvironmentVariables($_).TrimEnd('\') -ieq $d) }); if ($have.Count -eq 0) { $new = if ($p.Trim(';')) { $p.TrimEnd(';') + ';' + $d } else { $d }; $k.SetValue('Path', $new, [Microsoft.Win32.RegistryValueKind]::ExpandString); Write-Output ('[Claude Code] Added ' + $d + ' to the user PATH.') } else { Write-Output '[Claude Code] .local\bin already on the user PATH.' }" >> "%KIVUN_LOG%" 2>&1
 goto :eof
 
 :install_wt

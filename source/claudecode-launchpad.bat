@@ -11,9 +11,10 @@ REM ========================================
 
 REM --- Ensure Claude Code's native install dir is on PATH ---
 REM Claude's native installer puts claude.exe in %USERPROFILE%\.local\bin and
-REM warns it "is not in your PATH" right after install: it updates the persistent
-REM user PATH, but Explorer-spawned processes (this shortcut, and the Windows
-REM Terminal tab we start below) keep the OLD PATH until the user logs out/in.
+REM warns it "is not in your PATH" right after install. It does not always add it
+REM to the persistent user PATH (install.cmd now does), and even when it is added,
+REM Explorer-spawned processes (this shortcut, and the Windows Terminal tab we
+REM start below) can keep the OLD PATH until the user logs out/in.
 REM Without this, the launcher's "where claude" check below would falsely report
 REM Claude as missing immediately after a fresh install. Runs in both phases
 REM (the WT relaunch re-enters the top of this script before :run_claude).
