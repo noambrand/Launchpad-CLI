@@ -176,14 +176,14 @@ A two-line live status bar at the bottom of every session:
 
 > **BookWriter** | 🟢 Sonnet 4.6 | Context 🟩🟩🟩🟩🟩⬜⬜⬜⬜⬜ 51% | tokens: 284K | 24:13
 >
-> Session 🟨🟨🟨🟨🟨🟨🟨🟨⬜⬜ 77% resets in 4h15m &nbsp;|&nbsp; Weekly 🟩🟩⬜⬜⬜⬜⬜⬜⬜⬜ 16% resets in 6d18h
+> Session 🟨🟨🟨🟨🟨🟨🟨🟨⬜⬜ 77% resets in 4h15m (Fri Nov 6 02:00) &nbsp;|&nbsp; Weekly 🟩🟩⬜⬜⬜⬜⬜⬜⬜⬜ 16% resets in 6d18h (Thu Nov 12 16:00)
 
 | Field | What it shows |
 |-------|---------------|
 | **Model** | Active Claude model (color-coded: green = Opus, yellow = Sonnet/Haiku) |
 | **Context** | % of context window consumed (green/yellow/red) |
 | **Tokens** | Combined input + output tokens this session |
-| **Session / Weekly** | Usage limit % with countdown to reset |
+| **Session / Weekly** | Usage limit % with countdown to reset, and the exact day and hour of the reset in your PC's local time |
 
 ## Voice Alerts
 
