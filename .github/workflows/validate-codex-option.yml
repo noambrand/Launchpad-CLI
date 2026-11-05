@@ -1,7 +1,7 @@
 name: Validate the Codex option (v3.3.0)
 
 # Derived from docs/REQUIREMENTS-codex-option.md. Runs on real Windows, because the launcher,
-# the installer script and the picker only exist there. Every step uses cmd: Launchpad's own
+# the installer script and the picker only exist there. Every step uses cmd: Launchpad's Codex
 # code never uses PowerShell, and the Windows runner's default shell would be PowerShell.
 
 on:

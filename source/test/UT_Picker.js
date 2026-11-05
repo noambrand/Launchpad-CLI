@@ -94,7 +94,10 @@ test('UT_Picker_PreviewEqualsRun: the preview shows exactly the arguments the ru
   const shown = p.el('flag-effective').innerText;
   p.ctx.ok();
   const id = p.runs[0].cmd.match(/"([0-9a-f]{32})"$/)[1];
-  const env = Object.assign({}, process.env, { KIVUN_DIR: d.kivun, CODEX_HOME: 'C:\\c', HOME: d.user, USERPROFILE: d.user });
+  // Sealed: a real Codex on this PC must not be found, or its language check would decide the result.
+  const sys = process.env.SystemRoot || 'C:\\Windows';
+  const env = { SystemRoot: sys, windir: sys, ComSpec: path.join(sys, 'System32', 'cmd.exe'), PATHEXT: '.COM;.EXE;.BAT;.CMD', PATH: path.join(sys, 'System32'),
+    KIVUN_DIR: d.kivun, CODEX_HOME: 'C:\\c', HOME: d.user, USERPROFILE: d.user, LOCALAPPDATA: path.join(d.root, 'LAD'), APPDATA: path.join(d.root, 'AppData') };
   const r = cp.spawnSync(process.execPath, [path.join(SOURCE, 'configure-codex.js'), 'compose', id], { env, encoding: 'utf8', windowsHide: true });
   const args = JSON.parse(r.stdout).args;
   assert.strictEqual(shown, require(HELPERS).previewLine(args));
