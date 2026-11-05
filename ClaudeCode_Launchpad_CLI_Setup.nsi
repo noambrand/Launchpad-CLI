@@ -77,7 +77,7 @@ Page custom ConfigPage ConfigPageLeave
 ; exactly the v3.2.2 one. Declared here because the finish page code below reads it.
 Var FinishText
 !define FINISH_TEXT_CLAUDE "${PRODUCT_NAME} has been installed successfully.$\r$\n$\r$\n${PRODUCT_DESCRIPTION}$\r$\n$\r$\nTIP: Pin it to your taskbar for one-click access — click Start, type '${PRODUCT_NAME}', right-click the result and choose 'Pin to taskbar'. No need to hunt for the desktop icon.$\r$\n$\r$\nYou will need an Anthropic API key to use Claude Code.$\r$\nGet one at: https://console.anthropic.com/"
-!define FINISH_TEXT_CODEX "Codex is ready. When it first opens, sign in with your ChatGPT account or an OpenAI API key. Then type /hooks in Codex and approve Launchpad's sounds.$\r$\n$\r$\nThe Quick Start Guide explains the sandbox question Codex asks on its first run."
+!define FINISH_TEXT_CODEX "Codex is ready. When it first opens, sign in with your ChatGPT account or an OpenAI API key. On the Hooks need review screen, choose Trust all and continue to turn on Launchpad's sounds.$\r$\n$\r$\nThe Quick Start Guide explains the sandbox question Codex asks on its first run."
 !define MUI_FINISHPAGE_TITLE "${PRODUCT_NAME} Installation Complete!"
 !define MUI_FINISHPAGE_TEXT "$FinishText"
 !define MUI_FINISHPAGE_RUN

@@ -294,9 +294,17 @@ would quietly change what you asked for. Fix the option, then launch again.
 
 ### No sounds in Codex
 
-Codex runs new hooks only after you approve them. Type `/hooks` in Codex and approve
-Launchpad's two entries. Starting Codex with `--disable hooks` (or a company policy that turns
-hooks off) silences them. Codex has no idle reminder sound.
+Codex runs new hooks only after you trust them. When it opens and shows **Hooks need review**,
+choose **Trust all and continue**. If you chose **Continue without trusting**, Codex asks again
+the next time it opens. To see or change them later, type `/hooks` in Codex. Starting Codex with
+`--disable hooks` (or a company policy that turns hooks off) silences them. Codex has no idle
+reminder sound.
+
+### Codex shows "1 warning" in the corner
+
+Press F2 to read it. "Running without the shared background server" is expected and harmless:
+Codex says this whenever it starts with command-line settings, which is how Launchpad passes the
+response language and options such as `--search`. Codex works normally.
 
 ### Codex shows "This conversation is open in another app"
 
@@ -326,6 +334,10 @@ can't start ("app server did not become ready"), so Launchpad starts Codex witho
 
 Open Command Prompt from the Start menu and run `codex login --device-auth`. Codex shows a code
 to enter in any browser instead of opening its own sign-in page. Then launch again.
+
+If the browser says to enable device code sign-in, turn that on in your ChatGPT Security Settings
+(on a company account your administrator may control this), then run the command again. It is
+off on some accounts. On a PC where the normal sign-in page opens, you don't need it.
 
 ### `CODEX_HOME` in a picker profile
 

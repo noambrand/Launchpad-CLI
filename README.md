@@ -136,10 +136,10 @@ exactly as before. Choose **Codex** to get OpenAI's coding agent with the same f
 right-click "Open with", profiles, terminal theme and sounds.
 
 - Codex is a download of about 500 MB. A Codex you already have (0.166.0 or newer) is used as is.
-- The first time Codex opens, sign in with your ChatGPT account or an OpenAI API key, trust the
-  folder, and answer its sandbox question: choose the default if you can approve the Windows
-  administrator prompt, otherwise the non-admin sandbox. Then type `/hooks` and approve
-  Launchpad's two sounds.
+- The first time Codex opens, sign in with your ChatGPT account or an OpenAI API key. In a Git
+  project folder, it asks whether to trust the folder. When it shows **Hooks need review**, choose **Trust all and continue** to turn on Launchpad's two sounds.
+  Then answer its sandbox question: choose the default if you can approve the Windows administrator
+  prompt, otherwise the non-admin sandbox.
 - When both agents are installed, the picker shows an agent choice, and each profile keeps its own.
 - Not available with Codex: right-to-left display (Codex shows Hebrew and Arabic left to right),
   the idle reminder sound, and auto-continue. macOS stays Claude-only.

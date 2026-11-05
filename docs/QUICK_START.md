@@ -78,13 +78,16 @@ Claude Code. Codex is a download of about 500 MB. A Claude Code already on your 
 
 1. Sign in with your ChatGPT account or an OpenAI API key. If your company PC blocks the
    sign-in page, open Command Prompt from the Start menu and run `codex login --device-auth`:
-   it signs you in with a code instead. Then launch again.
-2. Codex asks whether to trust the folder. Trust it if it is your own project.
-3. Codex asks how to set up its sandbox (the safety fence around what it may change). Choose
+   it signs you in with a code instead, then launch again. If it says to enable device code
+   sign-in, turn that on in your ChatGPT Security Settings first.
+2. Press Enter on the short "You're in control" introduction. In a Git project folder, Codex also
+   asks **Trust this folder?** Choose **Trust and continue** if it is your own project.
+3. Codex shows **Hooks need review**. Choose **Trust all and continue** to turn on Launchpad's
+   two sounds: *permission* when Codex asks before acting, and *done* when it finishes a reply.
+   If you skip this, Codex works without the sounds and asks again the next time it opens.
+4. Codex asks how to set up its sandbox (the safety fence around what it may change). Choose
    **Set up default sandbox** if you can approve the Windows administrator prompt that follows.
    Otherwise choose **Use non-admin sandbox**.
-4. Codex says that hooks need review. Type `/hooks` and approve Launchpad's two sounds:
-   *permission* when Codex asks before acting, and *done* when it finishes a reply.
 
 **What works differently from Claude Code:**
 
@@ -97,6 +100,7 @@ Claude Code. Codex is a download of about 500 MB. A Claude Code already on your 
 - If your Codex settings already hold instructions of your own, Launchpad doesn't add the
   response-language line, so your instructions are kept.
 - Codex shows Hebrew and Arabic left to right. Right-to-left display works only with Claude Code.
+- With a response language set, Codex shows "1 warning" in the corner. It is expected and harmless.
 - No idle reminder sound and no auto-continue after the usage limit resets.
 
 **Both agents on one PC:** the picker shows a Claude Code / Codex choice, and each profile
