@@ -580,15 +580,15 @@ Section "!Core Components (Required)" SecCore
   WriteRegDWORD HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\ClaudeCodeLaunchpad" "NoModify" 1
   WriteRegDWORD HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\ClaudeCodeLaunchpad" "NoRepair" 1
 
-  ; Add right-click context menu for folders: "Open with ClaudeCode Launchpad CLI"
-  WriteRegStr HKCU "Software\Classes\Directory\shell\ClaudeCodeLaunchpad" "" "Open with ClaudeCode Launchpad CLI"
+  ; Add right-click context menu for folders: "Open with ClaudeCode CLI"
+  WriteRegStr HKCU "Software\Classes\Directory\shell\ClaudeCodeLaunchpad" "" "Open with ClaudeCode CLI"
   WriteRegStr HKCU "Software\Classes\Directory\shell\ClaudeCodeLaunchpad" "Icon" "$INSTDIR\claude_icon.ico"
-  WriteRegStr HKCU "Software\Classes\Directory\shell\ClaudeCodeLaunchpad\command" "" '"$INSTDIR\claudecode-launchpad.bat" "%1"'
+  WriteRegStr HKCU "Software\Classes\Directory\shell\ClaudeCodeLaunchpad\command" "" '"$INSTDIR\claudecode-launchpad.bat" OPEN-CLAUDE "%1"'
 
   ; Also add to directory background (right-click inside a folder)
-  WriteRegStr HKCU "Software\Classes\Directory\Background\shell\ClaudeCodeLaunchpad" "" "Open ClaudeCode Launchpad CLI here"
+  WriteRegStr HKCU "Software\Classes\Directory\Background\shell\ClaudeCodeLaunchpad" "" "Open ClaudeCode CLI here"
   WriteRegStr HKCU "Software\Classes\Directory\Background\shell\ClaudeCodeLaunchpad" "Icon" "$INSTDIR\claude_icon.ico"
-  WriteRegStr HKCU "Software\Classes\Directory\Background\shell\ClaudeCodeLaunchpad\command" "" '"$INSTDIR\claudecode-launchpad.bat" "%V"'
+  WriteRegStr HKCU "Software\Classes\Directory\Background\shell\ClaudeCodeLaunchpad\command" "" '"$INSTDIR\claudecode-launchpad.bat" OPEN-CLAUDE "%V"'
 
   ; Install Windows Terminal fragment
   CreateDirectory "$LOCALAPPDATA\Microsoft\Windows Terminal\Fragments\ClaudeCodeLaunchpad"
@@ -846,6 +846,30 @@ Section /o "!Install Codex (Required)" SecCodex
   ${EndIf}
 SectionEnd
 
+; Right-click: one entry per agent (Noam's decision, 2026-11-05). SecCore writes Claude's on every
+; install. Codex's appear once a Codex copy is verified, even when this run chose Claude, and stay
+; until uninstall. A PC with only Codex gets no Claude entry: it could only show an error. Kept out
+; of SecCodex, which the installer tests run for real: this writes to the real registry.
+Section "-Right-click entries for Codex" SecCodexMenu
+  ${If} ${FileExists} "$INSTDIR\kivun-codex-path.txt"
+    WriteRegStr HKCU "Software\Classes\Directory\shell\ClaudeCodeLaunchpadCodex" "" "Open with Codex CLI"
+    WriteRegStr HKCU "Software\Classes\Directory\shell\ClaudeCodeLaunchpadCodex" "Icon" "$INSTDIR\claude_icon.ico"
+    WriteRegStr HKCU "Software\Classes\Directory\shell\ClaudeCodeLaunchpadCodex\command" "" '"$INSTDIR\claudecode-launchpad.bat" OPEN-CODEX "%1"'
+    WriteRegStr HKCU "Software\Classes\Directory\Background\shell\ClaudeCodeLaunchpadCodex" "" "Open Codex CLI here"
+    WriteRegStr HKCU "Software\Classes\Directory\Background\shell\ClaudeCodeLaunchpadCodex" "Icon" "$INSTDIR\claude_icon.ico"
+    WriteRegStr HKCU "Software\Classes\Directory\Background\shell\ClaudeCodeLaunchpadCodex\command" "" '"$INSTDIR\claudecode-launchpad.bat" OPEN-CODEX "%V"'
+    ${IfNot} ${FileExists} "$PROFILE\.local\bin\claude.exe"
+      nsExec::ExecToStack 'where claude'
+      Pop $3
+      Pop $4
+      ${If} $3 S!= "0"
+        DeleteRegKey HKCU "Software\Classes\Directory\shell\ClaudeCodeLaunchpad"
+        DeleteRegKey HKCU "Software\Classes\Directory\Background\shell\ClaudeCodeLaunchpad"
+      ${EndIf}
+    ${EndIf}
+  ${EndIf}
+SectionEnd
+
 Section "Install Windows Terminal (Recommended)" SecWindowsTerminal
   DetailPrint "Installing Windows Terminal via install.cmd..."
   ExecWait 'cmd /c "$INSTDIR\install.cmd" /wt' $0
@@ -981,6 +1005,8 @@ Section "Uninstall"
   ; Remove context menu entries
   DeleteRegKey HKCU "Software\Classes\Directory\shell\ClaudeCodeLaunchpad"
   DeleteRegKey HKCU "Software\Classes\Directory\Background\shell\ClaudeCodeLaunchpad"
+  DeleteRegKey HKCU "Software\Classes\Directory\shell\ClaudeCodeLaunchpadCodex"
+  DeleteRegKey HKCU "Software\Classes\Directory\Background\shell\ClaudeCodeLaunchpadCodex"
   DeleteRegKey HKCR "Directory\shell\ClaudeCodeLaunchpad"
   DeleteRegKey HKCR "Directory\Background\shell\ClaudeCodeLaunchpad"
 

@@ -61,7 +61,7 @@ Each line is observable on Windows 11 x64, normal user, Windows Terminal, unless
 | A3 | Fresh install, Codex chosen: install, sign-in, folder trust, sandbox screen, hook review, status bar and permission sound all work; one done sound per finished reply |
 | A4 | Claude installed, installer run again choosing Codex: Claude still starts from a `READFILE` picker launch and is unchanged |
 | A5 | Both installed: two profiles with different agents keep their own agent and flags |
-| A6 | Right-click "Open with" starts the agent in global `AGENT` |
+| A6 | Right-click has one entry per installed agent: "Open with ClaudeCode CLI" starts Claude and "Open with Codex CLI" starts Codex, whatever `AGENT` says; the same inside a folder. With one agent installed, only its entry shows |
 | A7 | Codex "continue last" in a folder with no history opens a fresh conversation |
 | A8 | Hebrew response language, no existing developer instructions: Codex replies in Hebrew |
 | A9 | A Codex launch never starts Claude's auto-continue watcher |
@@ -87,7 +87,7 @@ Each line is observable on Windows 11 x64, normal user, Windows Terminal, unless
 | A29 | Existing developer instructions present: Launchpad's language line is skipped and the picker says why |
 | A30 | The first message survives every setup screen: sent once or left unsent in the input box, never twice, never lost |
 | A31 | One profile switched Claude → Codex → Claude: no flag or environment leakage; Claude's files unchanged by the Codex launch |
-| A32 | Right-click follows global `AGENT`, not the last profile used |
+| A32 | Send To follows global `AGENT`, not the last profile used |
 | A33 | No interactive Codex session is started from an elevated process; an installer run as administrator still installs |
 | A34 | Reinstalling 3.3.0, and upgrading to a higher local test build, keeps hook approval: no new review prompt |
 | A35 | Normal user without admin rights: the sandbox screen is explained by Launchpad's text and the non-admin choice works |
@@ -143,6 +143,10 @@ Added after the independent review of the build (2026-10-31); each closes one fi
 - Rule 1 (Claude frozen): the status bar's reset text gains the exact day and hour, at Noam's request (2026-11-05). This is a deliberate visible change for Claude users, so the manual A1 and A2 runs should expect it. The launcher and the rate-limit state file are unchanged.
 
 - Rule 1 (Claude frozen): the right-click entries now work, which differs from v3.2.2 on purpose. Found by Noam during M16 (2026-11-05): since the installer went per-user in v2.6.4, its two `WriteRegStr HKCR ...\command` lines fail with "Access is denied" and it doesn't check, so a fresh install's entries had no command. Both now write to `HKCU\Software\Classes`. A PC with an old admin install keeps working: the user's key takes priority. Guard tests: `UT_Installer_RegistryWritesPerUser`, `UT_Installer_RightClickCommand`.
+
+- D6 and rule 1, changed by Noam during M4 (2026-11-05):
+  - **Right-click:** one entry per agent, instead of following `AGENT`. The commands name their agent (`OPEN-CLAUDE`, `OPEN-CODEX`). Send To and a folder alone still follow `AGENT`, so the older tests with "right-click" in their names (`UT_Launch_AgentPrecedence` and others) now exercise that path. Both agents' entries use short names ("Open with ClaudeCode CLI", "Open with Codex CLI"), a deliberate visible change for Claude users, and Claude's now always starts Claude. Codex's entries are written once `kivun-codex-path.txt` exists; a PC with no Claude Code loses Claude's. These writes sit in their own section, `SecCodexMenu`, because the installer tests run `SecCodex` for real. Guard tests: `UT_RightClick_*`, `UT_Installer_RightClick*`, `UT_Installer_RegistryOutsideTestedSections`.
+  - **Picker button:** "Launch ClaudeCode CLI" or "Launch Codex CLI", replacing v3.2.2's "Launch ClaudeCode Launchpad CLI". A deliberate visible change for Claude users. Guard test: `UT_Picker_LaunchLabel`.
 
 **Cases deliberately not covered by automated tests** (manual, release gate on clean machines): real installs and first runs (A1 to A4, A3 sign-in, trust, sandbox and hook review), A9 with real Claude, A15, A16 (right-to-left cases on screen), A22, A26 with a real download, A30, A33 to A35, A37 display, A40 through Explorer on a second drive, A41 on a real fresh PC, A44 with Node really uninstalled, Windows 10 (A1 to A3, A13, A23) and ARM64. Pre-existing gaps left unchanged on purpose: the em dash in the v3.2.2 finish text shows garbled in the built installer, the v3.2.2 finish text is cut off on its page, `FALLBACK_VERSION` reads 3.0.1, and the README still says "Run as Administrator".
 

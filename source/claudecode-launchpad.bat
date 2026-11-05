@@ -61,10 +61,20 @@ if exist "!SCRIPT_DIR!config.txt" (
 
 REM --- Which agent (v3.3.0) ----------------------------------------------
 REM LAUNCH <id> is a Codex picker launch. READFILE is a Claude picker launch, whatever AGENT
-REM says. Every other launch (right-click, desktop shortcut) follows AGENT in config.txt;
-REM missing or unknown means Claude. Nothing set here reaches Claude's environment.
+REM says. OPEN-CODEX and OPEN-CLAUDE are the right-click entries: each names its agent, whatever
+REM AGENT says, and the folder comes next (shift /1 leaves the path of this script alone). Every
+REM other launch (Send To, a folder alone) follows AGENT in config.txt; missing or unknown means
+REM Claude. Nothing set here reaches Claude's environment.
 if /i "%~1"=="LAUNCH" goto :codex_phase1
 if /i "%~1"=="READFILE" goto :agent_done
+if /i "%~1"=="OPEN-CODEX" (
+    shift /1
+    goto :codex_phase1
+)
+if /i "%~1"=="OPEN-CLAUDE" (
+    shift /1
+    goto :agent_done
+)
 call :read_agent
 if "!KV_AGENT!"=="?" goto :config_empty
 if /i "!KV_AGENT!"=="codex" (

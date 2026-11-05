@@ -141,6 +141,7 @@ right-click "Open with", profiles, terminal theme and sounds.
   Then answer its sandbox question: choose the default if you can approve the Windows administrator
   prompt, otherwise the non-admin sandbox.
 - When both agents are installed, the picker shows an agent choice, and each profile keeps its own.
+  Right-clicking a folder offers one entry for each agent. Send To follows the agent chosen in the installer.
 - Not available with Codex: right-to-left display (Codex shows Hebrew and Arabic left to right),
   the idle reminder sound, and auto-continue. macOS stays Claude-only.
 
