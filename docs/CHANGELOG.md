@@ -19,7 +19,7 @@ When you choose Codex:
   options and startup message.
 - Codex gets a status bar (model, context, tokens, usage limits, folder) and two sounds:
   permission, when Codex asks before acting, and done, when it finishes a reply. Codex asks you
-  to approve them once: type `/hooks` in Codex.
+  to trust them once: choose **Trust all and continue** on its **Hooks need review** screen.
 - The response language is passed to Codex, unless your Codex settings already hold
   instructions of your own: then yours are kept.
 - The picker's startup message is sent to Codex as your first message. Commands that start
