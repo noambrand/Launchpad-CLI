@@ -1,0 +1,9 @@
+{
+  "note": "Variables whose values differ between two runs of the same v3.2.2 launcher. Written by calibrate.js; change only with a reason in the commit.",
+  "variables": [
+    "CC_ELAPSED",
+    "CC_T0",
+    "CC_T1",
+    "_TT"
+  ]
+}

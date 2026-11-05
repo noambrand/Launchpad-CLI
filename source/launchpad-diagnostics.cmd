@@ -38,8 +38,13 @@ ver >>"%RPT%" 2>&1
 
 >>"%RPT%" echo.
 >>"%RPT%" echo ===== [2] Launcher files (a MISSING one usually means antivirus removed it) =====
-call :checkfile "%KDIR%\folder-picker.hta"
+REM The picker is LaunchpadPicker.exe + folder-picker.html since v3.0.0; the installer deletes
+REM the old folder-picker.hta, so checking for it always reported MISSING.
+call :checkfile "%KDIR%\LaunchpadPicker.exe"
+call :checkfile "%KDIR%\folder-picker.html"
+call :checkfile "%KDIR%\agent-helpers.js"
 call :checkfile "%KDIR%\claudecode-launchpad.bat"
+call :checkfile "%KDIR%\configure-codex.js"
 call :checkfile "%KDIR%\statusline.mjs"
 call :checkfile "%KDIR%\config.txt"
 call :checkfile "%KDIR%\claude_icon.ico"
@@ -49,6 +54,23 @@ call :checkfile "%KDIR%\claude_icon.ico"
 where claude.cmd >>"%RPT%" 2>&1
 where claude >>"%RPT%" 2>&1
 cmd /c claude --version >>"%RPT%" 2>&1
+
+>>"%RPT%" echo.
+>>"%RPT%" echo ===== [3b] Codex (where + version, chosen agent, sound hooks) =====
+REM Only file names, a version and yes/no answers: never the contents of Codex's settings, its
+REM sign-in, or a launch folder (those can hold an API key).
+where codex >>"%RPT%" 2>&1
+where codex >nul 2>&1 && cmd /c codex --version >>"%RPT%" 2>&1
+set "KAGENT="
+if exist "%KDIR%\config.txt" for /f "usebackq tokens=1,* delims==" %%A in ("%KDIR%\config.txt") do if /i "%%A"=="AGENT" set "KAGENT=%%B"
+if defined KAGENT (>>"%RPT%" echo AGENT in config.txt: %KAGENT%) else (>>"%RPT%" echo AGENT in config.txt: not set ^(Claude Code^))
+set "CXHOME=%CODEX_HOME%"
+if not defined CXHOME set "CXHOME=%USERPROFILE%\.codex"
+call :checkfile "%CXHOME%\hooks.json"
+if exist "%CXHOME%\hooks.json" (
+    findstr /c:"/.claude/sounds/play.js" "%CXHOME%\hooks.json" >nul 2>&1 && (>>"%RPT%" echo Launchpad sound hooks in hooks.json: yes) || (>>"%RPT%" echo Launchpad sound hooks in hooks.json: no)
+)
+call :checkfile "%KDIR%\kivun-codex-path.txt"
 
 >>"%RPT%" echo.
 >>"%RPT%" echo ===== [4] Node.js (where + version) =====

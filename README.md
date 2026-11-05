@@ -129,6 +129,23 @@ Real screenshots from two Windows Terminal windows of the same size, Launchpad 3
   <img src="assets/rtl/rtl-preview.png" width="760" alt="A Hebrew draft in the input box: no preview in 3.1.0, a right-aligned preview line above the input box in 3.2.0">
 </p>
 
+## Codex (OpenAI) instead of Claude Code (Windows)
+
+New in 3.3.0: the installer asks which AI agent to set up. Claude Code is the default and works
+exactly as before. Choose **Codex** to get OpenAI's coding agent with the same folder picker,
+right-click "Open with", profiles, terminal theme and sounds.
+
+- Codex is a download of about 500 MB. A Codex you already have (0.166.0 or newer) is used as is.
+- The first time Codex opens, sign in with your ChatGPT account or an OpenAI API key, trust the
+  folder, and answer its sandbox question: choose the default if you can approve the Windows
+  administrator prompt, otherwise the non-admin sandbox. Then type `/hooks` and approve
+  Launchpad's two sounds.
+- When both agents are installed, the picker shows an agent choice, and each profile keeps its own.
+- Not available with Codex: right-to-left display (Codex shows Hebrew and Arabic left to right),
+  the idle reminder sound, and auto-continue. macOS stays Claude-only.
+
+Details: [Quick Start](docs/QUICK_START.md#using-codex) and [Troubleshooting](TROUBLESHOOTING.md#codex).
+
 ## Quick Start
 
 ### Windows
@@ -232,6 +249,8 @@ RESPONSE_LANGUAGE=english     # 24+ languages supported
 TERMINAL_COLOR=kivun          # kivun / dark / black / white / default, or a hex like #1e1e2e
 CLAUDE_FLAGS=                 # e.g. --continue
 AUTO_CONTINUE=false           # auto-type "continue" when the 5-hour limit resets (see below)
+AGENT=                        # empty = Claude Code, codex = Codex (set by the installer)
+CODEX_FLAGS=                  # Codex options for every Codex launch, e.g. --search
 ```
 
 ## Auto-continue after the 5-hour limit resets (opt-in)

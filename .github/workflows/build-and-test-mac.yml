@@ -8,12 +8,16 @@ on:
       - 'mac/**'
       - 'source/statusline.mjs'
       - 'source/configure-statusline.js'
+      - 'source/sounds/**'
+      - 'source/test/UT_Sounds.js'
       - '.github/workflows/build-and-test-mac.yml'
   pull_request:
     paths:
       - 'mac/**'
       - 'source/statusline.mjs'
       - 'source/configure-statusline.js'
+      - 'source/sounds/**'
+      - 'source/test/UT_Sounds.js'
   workflow_dispatch:
 
 jobs:
@@ -30,6 +34,9 @@ jobs:
           cp source/configure-statusline.js mac/scripts/configure-statusline.js
           cp -R source/sounds mac/scripts/sounds
           chmod +x mac/scripts/postinstall
+
+      - name: Sound setup unchanged from v3.2.2 (the macOS package ships source/sounds too)
+        run: node --test source/test/UT_Sounds.js
 
       - name: Verify postinstall script
         run: |

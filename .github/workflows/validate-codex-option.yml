@@ -1,0 +1,60 @@
+name: Validate the Codex option (v3.3.0)
+
+# Derived from docs/REQUIREMENTS-codex-option.md. Runs on real Windows, because the launcher,
+# the installer script and the picker only exist there. Every step uses cmd: Launchpad's Codex
+# code never uses PowerShell, and the Windows runner's default shell would be PowerShell.
+
+on:
+  push:
+    paths:
+      - 'source/**'
+      - 'picker-app/**'
+      - 'ClaudeCode_Launchpad_CLI_Setup.nsi'
+      - '.gitattributes'
+      - '.github/workflows/validate-codex-option.yml'
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: cmd
+    env:
+      # Short and outside %TEMP%: Codex refuses its helpers under Temp, and its background
+      # server needs a connection-file path under 108 characters (Gate 0 findings).
+      KIVUN_TEST_ROOT: C:\kt
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      # The windows-2025 image has no NSIS (found on the first run: the installer tests were
+      # skipped and the compile step failed). Installed as release.yml does, before the Node
+      # tests, so the installer-logic tests run instead of skipping.
+      - name: Install NSIS
+        run: |
+          choco install nsis -y --no-progress || exit /b 1
+          if not exist "C:\Program Files (x86)\NSIS\makensis.exe" (echo FAIL: makensis.exe not found after install & exit /b 1)
+
+      - name: Node unit tests and the Claude golden comparison (requirement A1)
+        run: node source\test\run-node-tests.js
+
+      - name: The installer script compiles with no warnings (handout 7.8)
+        run: |
+          "C:\Program Files (x86)\NSIS\makensis.exe" /V2 /WX ClaudeCode_Launchpad_CLI_Setup.nsi || exit /b 1
+          echo PASS: installer compiled
+
+      - name: Existing auto-continue unit tests (Windows Script Host)
+        run: cscript //nologo source\test\RunUT.wsf
+
+      # Compared with line endings aside: the checkout turns every line end of the committed file
+      # into CRLF, while the builder keeps the mixed ends of its own insertions (first run).
+      - name: The committed picker HTML is what the builder makes from the HTA
+        run: |
+          node picker-app\build-picker.js source\folder-picker.hta "%RUNNER_TEMP%\folder-picker.html" || exit /b 1
+          node -e "const fs = require('fs'), t = f => fs.readFileSync(f, 'utf8').replace(/\r\n/g, '\n'); process.exit(t('source/folder-picker.html') === t(process.argv[1]) ? 0 : 1)" "%RUNNER_TEMP%\folder-picker.html" || (echo FAIL: source\folder-picker.html is out of date. Rebuild it from the HTA. & exit /b 1)
+          echo PASS: picker HTML matches the HTA

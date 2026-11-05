@@ -48,6 +48,13 @@ function copyInto(src, dst) {
 }
 if (path.resolve(srcDir) !== path.resolve(destDir)) copyInto(srcDir, destDir);
 
+// --deploy-only (v3.3.0, Codex-only installs): copy the toolkit and stop. Codex's own hooks are
+// written by configure-codex.js, and a machine without Claude must not get a settings.json.
+if (process.argv.includes('--deploy-only')) {
+  console.log('Voice alerts deployed -> ' + destDir);
+  process.exit(0);
+}
+
 // --- 2. Merge hooks into ~/.claude/settings.json (idempotent) ---------------------
 const soundsDir = destDir.replace(/\\/g, '/'); // forward slashes work in every shell
 
