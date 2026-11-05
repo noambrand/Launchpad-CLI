@@ -17,6 +17,11 @@ When you choose Codex:
 - The folder picker, right-click "Open with" and Send To start Codex. The picker shows an agent
   choice when both agents are installed, and each profile remembers its own agent, model,
   options and startup message.
+- Right-clicking a folder offers one entry per agent: **Open with ClaudeCode CLI** and
+  **Open with Codex CLI**, each starting that agent whichever one the installer chose. With only
+  one agent installed, only its entry shows. Send To follows the installer's choice.
+- The picker's button now says **Launch ClaudeCode CLI** or **Launch Codex CLI**, for the agent
+  selected.
 - Codex gets a status bar (model, context, tokens, usage limits, folder) and two sounds:
   permission, when Codex asks before acting, and done, when it finishes a reply. Codex asks you
   to trust them once: choose **Trust all and continue** on its **Hooks need review** screen.
@@ -44,8 +49,8 @@ PC's local time: `resets in 4d4h (Tue Nov 10 01:47)`.
 
 ### Fixed: right-clicking a folder showed a Windows error
 
-Since 2.6.4, a new install left the two right-click entries ("Open with ClaudeCode Launchpad CLI"
-and "Open ClaudeCode Launchpad CLI here") without their command, so choosing one showed "This
+Since 2.6.4, a new install left the two right-click entries without their command, so choosing
+one showed "This
 file does not have an app associated with it". The installer now writes them where a normal user
 can. Running this installer repairs an existing install.
 

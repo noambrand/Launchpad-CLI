@@ -200,9 +200,11 @@ picker profiles (the folders/combos you saved) are kept too. Only a brand-new, f
 install generates a fresh `config.txt` from the wizard choices. (Older builds rewrote
 `config.txt` on every install — that's fixed.)
 
-### Right-click context menu missing
+### Right-click context menu missing, or it says "This file does not have an app associated with it"
 
-Re-run the installer as Administrator. The context menu entry is added to the registry during installation.
+Run the installer again. It needs no administrator rights, and it adds the entries to the registry. Versions before 3.3.0 could leave the entry without its command, which shows that message.
+
+The Codex entries appear once Codex is installed. A PC with only Codex has no Claude Code entry.
 
 ### Download failed during installation
 

@@ -1657,7 +1657,9 @@
         custom: (document.getElementById("custom-help") || {}).innerText || "",
         startupTitle: (document.getElementById("startup-title") || {}).innerText || "",
         startupHelp: (document.getElementById("startup-help") || {}).innerText || "",
-        startupPh: st0 ? st0.placeholder : ""
+        startupPh: st0 ? st0.placeholder : "",
+        launch: (document.getElementById("launch-btn") || {}).innerText || "",
+        hintFlags: (document.getElementById("hint-flags") || {}).innerText || ""
       };
     }
     var codex = (agent === "codex");
@@ -1673,6 +1675,9 @@
     setText("startup-help", codex ? "Sent to Codex as your first message once it opens. Several lines are joined into one message. Commands that start with / can't run at startup." : claudeTexts.startupHelp);
     var st = document.getElementById("startup-cmds");
     if (st) st.placeholder = codex ? "e.g. Explain what this project does" : claudeTexts.startupPh;
+    setText("launch-btn", codex ? "Launch Codex CLI" : claudeTexts.launch);
+    setText("hint-launch", codex ? "Launch Codex CLI" : claudeTexts.launch);
+    setText("hint-flags", codex ? "Codex options + startup message" : claudeTexts.hintFlags);
     showEl("codex-notes", codex);
     try { autoSizeToContent(); } catch (e) {}
   }
@@ -1847,7 +1852,7 @@
 
   <h1>Pick a folder for ClaudeCode Launchpad CLI</h1>
   <p class="hint">
-    Choose <b>one</b> of the two options below, optionally tune the Claude flags + startup commands, then click <b>Launch ClaudeCode Launchpad CLI</b>.
+    Choose <b>one</b> of the two options below, optionally tune the <span id="hint-flags">Claude flags + startup commands</span>, then click <b id="hint-launch">Launch ClaudeCode CLI</b>.
     Switch <b>Profile</b> at the top to load a saved combo (folder, model, flags, startup commands, env vars).
   </p>
 
@@ -2013,7 +2018,7 @@
     <button type="button" class="config" onclick="editConfig()" title="Open config.txt in Notepad for advanced settings (language, theme, BiDi tunables)">Open config.txt (advanced)</button>
     <div class="right">
       <button type="button" class="cancel" onclick="cancel()">Cancel</button>
-      <button type="button" class="primary ok" onclick="ok()">Launch ClaudeCode Launchpad CLI</button>
+      <button type="button" class="primary ok" id="launch-btn" onclick="ok()">Launch ClaudeCode CLI</button>
     </div>
   </div>
   <p class="err" id="err"></p>

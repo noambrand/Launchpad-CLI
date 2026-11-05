@@ -60,14 +60,14 @@ Tip: save a folder + options combo as a **named profile** using the chip row at 
 ### Method 2: Right-click a folder - "Open with" (skips the picker)
 
 1. Right-click any folder in Windows Explorer
-2. Select **Open with ClaudeCode Launchpad CLI**
-3. Claude Code opens straight into that folder
+2. Select **Open with ClaudeCode CLI**, or **Open with Codex CLI** if Codex is installed
+3. That agent opens straight into that folder
 
 ### Method 3: Right-click - Send To
 
 1. Right-click any file or folder in Windows Explorer
 2. **Send To - ClaudeCode Launchpad CLI**
-3. Claude Code opens in that folder
+3. The agent chosen in the installer opens in that folder
 
 ## Using Codex
 
