@@ -117,6 +117,19 @@ function resetIn(epochSec) {
   return h > 0 ? `${h}h${String(m).padStart(2, '0')}m` : `${m}m`;
 }
 
+// ── Exact Reset Date ──────────────────
+// The PC's local time, in English like the rest of the bar (fixed names, so a Hebrew Windows
+// doesn't mix scripts into it). Example: "4d4h (Tue Nov 10 01:30)".
+const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+function resetLabel(epochSec) {
+  const rst = resetIn(epochSec);
+  if (!rst || rst === 'now') return rst;
+  const t = new Date(epochSec * 1000);
+  const hhmm = `${String(t.getHours()).padStart(2, '0')}:${String(t.getMinutes()).padStart(2, '0')}`;
+  return `${rst} (${DAYS[t.getDay()]} ${MONTHS[t.getMonth()]} ${t.getDate()} ${hhmm})`;
+}
+
 // ── Model ─────────────────────────────
 function fieldModel(d) {
   const name = d.model?.display_name || '?';
@@ -213,7 +226,7 @@ function fieldUsage5h(d) {
   const rl = d.rate_limits?.five_hour;
   if (!rl) return `Session ${C.d}-- undefined --${C.n}`;
   const pct = Math.round(rl.used_percentage || 0);
-  const rst = resetIn(rl.resets_at);
+  const rst = resetLabel(rl.resets_at);
   return `Session ${makeBar(pct)} ${pct}%${rst ? C.d + ' resets in ' + rst + C.n : ''}`;
 }
 
@@ -222,7 +235,7 @@ function fieldUsage7d(d) {
   const rl = d.rate_limits?.seven_day;
   if (!rl) return `Weekly ${C.d}-- undefined --${C.n}`;
   const pct = Math.round(rl.used_percentage || 0);
-  const rst = resetIn(rl.resets_at);
+  const rst = resetLabel(rl.resets_at);
   return `Weekly ${makeBar(pct)} ${pct}%${rst ? C.d + ' resets in ' + rst + C.n : ''}`;
 }
 

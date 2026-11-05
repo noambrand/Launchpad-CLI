@@ -37,6 +37,11 @@ Install, upgrade and uninstall:
 - Uninstalling removes only what Launchpad added to Codex's settings. Neither agent is
   uninstalled, and your sign-in and conversations stay.
 
+### Added: the exact reset date in the status bar
+
+The Session and Weekly bars now show the day and hour of the reset next to the countdown, in your
+PC's local time: `resets in 4d4h (Tue Nov 10 01:47)`.
+
 ### Fixed: the diagnostic report always said the folder picker was missing
 
 It looked for the old `folder-picker.hta`, which the installer removes since 3.0.0. It now
