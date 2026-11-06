@@ -4,15 +4,15 @@
 
 ### Added: GitHub Copilot CLI as a third AI agent, on Windows
 
-The installer now also offers GitHub Copilot, GitHub's coding agent. Claude Code and Codex work exactly
-as they did in 3.3.0, and macOS stays Claude-only.
+The installer now also offers GitHub Copilot, GitHub's coding agent. Claude Code works exactly as it did
+in 3.3.0, Codex does too apart from how it updates (below), and macOS stays Claude-only.
 
 When you choose GitHub Copilot:
 
-- The installer downloads it with npm (about 170 MB) and uses a copy you already have if it is
-  version 1.0.105 or newer. An older copy that npm installed is updated after a notice; any other
-  older copy is left alone with a message. npm's copy needs Node.js 22 or newer, and Launchpad says so
-  plainly if yours is older. A stand-alone copy doesn't use Node.js.
+- The installer downloads the newest version with npm (about 170 MB). A copy npm installed earlier is
+  updated to the newest version. A copy installed any other way is used if it is version 1.0.105 or
+  newer, and otherwise left alone with a message. npm's copy needs Node.js 22 or newer: if yours is
+  older, Launchpad says so and gives the command to update it. A stand-alone copy doesn't use Node.js.
 - The folder picker, right-click and Send To start Copilot. Right-clicking a folder adds **Open with
   Copilot CLI** and, inside a folder, **Open Copilot CLI here**. The picker's button says **Launch
   Copilot CLI**, and each profile keeps Copilot's own model, options, startup message and environment
@@ -33,6 +33,19 @@ When you choose GitHub Copilot:
 - Copilot draws its own colors over the terminal theme. `/settings theme default` inside Copilot shows
   the terminal's colors. Launchpad doesn't change that setting, because it belongs to your own Copilot
   settings.
+
+### Changed: choosing an agent updates the copy you have
+
+When you choose Codex or GitHub Copilot in the installer, a copy that npm installed is now updated to the
+newest version. Before, Codex was only updated when it fell below the minimum version. If the update fails,
+or npm can't be reached, the copy you have stays and the install still succeeds. A copy installed any
+other way is never changed.
+
+### Changed: the docs on Auto-continue
+
+Claude Code now continues by itself after a usage limit resets, unless the PC slept through the reset.
+The README and Quick Start now say so, and that most people can leave Launchpad's **Auto-continue when
+limit resets** off. The option itself works as before.
 
 ## [3.3.0] - 2026-11-06
 

@@ -72,7 +72,9 @@ Tip: save a folder + options combo as a **named profile** using the chip row at 
 ## Using Codex
 
 Choose **Codex** in the installer (Windows only) and Launchpad sets up OpenAI's Codex instead of
-Claude Code. Codex is a download of about 500 MB. A Claude Code already on your PC stays.
+Claude Code. Codex is a download of about 500 MB, and you get the newest version. If npm installed the
+Codex you already have, Launchpad updates it. One installed any other way is used as is, if it's 0.166.0
+or newer. A Claude Code already on your PC stays.
 
 **The first time Codex opens:**
 
@@ -113,8 +115,9 @@ change it.
 
 Choose **GitHub Copilot** in the installer (Windows only) and Launchpad sets up GitHub's Copilot CLI
 instead of Claude Code. It is a download of about 170 MB and needs Node.js 22 or newer, plus a GitHub
-account with a Copilot plan (a free plan works). A copy you already have (1.0.105 or newer) is used
-as is, and an AI agent already on your PC stays.
+account with a Copilot plan (a free plan works). You get the newest version. If npm installed the copy
+you already have, Launchpad updates it. One installed any other way is used as is, if it's 1.0.105 or
+newer. An AI agent already on your PC stays.
 
 **The first time Copilot opens:**
 
@@ -124,7 +127,7 @@ as is, and an AI agent already on your PC stays.
    with `/terminal-setup`.
 3. If you aren't signed in, Copilot says **Please use /login**. Type `/login`, choose your account
    type and follow the steps. If you are already signed in to the GitHub CLI, Copilot may use that
-   and not ask. If your startup message wasn't sent after you signed in, type it again.
+   and not ask. Your startup message goes out by itself once you've signed in.
 
 **What works differently from Claude Code:**
 
@@ -166,7 +169,7 @@ All settings live in one plain-text file: `%LOCALAPPDATA%\Kivun\config.txt`. Ope
 - `TERMINAL_COLOR` - `kivun` (light blue), `dark`, `black`, `white`, `default`, or a custom `#RRGGBB`
 - `CLAUDE_FLAGS` - default flags added to every launch (e.g. `--model opus`)
 - `STARTUP_CMD` - a slash command typed in automatically after Claude opens
-- `AUTO_CONTINUE` - `true` to resume automatically after the 5-hour limit resets (off by default, Claude Code only)
+- `AUTO_CONTINUE` - `true` to have Launchpad type a resume message after the 5-hour limit resets (off by default, Claude Code only). Claude Code now continues by itself, so most people can leave this off; see the README
 - `AGENT` - the agent Send To starts: empty for Claude Code, `codex` for Codex, `copilot` for GitHub Copilot (the installer sets it)
 - `CODEX_FLAGS` - Codex options added to every Codex launch (e.g. `--search`)
 - `CODEX_STARTUP_CMD` - a first message sent to Codex on right-click launches
