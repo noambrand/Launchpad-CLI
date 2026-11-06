@@ -28,7 +28,10 @@ Who: **C** Claude Code can drive and check it (`test-tools\e2e-copilot.js`: the 
 | R8 | Uninstall removes `launchpad-sounds.json` and the right-click entries; Copilot, its sign-in and its sessions stay | N, C | | | | |
 | R9 | How Hebrew and the terminal color look in a real tab, as the docs describe | N, C | `52475c3` | 2026-11-06 | PASS by screenshot, in a tab opened by hand, not through an install: Hebrew shows left to right with each word's letters reversed. The standard theme is white; `/settings theme default` shows the light blue | `evidence\e2e\look-hebrew.png`, `theme-default.png` |
 | R10 | `install-copilot` for real: a fresh install, and an old copy updated with its notice. Throwaway npm folders | C | `52475c3` | 2026-11-06 | PASS: fresh in 17 s; 1.0.65 updated to 1.0.106; both verified and set `AGENT` | `evidence\e2e\install-fresh.txt`, `install-update.txt` |
+| R11 | A real stand-alone Copilot (the winget package): found, version read and started through the launcher, also with Node below 22. The automated tests use a stand-in | N, C | | | | |
 
 **About the versions:** Step 0 tested 1.0.105. Copilot updated itself to 1.0.106 during these runs, and the screenshots show 1.0.106. With auto-update on, even an old npm package runs the newest copy already downloaded, so the version Launchpad reads is the one that really runs.
+
+**About the commit:** these results are on `52475c3`. `0f4dcd1` came later and only changes what happens on Node below 22. This PC has Node 24, so it doesn't affect them.
 
 **Rerun E7, E8 and E9 against the Copilot version current on release day.** Continue reads Copilot's internal files, and Copilot updates itself.

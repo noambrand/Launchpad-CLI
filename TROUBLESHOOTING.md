@@ -379,7 +379,8 @@ Launchpad shows a repair message.
 ### Launchpad says Copilot was not found, or is too old
 
 Run the installer again and choose GitHub Copilot. Launchpad needs version 1.0.105 or newer, because
-reopening a conversation doesn't work on older ones.
+reopening a conversation doesn't work on older ones. If the message says Copilot needs Node.js 22 or
+newer, update Node.js from https://nodejs.org/ first.
 
 ### "Copilot was not started"
 
