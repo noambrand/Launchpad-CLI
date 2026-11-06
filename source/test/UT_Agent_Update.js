@@ -70,8 +70,10 @@ test.beforeEach(() => { setRegistry(); });
 function net(d, registry) {
   const cache = path.join(d.root, 'npm-cache');
   fs.mkdirSync(cache, { recursive: true });
+  // The global folder is always named. Without it, npm's default on GitHub's runners is Node's own folder, so a
+  // first install escaped this test's sandbox, and later tests found its fake copy there.
   return { npm_config_registry: registry || registryUrl, npm_config_fetch_retries: '0', npm_config_fetch_timeout: '5000', npm_config_update_notifier: 'false',
-    npm_config_cache: cache, APPDATA: path.join(d.root, 'appdata'), KIVUN_LOG: path.join(d.kivun, 'install-log.txt') };
+    npm_config_cache: cache, npm_config_prefix: path.join(d.root, 'appdata', 'npm'), APPDATA: path.join(d.root, 'appdata'), KIVUN_LOG: path.join(d.kivun, 'install-log.txt') };
 }
 const CLOSED = 'http://127.0.0.1:9/';
 
