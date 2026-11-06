@@ -34,7 +34,7 @@ When you choose GitHub Copilot:
   the terminal's colors. Launchpad doesn't change that setting, because it belongs to your own Copilot
   settings.
 
-## [3.3.0] - unreleased
+## [3.3.0] - 2026-11-06
 
 ### Added: Codex (OpenAI) as a second AI agent, on Windows
 

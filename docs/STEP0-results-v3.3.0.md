@@ -11,8 +11,8 @@
 | S4 | Resume, no history | PASS | `codex resume --last` in a never-used folder: "Resuming session..." then a fresh session. No error, no picker, no exit, still running at 25 s. No retry logic needed |
 | S5 | Unknown flag | PASS | `codex --not-a-flag`: exit code 2 in 0.3 s |
 | S6 | Language | PASS | "hi" with the Hebrew line got a Hebrew reply. Launchpad's TOML form of the N'Ko line (with the apostrophe) got an N'Ko reply |
-| S7 | Status line | PARTIAL | Renders. On this account the limit items show as "monthly 90% left", not separate five-hour and weekly. Readability on the kivun light-blue background needs eyes in the real terminal |
-| S8 | Hooks | PASS except sounds | See below. Whether the sounds play, and any console flash, still need a person listening and watching |
+| S7 | Status line | PASS | Renders, and Noam found it readable on the kivun light-blue background in a real Launchpad tab (build `72760e3`). On this account the limit items show as "monthly 90% left", not separate five-hour and weekly |
+| S8 | Hooks | PASS | See below. In a real Launchpad tab (build `72760e3`) Noam heard the `done` sound and saw no window flash. The `permission` sound hasn't been checked by ear; it is in M15 |
 | S9 | Hebrew folder | PASS | Codex started and answered in a Hebrew-named folder with a space in the name |
 | S10 | Model list | PASS | `codex debug models`: JSON with 6 entries, 3 with `visibility:"list"`, all with `slug`, `display_name` and `visibility` |
 | S11 | Deferred first message | PASS | Fresh profile: held through sign-in, the introduction and the hook review screen, never typed into any of them, delivered exactly once, before the sandbox question (both "Trust all" and "Continue without trusting"). In a Git folder it was also held behind the folder-trust screen for 20 s with no key pressed, and sent once after "Trust and continue" |
