@@ -34,10 +34,12 @@
 | D17 | Uninstall deletes the hook file with a plain NSIS `Delete`. | It works with Node.js gone. |
 | D18 | Launchpad doesn't set Copilot's `theme`; the docs give `/settings theme default`. | Copilot's standard `github` theme paints over Launchpad's terminal color, and `default` shows it (seen in a real tab). No option or variable sets it per launch, and changing it means editing a settings file the user owns, which would need a change record. |
 | D19 | Below Node 22, the installer and the launcher both skip an npm copy and can still use a stand-alone `copilot.exe`. | npm's copy runs on that Node; a stand-alone copy doesn't use Node. The first version refused everything on an old Node, which CI's Node 20 exposed. Tested with a stand-in: Step 0 never ran the real winget package. |
+| D20 | When Copilot is selected, a copy npm installed moves to the newest version, as for Codex. A failed update, or no answer from npm within a minute, keeps the copy, and the install succeeds. A copy installed any other way is never changed. | Noam, 2026-11-07: "the latest version available". Copilot updates itself by default, but not with auto-update turned off. The update also works with the agent open (tested for both agents): npm moves the old folder aside, and removes it on the next update. |
+| D21 | Below Node 22 with no usable copy, the installer gives the exact command, `winget install OpenJS.NodeJS.LTS`, and doesn't update Node itself. | Noam wanted the installer to help. Updating Node without asking could break a user's other projects. The failure box says it too, because the log's lines vanish with the installer's window. |
 
 ## Acceptance
 
-Automated, in `source/test/`: `UT_Copilot_Compose`, `UT_Copilot_Run`, `UT_Copilot_Sound`, `UT_Copilot_Install`, `UT_Launcher_Copilot`, `UT_Picker_Copilot`, `UT_Installer_Copilot`.
+Automated, in `source/test/`: `UT_Copilot_Compose`, `UT_Copilot_Run`, `UT_Copilot_Sound`, `UT_Copilot_Install`, `UT_Launcher_Copilot`, `UT_Picker_Copilot`, `UT_Installer_Copilot`, `UT_Agent_Update`.
 
 Must also hold:
 

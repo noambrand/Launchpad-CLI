@@ -2,8 +2,8 @@
 // Everything Launchpad does for OpenAI's Codex, in one place (handout D11). Node built-ins only.
 //
 // Modes (node configure-codex.js <mode> ...):
-//   install-codex           install Codex itself for install.cmd /codex: use a compatible copy, update an
-//                           older npm copy with notice, never touch another copy, else a pinned npm install
+//   install-codex           install Codex itself for install.cmd /codex: bring a copy npm installed up to the
+//                           newest version, never touch another copy, else a pinned npm install
 //   install                 add Launchpad's status line and sound hooks to the user's Codex settings,
 //                           recording exactly what was added (kivun-codex-changes.json)
 //   uninstall               remove only those recorded additions that are still exactly present
@@ -626,6 +626,10 @@ function npm(env, npmCmd, args, logFile, timeout) {
   return cp.spawnSync(env.ComSpec || 'cmd.exe', [line], { encoding: 'utf8', windowsHide: true, windowsVerbatimArguments: true, env, timeout: timeout || 30 * 60 * 1000 });
 }
 
+// Asking npm for a newer version when a working copy is already here: a blocked network mustn't hold up the
+// install for long, because the copy stays anyway. (A first install, with no copy, has to wait.)
+const UPDATE_CHECK_TIMEOUT = 60000;
+
 // The newest stable version >= MIN_VERSION whose Windows package for this PC is published (D14).
 // `exists(version)` answers whether @openai/codex@<version>-win32-<arch> is on the registry.
 function chooseVersion(versions, exists) {
@@ -645,31 +649,45 @@ function installCodex(env) {
     return 5;
   }
   const arch = hostArch(env);
-  // An existing copy: use it if new enough; update it only if npm installed it (Q5).
+  // An existing copy: one npm installed is brought up to the newest version, any other is left alone.
   const found = discover(env).map(c => Object.assign(c, { version: versionOf(c, env) })).filter(c => c.version);
   const good = found.find(c => compareVersions(c.version, MIN_VERSION) >= 0 && (cacheKeyFile(c) || '').length < MAX_PATH);
-  if (good) { say(env, '[Codex] Codex ' + good.version + ' is already installed (' + (good.codexJs || good.exe) + ') - using it.'); return 0; }
+  if (good && good.kind !== 'npm') { say(env, '[Codex] Codex ' + good.version + ' is already installed (' + good.exe + ') - using it.'); return 0; }
   const oldExe = found.find(c => c.kind === 'exe');
   const oldNpm = found.find(c => c.kind === 'npm');
-  if (oldExe && !oldNpm) {
+  if (!good && oldExe && !oldNpm) {
     say(env, '[Codex] Codex ' + oldExe.version + ' at ' + oldExe.exe + ' is older than ' + MIN_VERSION + ' and was not installed with npm.');
     say(env, '[Codex] Launchpad does not change it. Update it the way you installed it, then run this installer again.');
     return 5;
   }
-  if (oldNpm) say(env, '[Codex] Codex ' + oldNpm.version + ' is older than ' + MIN_VERSION + '. Launchpad will update it now.');
+  if (!good && oldNpm) say(env, '[Codex] Codex ' + oldNpm.version + ' is older than ' + MIN_VERSION + '. Launchpad will update it now.');
+  // A working copy stays when there's no way to update it: nothing from here on may fail the install.
+  const keep = () => { say(env, '[Codex] Codex ' + good.version + ' is already installed (' + good.codexJs + "). Launchpad couldn't check for a newer version, so it is using this one."); return 0; };
   const npmCmd = npmCommand(env);
-  if (!npmCmd) { say(env, '[Codex] ERROR: npm was not found next to Node.js. Reinstall Node.js, then run this installer again.'); return 5; }
+  if (!npmCmd) {
+    if (good) return keep();
+    say(env, '[Codex] ERROR: npm was not found next to Node.js. Reinstall Node.js, then run this installer again.');
+    return 5;
+  }
   // Pick the version: the newest one whose Windows package exists (npm can publish "latest" first).
-  const view = args => { const r = npm(env, npmCmd, ['view'].concat(args, ['--json'])); try { return JSON.parse(r.stdout); } catch (e) { return undefined; } };
+  const view = args => { const r = npm(env, npmCmd, ['view'].concat(args, ['--json']), null, good ? UPDATE_CHECK_TIMEOUT : undefined); try { return JSON.parse(r.stdout); } catch (e) { return undefined; } };
   const versions = view(['@openai/codex', 'versions']);
   if (!Array.isArray(versions)) {
+    if (good) return keep();
     say(env, "[Codex] ERROR: couldn't reach the npm registry to download Codex. Check the internet connection, then run this installer again.");
     return 5;
   }
   const version = chooseVersion(versions, v => typeof view(['@openai/codex@' + v + '-win32-' + arch, 'version']) === 'string');
-  if (!version) { say(env, '[Codex] ERROR: no Codex version ' + MIN_VERSION + ' or newer has a Windows package yet. Try again later.'); return 5; }
-  const prefixArgs = oldNpm ? ['--prefix', oldNpm.prefix] : [];
-  say(env, '[Codex] Downloading Codex ' + version + ' (about 500 MB). This can take several minutes - please keep this window open...');
+  if (!version) {
+    if (good) return keep();
+    say(env, '[Codex] ERROR: no Codex version ' + MIN_VERSION + ' or newer has a Windows package yet. Try again later.');
+    return 5;
+  }
+  if (good && compareVersions(good.version, version) >= 0) { say(env, '[Codex] Codex ' + good.version + ' is already installed and up to date (' + good.codexJs + ') - using it.'); return 0; }
+  const target = good || oldNpm;
+  const prefixArgs = target ? ['--prefix', target.prefix] : [];
+  say(env, good ? '[Codex] Updating Codex from ' + good.version + ' to ' + version + ' (about 500 MB). This can take several minutes - please keep this window open...'
+    : '[Codex] Downloading Codex ' + version + ' (about 500 MB). This can take several minutes - please keep this window open...');
   let r = npm(env, npmCmd, ['install', '-g'].concat(prefixArgs, ['@openai/codex@' + version, '--no-fund', '--no-audit']), logFile);
   let c = resolveCodex(env, { noCache: true });
   if (c.missing || compareVersions(c.version, version) < 0) {
@@ -683,6 +701,10 @@ function installCodex(env) {
     say(env, '[Codex] ERROR: Codex could not be installed. Details: ' + logFile);
     for (const m of c.problems) say(env, '[Codex]   ' + m);
     return 5;
+  }
+  if (good && compareVersions(c.version, version) < 0) {
+    say(env, "[Codex] Codex couldn't be updated, so Launchpad keeps using " + c.version + '. Check the internet connection, then run this installer again to try once more. Details: ' + logFile);
+    return 0;
   }
   say(env, '[Codex] Codex ' + c.version + ' installed.');
   return 0;
@@ -779,5 +801,5 @@ module.exports = {
   createLaunch, readLaunch, cleanupLaunches, launchFromConfig, socketPath, plan, run, workFolder, prepare, commit, main,
   nodeTooOld, chooseVersion, installCodex,
   // Used by configure-copilot.js, so the two agents share this code instead of copying it.
-  readIfExists, log, fileStamp, hostArch, npm, npmCommand, testPause, say,
+  readIfExists, log, fileStamp, hostArch, npm, npmCommand, testPause, say, UPDATE_CHECK_TIMEOUT,
 };

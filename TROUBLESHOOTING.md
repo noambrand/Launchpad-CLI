@@ -275,6 +275,11 @@ PC, nothing was changed in the meantime. Common causes, as the log names them:
 - **"The Codex folder path is too long for Windows"**: Windows can't start a program whose full
   path is over 260 characters. Install Codex into a shorter folder, then run the installer again.
 
+### "Codex couldn't be updated"
+
+The install still succeeded, and Launchpad keeps using the copy you have. Usually npm couldn't download
+the update. Check the internet connection, then run the installer again to try once more.
+
 ### Launchpad says Codex was not found when it opens
 
 `AGENT=codex` is set, but no usable Codex was found (it was removed, moved, or never finished
@@ -370,17 +375,24 @@ Check the internet connection, then run the installer again. It picks up where i
 already had another AI agent, Launchpad keeps starting it until Copilot installs. On a PC with none,
 Launchpad shows a repair message.
 
-- **"Node.js ... is too old":** Copilot's npm package needs Node.js 22 or newer. Update Node.js from
-  https://nodejs.org/, then run the installer again. A stand-alone Copilot doesn't use Node.js, so
-  Launchpad uses one of those whatever your Node.js version.
+- **"Node.js ... is too old":** Copilot's npm package needs Node.js 22 or newer. To update Node.js, open
+  Command Prompt and run `winget install OpenJS.NodeJS.LTS`, or download it from https://nodejs.org/. Then
+  run the installer again. A stand-alone Copilot doesn't use Node.js, so Launchpad uses one of those
+  whatever your Node.js version.
 - **"was not installed with npm":** you have an older Copilot from another installer, and Launchpad doesn't
   change it. Update it the way you installed it, then run the installer again.
+
+### "GitHub Copilot couldn't be updated"
+
+The install still succeeded, and Launchpad keeps using the copy you have. Usually npm couldn't download
+the update. Check the internet connection, then run the installer again to try once more.
 
 ### Launchpad says Copilot was not found, or is too old
 
 Run the installer again and choose GitHub Copilot. Launchpad needs version 1.0.105 or newer, because
 reopening a conversation doesn't work on older ones. If the message says Copilot needs Node.js 22 or
-newer, update Node.js from https://nodejs.org/ first.
+newer, update Node.js first: run `winget install OpenJS.NodeJS.LTS` in Command Prompt, or download it from
+https://nodejs.org/.
 
 ### "Copilot was not started"
 

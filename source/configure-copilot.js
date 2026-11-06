@@ -3,8 +3,8 @@
 // Codex, and reusing its helpers rather than copying them. Node built-ins only.
 //
 // Modes (node configure-copilot.js <mode> ...):
-//   install-copilot    install Copilot itself for install.cmd /copilot: use a compatible copy, update an
-//                      older npm copy with notice, never touch another copy, else npm install
+//   install-copilot    install Copilot itself for install.cmd /copilot: bring a copy npm installed up to
+//                      the newest version, never touch another copy, else npm install
 //   install            add Launchpad's one hook file to Copilot's settings folder
 //   uninstall          delete that file
 //   commit             verify the installed Copilot, cache its path, then set AGENT to copilot
@@ -286,32 +286,53 @@ function installCopilot(env) {
   const p = paths(env);
   fs.mkdirSync(p.kivun, { recursive: true });
   const logFile = env.KIVUN_LOG || path.join(p.kivun, 'install-log.txt');
-  // An existing copy: use it if new enough; update it only if npm installed it.
+  // An existing copy: one npm installed is brought up to the newest version, any other is left alone.
   const found = discover(env).filter(c => !needsNewerNode(c, env)).map(c => Object.assign(c, { version: versionOf(c, env) })).filter(c => c.version);
   const good = found.find(c => compareVersions(c.version, MIN_VERSION) >= 0);
-  if (good) { say(env, '[Copilot] GitHub Copilot ' + good.version + ' is already installed (' + keyFile(good) + ') - using it.'); return 0; }
+  if (good && good.kind !== 'npm') { say(env, '[Copilot] GitHub Copilot ' + good.version + ' is already installed (' + keyFile(good) + ') - using it.'); return 0; }
   const oldExe = found.find(c => c.kind === 'exe');
   const oldNpm = found.find(c => c.kind === 'npm');
-  if (oldExe && !oldNpm) {
+  if (!good && oldExe && !oldNpm) {
     say(env, '[Copilot] GitHub Copilot ' + oldExe.version + ' at ' + oldExe.exe + ' is older than ' + MIN_VERSION + ' and was not installed with npm.');
     say(env, '[Copilot] Launchpad does not change it. Update it the way you installed it, then run this installer again.');
     return 6;
   }
-  if (nodeTooOld(nodeVersion(env))) {
-    say(env, '[Copilot] ERROR: Node.js ' + nodeVersion(env) + ' is too old for GitHub Copilot (it needs 22 or newer). Update Node.js, then run this installer again.');
+  if (!good && nodeTooOld(nodeVersion(env))) {
+    say(env, '[Copilot] ERROR: Node.js ' + nodeVersion(env) + ' is too old for GitHub Copilot (it needs 22 or newer).');
+    say(env, '[Copilot] To update it, open Command Prompt and run: winget install OpenJS.NodeJS.LTS');
+    say(env, '[Copilot] Then run this installer again.');
     return 6;
   }
-  if (oldNpm) say(env, '[Copilot] GitHub Copilot ' + oldNpm.version + ' is older than ' + MIN_VERSION + '. Launchpad will update it now.');
+  if (!good && oldNpm) say(env, '[Copilot] GitHub Copilot ' + oldNpm.version + ' is older than ' + MIN_VERSION + '. Launchpad will update it now.');
+  // A working copy stays when there's no way to update it: nothing from here on may fail the install.
+  const keep = () => { say(env, '[Copilot] GitHub Copilot ' + good.version + ' is already installed (' + keyFile(good) + "). Launchpad couldn't check for a newer version, so it is using this one."); return 0; };
   const npmCmd = npmCommand(env);
-  if (!npmCmd) { say(env, '[Copilot] ERROR: npm was not found next to Node.js. Reinstall Node.js, then run this installer again.'); return 6; }
-  const prefixArgs = oldNpm ? ['--prefix', oldNpm.prefix] : [];
-  say(env, '[Copilot] Downloading GitHub Copilot (about 170 MB). This can take a few minutes - please keep this window open...');
+  if (!npmCmd) {
+    if (good) return keep();
+    say(env, '[Copilot] ERROR: npm was not found next to Node.js. Reinstall Node.js, then run this installer again.');
+    return 6;
+  }
+  let newest = null;
+  if (good) {
+    const r = npm(env, npmCmd, ['view', '@github/copilot', 'version', '--json'], null, CC.UPDATE_CHECK_TIMEOUT);
+    try { newest = JSON.parse(r.stdout); } catch (e) { /* judged next */ }
+    if (typeof newest !== 'string') return keep();
+    if (compareVersions(good.version, newest) >= 0) { say(env, '[Copilot] GitHub Copilot ' + good.version + ' is already installed and up to date (' + keyFile(good) + ') - using it.'); return 0; }
+  }
+  const target = good || oldNpm;
+  const prefixArgs = target ? ['--prefix', target.prefix] : [];
+  say(env, good ? '[Copilot] Updating GitHub Copilot from ' + good.version + ' to ' + newest + ' (about 170 MB). This can take a few minutes - please keep this window open...'
+    : '[Copilot] Downloading GitHub Copilot (about 170 MB). This can take a few minutes - please keep this window open...');
   npm(env, npmCmd, ['install', '-g'].concat(prefixArgs, ['@github/copilot@latest', '--no-fund', '--no-audit']), logFile);
   const c = resolveCopilot(env, { noCache: true });
   if (c.missing) {
     say(env, "[Copilot] ERROR: GitHub Copilot could not be installed. Check the internet connection, then run this installer again. Details: " + logFile);
     for (const m of c.problems) say(env, '[Copilot]   ' + m);
     return 6;
+  }
+  if (good && compareVersions(c.version, newest) < 0) {
+    say(env, "[Copilot] GitHub Copilot couldn't be updated, so Launchpad keeps using " + c.version + '. Check the internet connection, then run this installer again to try once more. Details: ' + logFile);
+    return 0;
   }
   say(env, '[Copilot] GitHub Copilot ' + c.version + ' installed.');
   return 0;

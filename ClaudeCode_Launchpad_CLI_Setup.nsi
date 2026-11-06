@@ -973,11 +973,11 @@ Section /o "!Install GitHub Copilot (Required)" SecCopilot
       ${EndIf}
     ${EndIf}
     ${If} $2 == "1"
-      MessageBox MB_OK|MB_ICONEXCLAMATION "GitHub Copilot could not be installed, so nothing was changed: Launchpad keeps starting the AI agent it used before.$\n$\nDetails: $LOCALAPPDATA\Kivun\install-log.txt$\n$\nRun this installer again to try once more." /SD IDOK
+      MessageBox MB_OK|MB_ICONEXCLAMATION "GitHub Copilot could not be installed, so nothing was changed: Launchpad keeps starting the AI agent it used before.$\n$\nDetails: $LOCALAPPDATA\Kivun\install-log.txt$\n$\nIf the details say Node.js is too old, open Command Prompt and run: winget install OpenJS.NodeJS.LTS$\n$\nRun this installer again to try once more." /SD IDOK
     ${Else}
       nsExec::ExecToLog '"$NodeExe" "$INSTDIR\configure-codex.js" set-agent copilot'
       Pop $1
-      MessageBox MB_OK|MB_ICONEXCLAMATION "GitHub Copilot could not be installed.$\n$\nDetails: $LOCALAPPDATA\Kivun\install-log.txt$\n$\nRun this installer again to finish installing it. Until then, Launchpad shows a repair message instead of starting Copilot." /SD IDOK
+      MessageBox MB_OK|MB_ICONEXCLAMATION "GitHub Copilot could not be installed.$\n$\nDetails: $LOCALAPPDATA\Kivun\install-log.txt$\n$\nIf the details say Node.js is too old, open Command Prompt and run: winget install OpenJS.NodeJS.LTS$\n$\nRun this installer again to finish installing it. Until then, Launchpad shows a repair message instead of starting Copilot." /SD IDOK
     ${EndIf}
   ${EndIf}
 SectionEnd
