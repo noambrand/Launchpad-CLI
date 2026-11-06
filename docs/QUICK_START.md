@@ -105,8 +105,9 @@ Claude Code. Codex is a download of about 500 MB. A Claude Code already on your 
 
 **Both agents on one PC:** the picker shows a Claude Code / Codex choice, and each profile
 keeps its own. Within a profile, each agent keeps its own options and environment variables, so
-an API key typed for one never reaches the other. Right-click "Open with" and Send To start the
-agent you chose in the installer; run the installer again to change it.
+an API key typed for one never reaches the other. Right-clicking a folder offers one entry for
+each agent. Send To starts the agent you chose in the installer; run the installer again to
+change it.
 
 ## Configuration
 
