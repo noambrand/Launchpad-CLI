@@ -1,6 +1,6 @@
 # Changelog
 
-## [3.3.0] - unreleased
+## [3.3.0] - 2026-11-06
 
 ### Added: Codex (OpenAI) as a second AI agent, on Windows
 
