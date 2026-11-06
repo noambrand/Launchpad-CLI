@@ -83,6 +83,53 @@ test('UT_CopilotInstall_FailFresh: no Copilot and no registry: a plain repair me
   assert.ok(!fs.existsSync(path.join(d.kivun, 'kivun-copilot-path.txt')));
 });
 
+const OLD_NODE = 'v20.11.0';
+
+test('UT_CopilotInstall_OldNodeFresh: no Copilot on an old Node: a plain message, exit 6, nothing downloaded', () => {
+  const d = fx.makeEnv('inst-oldnode', { fakeCopilot: false, nodeVersion: OLD_NODE });
+  const r = fx.cli(d, ['install-copilot'], offline(d));
+  assert.strictEqual(r.status, 6, r.stdout + r.stderr);
+  assert.match(r.stdout, /Node\.js v20\.11\.0 is too old for GitHub Copilot \(it needs 22 or newer\)/);
+  assert.ok(!/Downloading/.test(r.stdout), 'no download attempted');
+});
+
+test('UT_CopilotInstall_OldNodeNpmCopyRefused: npm\'s copy would run on this Node, so it isn\'t used or started', () => {
+  const d = fx.makeEnv('inst-oldnode-npm', { nodeVersion: OLD_NODE });
+  const r = fx.cli(d, ['install-copilot'], offline(d));
+  assert.strictEqual(r.status, 6, r.stdout + r.stderr);
+  assert.match(r.stdout, /too old for GitHub Copilot/);
+  assert.ok(!/already installed/.test(r.stdout));
+  assert.deepStrictEqual(fx.records(d), [], 'the copy was never started');
+});
+
+test('UT_CopilotInstall_OldNodeGoodExeUsed: a stand-alone copy doesn\'t use Node, so an old Node doesn\'t matter', () => {
+  const d = fx.makeEnv('inst-oldnode-exe', { fakeCopilot: false, nodeVersion: OLD_NODE });
+  const exeDir = path.join(d.root, 'standalone');
+  fakeExe(exeDir, '1.0.200');
+  const r = fx.cli(d, ['install-copilot'], Object.assign(offline(d), { PATH: exeDir + ';' + d.env.PATH }));
+  assert.strictEqual(r.status, 0, r.stdout);
+  assert.match(r.stdout, /GitHub Copilot 1\.0\.200 is already installed/);
+});
+
+test('UT_CopilotInstall_OldNodeResolve: the launcher agrees: it skips npm\'s copy and says why, even a cached one', () => {
+  const d = fx.makeEnv('inst-oldnode-resolve'), m = fx.load();
+  assert.strictEqual(m.resolveCopilot(d.env).version, '1.0.105', 'found and cached on a new enough Node');
+  const old = Object.assign({}, d.env, offline(d), { KIVUN_TEST_NODE_VERSION: OLD_NODE });
+  const r = m.resolveCopilot(old);
+  assert.strictEqual(r.missing, true);
+  assert.match(r.problems.join(' '), /needs Node\.js 22 or newer.*v20\.11\.0/);
+});
+
+test('UT_CopilotInstall_OldNodeResolvePrefersExe: with both copies on an old Node, the stand-alone one is what runs', () => {
+  const d = fx.makeEnv('inst-oldnode-both', { nodeVersion: OLD_NODE }), m = fx.load();
+  const exeDir = path.join(d.root, 'standalone');
+  fakeExe(exeDir, '1.0.200');
+  // npm's copy comes first on PATH, as it would on a PC that has both.
+  const r = m.resolveCopilot(Object.assign({}, d.env, offline(d), { PATH: d.env.PATH + ';' + exeDir }));
+  assert.strictEqual(r.kind, 'exe');
+  assert.strictEqual(r.version, '1.0.200');
+});
+
 test('UT_CopilotInstall_ResolveCache: trusted only while the file is unchanged', () => {
   const d = fx.makeEnv('inst-cache'), m = fx.load();
   assert.strictEqual(m.resolveCopilot(d.env).version, '1.0.105');

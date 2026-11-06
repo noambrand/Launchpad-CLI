@@ -33,6 +33,7 @@
 | D16 | No model list. | Copilot has no command for one outside a session, and hard-coded names go stale. A wrong name is reported by Copilot in red, and it continues. |
 | D17 | Uninstall deletes the hook file with a plain NSIS `Delete`. | It works with Node.js gone. |
 | D18 | Launchpad doesn't set Copilot's `theme`; the docs give `/settings theme default`. | Copilot's standard `github` theme paints over Launchpad's terminal color, and `default` shows it (seen in a real tab). No option or variable sets it per launch, and changing it means editing a settings file the user owns, which would need a change record. |
+| D19 | Below Node 22, the installer and the launcher both skip an npm copy and can still use a stand-alone `copilot.exe`. | npm's copy runs on that Node; a stand-alone copy doesn't use Node. The first version refused everything on an old Node, which CI's Node 20 exposed. Tested with a stand-in: Step 0 never ran the real winget package. |
 
 ## Acceptance
 

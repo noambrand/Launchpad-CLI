@@ -11,8 +11,8 @@ When you choose GitHub Copilot:
 
 - The installer downloads it with npm (about 170 MB) and uses a copy you already have if it is
   version 1.0.105 or newer. An older copy that npm installed is updated after a notice; any other
-  older copy is left alone with a message. It needs Node.js 22 or newer, and says so plainly if your
-  Node.js is older.
+  older copy is left alone with a message. npm's copy needs Node.js 22 or newer, and Launchpad says so
+  plainly if yours is older. A stand-alone copy doesn't use Node.js.
 - The folder picker, right-click and Send To start Copilot. Right-clicking a folder adds **Open with
   Copilot CLI** and, inside a folder, **Open Copilot CLI here**. The picker's button says **Launch
   Copilot CLI**, and each profile keeps Copilot's own model, options, startup message and environment

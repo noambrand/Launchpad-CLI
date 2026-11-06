@@ -140,6 +140,12 @@ function scriptPolicyChosen(env) {
 function hasVariable(env, name) { return Object.keys(env).some(k => k.toUpperCase() === name.toUpperCase()); }
 
 // ---------------------------------------------------------------- finding and checking Copilot
+function nodeTooOld(version) { return compareVersions(String(version).replace(/^v/, ''), MIN_NODE) < 0; }
+// The Node that would run Copilot. Tests name one, because the runner's own Node would decide otherwise.
+function nodeVersion(env) { return env.KIVUN_TEST_NODE_VERSION || process.version; }
+// npm's copy runs on this Node. A stand-alone copilot.exe doesn't use Node at all.
+function needsNewerNode(c, env) { return c.kind === 'npm' && nodeTooOld(nodeVersion(env)); }
+
 function npmCandidate(prefix) {
   const loader = path.join(prefix, 'node_modules', '@github', 'copilot', 'npm-loader.js');
   return fs.existsSync(loader) ? { kind: 'npm', loader, prefix } : null;
@@ -183,11 +189,12 @@ function resolveCopilot(env, opts) {
     try {
       const c = JSON.parse(fs.readFileSync(p.pathCache, 'utf8'));
       const now = fileStamp(keyFile(c));
-      if (now && c.stamp && now.size === c.stamp.size && now.mtime === c.stamp.mtime) return c;
+      if (now && c.stamp && now.size === c.stamp.size && now.mtime === c.stamp.mtime && !needsNewerNode(c, env)) return c;
     } catch (e) { /* no usable cache */ }
   }
   const problems = [];
   for (const c of discover(env)) {
+    if (needsNewerNode(c, env)) { problems.push('Copilot at ' + keyFile(c) + ' needs Node.js 22 or newer; this PC has ' + nodeVersion(env) + '.'); continue; }
     const v = versionOf(c, env);
     if (!v) { problems.push('Copilot at ' + keyFile(c) + ' did not start.'); continue; }
     if (compareVersions(v, MIN_VERSION) < 0) { problems.push('Copilot ' + v + ' at ' + keyFile(c) + ' is older than ' + MIN_VERSION + '.'); continue; }
@@ -274,19 +281,13 @@ function run(id, relaunch, env) {
 }
 
 // ---------------------------------------------------------------- installing Copilot (install.cmd /copilot)
-function nodeTooOld(version) { return compareVersions(String(version).replace(/^v/, ''), MIN_NODE) < 0; }
-
 function installCopilot(env) {
   env = env || process.env;
   const p = paths(env);
   fs.mkdirSync(p.kivun, { recursive: true });
   const logFile = env.KIVUN_LOG || path.join(p.kivun, 'install-log.txt');
-  if (nodeTooOld(process.version)) {
-    say(env, '[Copilot] ERROR: Node.js ' + process.version + ' is too old for GitHub Copilot (it needs 22 or newer). Update Node.js, then run this installer again.');
-    return 6;
-  }
   // An existing copy: use it if new enough; update it only if npm installed it.
-  const found = discover(env).map(c => Object.assign(c, { version: versionOf(c, env) })).filter(c => c.version);
+  const found = discover(env).filter(c => !needsNewerNode(c, env)).map(c => Object.assign(c, { version: versionOf(c, env) })).filter(c => c.version);
   const good = found.find(c => compareVersions(c.version, MIN_VERSION) >= 0);
   if (good) { say(env, '[Copilot] GitHub Copilot ' + good.version + ' is already installed (' + keyFile(good) + ') - using it.'); return 0; }
   const oldExe = found.find(c => c.kind === 'exe');
@@ -294,6 +295,10 @@ function installCopilot(env) {
   if (oldExe && !oldNpm) {
     say(env, '[Copilot] GitHub Copilot ' + oldExe.version + ' at ' + oldExe.exe + ' is older than ' + MIN_VERSION + ' and was not installed with npm.');
     say(env, '[Copilot] Launchpad does not change it. Update it the way you installed it, then run this installer again.');
+    return 6;
+  }
+  if (nodeTooOld(nodeVersion(env))) {
+    say(env, '[Copilot] ERROR: Node.js ' + nodeVersion(env) + ' is too old for GitHub Copilot (it needs 22 or newer). Update Node.js, then run this installer again.');
     return 6;
   }
   if (oldNpm) say(env, '[Copilot] GitHub Copilot ' + oldNpm.version + ' is older than ' + MIN_VERSION + '. Launchpad will update it now.');

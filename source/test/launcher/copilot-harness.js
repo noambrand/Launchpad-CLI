@@ -34,7 +34,7 @@ function runCopilotCase(c) {
   const fake = fx.makeEnv('lt-' + c.id, { fakeCopilot: c.copilot !== false });
   const fakeCodex = cfx.makeEnv('ltc-' + c.id);
   d.copilotLog = fake.log;
-  const env = h.baseEnv(d, Object.assign({ FAKE_COPILOT_LOG: fake.log, FAKE_CODEX_LOG: fakeCodex.log, HOME: d.user, KIVUN_TEST_PAUSE_DIR: fake.pause, KIVUN_TEST_SCRIPT_POLICY: 'none', COPILOT_HOME: fake.copilotHome }, c.env || {}));
+  const env = h.baseEnv(d, Object.assign({ FAKE_COPILOT_LOG: fake.log, FAKE_CODEX_LOG: fakeCodex.log, HOME: d.user, KIVUN_TEST_PAUSE_DIR: fake.pause, KIVUN_TEST_SCRIPT_POLICY: 'none', KIVUN_TEST_NODE_VERSION: fx.NODE_OK, COPILOT_HOME: fake.copilotHome }, c.env || {}));
   env.PATH = fake.prefix + ';' + fakeCodex.prefix + ';' + env.PATH;
   d.env = env;
   d.copilotHome = fake.copilotHome;

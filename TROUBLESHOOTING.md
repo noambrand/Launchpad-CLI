@@ -370,8 +370,9 @@ Check the internet connection, then run the installer again. It picks up where i
 already had another AI agent, Launchpad keeps starting it until Copilot installs. On a PC with none,
 Launchpad shows a repair message.
 
-- **"Node.js ... is too old":** Copilot needs Node.js 22 or newer. Update Node.js from
-  https://nodejs.org/, then run the installer again.
+- **"Node.js ... is too old":** Copilot's npm package needs Node.js 22 or newer. Update Node.js from
+  https://nodejs.org/, then run the installer again. A stand-alone Copilot doesn't use Node.js, so
+  Launchpad uses one of those whatever your Node.js version.
 - **"was not installed with npm":** you have an older Copilot from another installer, and Launchpad doesn't
   change it. Update it the way you installed it, then run the installer again.
 

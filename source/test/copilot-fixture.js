@@ -9,6 +9,7 @@ const SOURCE = process.env.KIVUN_SOURCE || path.resolve(__dirname, '..');
 const MODULE = path.join(SOURCE, 'configure-copilot.js');
 const REPO = path.resolve(SOURCE, '..');
 const ROOT = process.env.KIVUN_TEST_ROOT || path.join(REPO, '.test-run');
+const NODE_OK = 'v22.0.0';
 
 const FAKE_LOADER = `// fake npm-loader.js for tests
 const fs = require('fs');
@@ -42,6 +43,8 @@ function makeEnv(name, opts) {
     PROCESSOR_ARCHITECTURE: 'AMD64', FAKE_COPILOT_LOG: d.log, KIVUN_TEST_PAUSE_DIR: d.pause,
     // Tests never read this PC's real PowerShell settings, except the test that asks to.
     KIVUN_TEST_SCRIPT_POLICY: opts.scriptPolicy || 'none',
+    // The Node that Copilot would run on is a test input: CI's own Node is older than Copilot allows.
+    KIVUN_TEST_NODE_VERSION: opts.nodeVersion || NODE_OK,
   };
   return d;
 }
@@ -76,4 +79,4 @@ function load() {
   return require(MODULE);
 }
 
-module.exports = { MODULE, SOURCE, ROOT, makeEnv, addSession, records, cli, load, rmrf };
+module.exports = { MODULE, SOURCE, ROOT, NODE_OK, makeEnv, addSession, records, cli, load, rmrf };
