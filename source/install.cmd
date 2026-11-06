@@ -61,6 +61,8 @@ set "DO_CLAUDE=0"
 set "DO_WT=0"
 set "DO_CODEX=0"
 set "CODEX_NODE="
+set "DO_COPILOT=0"
+set "COPILOT_NODE="
 
 :parse_args
 if "%~1"=="" goto :args_done
@@ -70,6 +72,15 @@ if /i "%~1"=="/codex" (
     set "NEXT_ARG=%~2"
     if defined NEXT_ARG if not "!NEXT_ARG:~0,1!"=="/" (
         set "CODEX_NODE=!NEXT_ARG!"
+        shift
+    )
+)
+REM /copilot [full path of node.exe], the same way (v3.4.0).
+if /i "%~1"=="/copilot" (
+    set "DO_COPILOT=1"
+    set "NEXT_ARG=%~2"
+    if defined NEXT_ARG if not "!NEXT_ARG:~0,1!"=="/" (
+        set "COPILOT_NODE=!NEXT_ARG!"
         shift
     )
 )
@@ -104,6 +115,8 @@ if not "!EXIT_CODE!"=="0" goto :cleanup
 if "!DO_CLAUDE!"=="1" call :install_claude
 if not "!EXIT_CODE!"=="0" goto :cleanup
 if "!DO_CODEX!"=="1" call :install_codex
+if not "!EXIT_CODE!"=="0" goto :cleanup
+if "!DO_COPILOT!"=="1" call :install_copilot
 if not "!EXIT_CODE!"=="0" goto :cleanup
 if "!DO_WT!"=="1" call :install_wt
 
@@ -299,6 +312,20 @@ if not defined CODEX_NODE (
 )
 "!CODEX_NODE!" "%~dp0configure-codex.js" install-codex
 if errorlevel 1 set "EXIT_CODE=5"
+goto :eof
+
+:install_copilot
+REM GitHub Copilot CLI (v3.4.0). Exit code 6 on failure. As for Codex, all the logic lives in
+REM configure-copilot.js, and it never starts an interactive Copilot session.
+call :refresh_path
+if not defined COPILOT_NODE for /f "delims=" %%N in ('where node.exe 2^>nul') do if not defined COPILOT_NODE set "COPILOT_NODE=%%N"
+if not defined COPILOT_NODE (
+    call :say "[Copilot] ERROR: Node.js was not found. Run this installer again so it can install Node.js first."
+    set "EXIT_CODE=6"
+    goto :eof
+)
+"!COPILOT_NODE!" "%~dp0configure-copilot.js" install-copilot
+if errorlevel 1 set "EXIT_CODE=6"
 goto :eof
 
 :ensure_claude_path

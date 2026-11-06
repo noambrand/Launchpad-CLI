@@ -1,5 +1,39 @@
 # Changelog
 
+## [3.4.0] - unreleased
+
+### Added: GitHub Copilot CLI as a third AI agent, on Windows
+
+The installer now also offers GitHub Copilot, GitHub's coding agent. Claude Code and Codex work exactly
+as they did in 3.3.0, and macOS stays Claude-only.
+
+When you choose GitHub Copilot:
+
+- The installer downloads it with npm (about 170 MB) and uses a copy you already have if it is
+  version 1.0.105 or newer. An older copy that npm installed is updated after a notice; any other
+  older copy is left alone with a message. It needs Node.js 22 or newer, and says so plainly if your
+  Node.js is older.
+- The folder picker, right-click and Send To start Copilot. Right-clicking a folder adds **Open with
+  Copilot CLI** and, inside a folder, **Open Copilot CLI here**. The picker's button says **Launch
+  Copilot CLI**, and each profile keeps Copilot's own model, options, startup message and environment
+  variables, apart from the other agents'.
+- **Continue last** reopens the newest conversation of that exact folder, or starts a new one and says
+  so. It reads Copilot's own session folders, because Copilot's `--continue` opens another folder's
+  conversation when this one has none. Launchpad keeps no record of its own. **Pick from history** shows
+  Copilot's list of every folder's conversations.
+- The two sounds work: *done* at the end of a reply and *permission* when Copilot asks before acting. They
+  come from one file of Launchpad's own in Copilot's settings folder, which uninstalling removes. Nothing
+  else there is changed, and Copilot shows no review screen for it.
+- The response language is added through a file Launchpad owns, alongside your own instructions.
+- Launchpad refuses Copilot's permission bypasses: `--allow-all`, `--allow-all-tools`, `--allow-all-paths`,
+  `--allow-all-urls`, `--yolo`, `--autopilot`, `--mode autopilot`, and `COPILOT_ALLOW_ALL` in a profile.
+- For Copilot's session only, Launchpad sets PowerShell's script policy to `RemoteSigned`, when nobody has
+  chosen a policy on that PC. Without it, Windows PowerShell blocks `npm.ps1`, so `npm` fails inside Copilot.
+  Nothing is saved and nothing extra is installed. PowerShell 7 stays optional.
+- Copilot draws its own colors over the terminal theme. `/settings theme default` inside Copilot shows
+  the terminal's colors. Launchpad doesn't change that setting, because it belongs to your own Copilot
+  settings.
+
 ## [3.3.0] - unreleased
 
 ### Added: Codex (OpenAI) as a second AI agent, on Windows

@@ -609,6 +609,8 @@
   // keeps kivun-codex-models.json up to date. Codex launches use their own launch\<id> folders.
   var codexPathFile = kivunDir + "\\kivun-codex-path.txt";
   var codexModelsFile = kivunDir + "\\kivun-codex-models.json";
+  // v3.4.0 Copilot: the installer writes this once Copilot is verified. Copilot has no model list.
+  var copilotPathFile = kivunDir + "\\kivun-copilot-path.txt";
   var configFile = installDir + "\\config.txt";
 
   // Voice-alert ("Sound alerts") controls. The live config the alert scripts
@@ -814,7 +816,7 @@
   }
 
   function updateFlagPreview() {
-    if (currentAgent === "codex") { updateCodexPreview(); return; }
+    if (currentAgent === "codex" || currentAgent === "copilot") { updateCodexPreview(); return; }
     var s = composeFlags();
     var flagsEl = document.getElementById("flag-effective");
     if (flagsEl) flagsEl.innerText = s ? s : "(none — default Claude behavior)";
@@ -968,7 +970,7 @@
       return;
     }
     // Codex (v3.3.0): its own launch folder, never Claude's hand-off files (D19).
-    if (currentAgent === "codex") { launchCodex(p); return; }
+    if (currentAgent === "codex" || currentAgent === "copilot") { launchCodex(p); return; }
     // Persist current dialog state to the active profile + write the
     // sidecar files the launcher consumes (startup cmds, env vars).
     try {
@@ -1046,6 +1048,8 @@
     }
     var addDir = document.getElementById("chip-cx-adddir");
     if (addDir) addDir.onclick = function() { addCodexFolder(); };
+    var addDirCp = document.getElementById("chip-cp-adddir");
+    if (addDirCp) addDirCp.onclick = function() { addCodexFolder(); };
   }
 
   // Catch any unhandled JScript error and display it instead of letting
@@ -1133,7 +1137,7 @@
     // also goes through the scrubber so a stale CLAUDE_FLAGS=--effort low
     // in config.txt doesn't end up in the new Default profile.
     var def = migrateFromConfigToDefault();
-    if (readGlobalAgent() === "codex") AgentHelpers.setProfileAgent(def, "codex");
+    if (readGlobalAgent() !== "claude") AgentHelpers.setProfileAgent(def, readGlobalAgent());
     scrubDeprecatedFlags(def);
     profilesState = {
       version: 1,
@@ -1185,6 +1189,19 @@
       AgentHelpers.setProfileAgent(target, "codex");
       return;
     }
+    if (currentAgent === "copilot") {
+      // As for Codex: Copilot's own part of the profile; the Claude and Codex fields keep their values.
+      target.copilot = {
+        model: dialogModel(),
+        conv: AgentHelpers.codexConv(getRadioValue("flag-conv")),
+        customFlags: (document.getElementById("flag-custom").value || "").replace(/^\s+|\s+$/g, ""),
+        startupCmds: document.getElementById("startup-cmds").value || ""
+      };
+      var copilotEnv = document.getElementById("env-vars").value || "";
+      if (copilotEnv) target.copilot.envVars = copilotEnv;
+      AgentHelpers.setProfileAgent(target, "copilot");
+      return;
+    }
     // Default profile never persists the model — it always resets to opus on
     // open so the user is never surprised by a stale Sonnet/Haiku choice.
     // Named project profiles remember their model as an explicit per-project choice.
@@ -1209,6 +1226,18 @@
       document.getElementById("startup-cmds").value = c.startupCmds;
       document.getElementById("env-vars").value     = c.envVars;
       applyAgentUI("codex", info);
+      updateFlagPreview();
+      return;
+    }
+    if (currentAgent === "copilot") {
+      var cp = AgentHelpers.copilotFields(p);
+      document.getElementById("path").value          = p.folder || "";
+      document.getElementById("copilot-model").value = cp.model;
+      setRadioValue("flag-conv", AgentHelpers.convRadio(cp.conv));
+      document.getElementById("flag-custom").value   = cp.customFlags;
+      document.getElementById("startup-cmds").value  = cp.startupCmds;
+      document.getElementById("env-vars").value      = cp.envVars;
+      applyAgentUI("copilot", info);
       updateFlagPreview();
       return;
     }
@@ -1622,7 +1651,7 @@
     var m = content ? content.match(new RegExp("^[ \\t]*" + key + "[ \\t]*=(.*)$", "m")) : null;
     return m ? m[1].replace(/^\s+|\s+$/g, "") : "";
   }
-  function readGlobalAgent() { return readConfigValue("AGENT") === "codex" ? "codex" : "claude"; }
+  function readGlobalAgent() { var a = readConfigValue("AGENT"); return (a === "codex" || a === "copilot") ? a : "claude"; }
 
   function claudeInstalled() {
     var home = wshShell.ExpandEnvironmentStrings("%USERPROFILE%");
@@ -1636,7 +1665,7 @@
     return false;
   }
   // Codex counts as installed once the installer has verified it (kivun-codex-path.txt).
-  function detectInstalled() { return { claude: claudeInstalled(), codex: fso.FileExists(codexPathFile) }; }
+  function detectInstalled() { return { claude: claudeInstalled(), codex: fso.FileExists(codexPathFile), copilot: fso.FileExists(copilotPathFile) }; }
 
   function loadCodexModels() {
     try { var raw = readUtf8(codexModelsFile); return raw ? JSON.parse(raw) : null; } catch (e) { return null; }
@@ -1680,23 +1709,24 @@
         hintFlags: (document.getElementById("hint-flags") || {}).innerText || ""
       };
     }
-    var codex = (agent === "codex");
+    var codex = (agent === "codex"), copilot = (agent === "copilot"), other = codex || copilot;
+    var name = copilot ? "Copilot" : "Codex";
     setRadioValue("agent", agent);
     showEl("agent-row", info.showChoice);
-    setText("agent-note", info.missing ? (codex ? "Codex is not installed on this PC." : "Claude Code is not installed on this PC.") : "");
-    showEl("claude-models", !codex); showEl("codex-models", codex);
-    showEl("claude-chips", !codex); showEl("codex-chips", codex);
-    setText("flags-title", codex ? "Codex options (optional):" : claudeTexts.flags);
-    setText("custom-help", codex ? "Anything in this box is passed to Codex as extra options. Put quotes around text that contains spaces." : claudeTexts.custom);
-    setText("preview-cmd", codex ? "codex" : "claude");
-    setText("startup-title", codex ? "Startup message (optional):" : claudeTexts.startupTitle);
-    setText("startup-help", codex ? "Sent to Codex as your first message once it opens. Several lines are joined into one message. Commands that start with / can't run at startup." : claudeTexts.startupHelp);
+    setText("agent-note", info.missing ? (copilot ? "GitHub Copilot is not installed on this PC." : codex ? "Codex is not installed on this PC." : "Claude Code is not installed on this PC.") : "");
+    showEl("claude-models", !other); showEl("codex-models", codex); showEl("copilot-models", copilot);
+    showEl("claude-chips", !other); showEl("codex-chips", codex); showEl("copilot-chips", copilot);
+    setText("flags-title", other ? name + " options (optional):" : claudeTexts.flags);
+    setText("custom-help", other ? "Anything in this box is passed to " + name + " as extra options. Put quotes around text that contains spaces." : claudeTexts.custom);
+    setText("preview-cmd", copilot ? "copilot" : codex ? "codex" : "claude");
+    setText("startup-title", other ? "Startup message (optional):" : claudeTexts.startupTitle);
+    setText("startup-help", copilot ? "Sent to Copilot as your first message once it opens. Several lines are joined into one message. One command that starts with / can run at startup, on its own." : codex ? "Sent to Codex as your first message once it opens. Several lines are joined into one message. Commands that start with / can't run at startup." : claudeTexts.startupHelp);
     var st = document.getElementById("startup-cmds");
-    if (st) st.placeholder = codex ? "e.g. Explain what this project does" : claudeTexts.startupPh;
-    setText("launch-btn", codex ? "Launch Codex CLI" : claudeTexts.launch);
-    setText("hint-launch", codex ? "Launch Codex CLI" : claudeTexts.launch);
-    setText("hint-flags", codex ? "Codex options + startup message" : claudeTexts.hintFlags);
-    showEl("codex-notes", codex);
+    if (st) st.placeholder = other ? "e.g. Explain what this project does" : claudeTexts.startupPh;
+    setText("launch-btn", other ? "Launch " + name + " CLI" : claudeTexts.launch);
+    setText("hint-launch", other ? "Launch " + name + " CLI" : claudeTexts.launch);
+    setText("hint-flags", other ? name + " options + startup message" : claudeTexts.hintFlags);
+    showEl("codex-notes", other);
     try { autoSizeToContent(); } catch (e) {}
   }
 
@@ -1712,38 +1742,61 @@
     }
   }
 
-  // Everything a Codex launch carries, from the dialog. The runner reads CODEX_FLAGS and the
-  // response language from config.txt itself.
+  // The model as the dialog shows it: Codex's list, or Copilot's free text (it has no list).
+  function dialogModel() {
+    if (currentAgent === "copilot") return (document.getElementById("copilot-model").value || "").replace(/^\s+|\s+$/g, "");
+    return getRadioValue("codex-model");
+  }
+
+  // Everything a Codex or Copilot launch carries, from the dialog. The runner reads the agent's
+  // flags and the response language from config.txt itself.
   function codexLaunchData(folder) {
     var lines = (document.getElementById("startup-cmds").value || "").split(/\r?\n/), startup = [], i;
     for (i = 0; i < lines.length; i++) { var ln = lines[i].replace(/^\s+|\s+$/g, ""); if (ln) startup.push(ln); }
     var env = {}, entries = parseEnvVars(document.getElementById("env-vars").value || "");
     for (i = 0; i < entries.length; i++) env[entries[i].key] = entries[i].val;
     return {
-      agent: "codex", workdir: folder,
+      agent: currentAgent, workdir: folder,
       conv: AgentHelpers.codexConv(getRadioValue("flag-conv")),
-      model: getRadioValue("codex-model") || null,
+      model: dialogModel() || null,
       customFlags: (document.getElementById("flag-custom").value || "").replace(/^\s+|\s+$/g, ""),
       startup: startup, env: env
     };
   }
 
-  // The preview is built by the same composeCodex the runner uses (agent-helpers.js).
+  // The preview is built by the same compose function the runner uses (agent-helpers.js).
   function composeForDialog() {
     var d = codexLaunchData("");
+    if (currentAgent === "copilot") {
+      return AgentHelpers.composeCopilot({ conv: d.conv, model: d.model, customFlags: d.customFlags,
+        copilotFlags: readConfigValue("COPILOT_FLAGS"), startup: d.startup, env: d.env });
+    }
     return AgentHelpers.composeCodex({ conv: d.conv, model: d.model, customFlags: d.customFlags,
       codexFlags: readConfigValue("CODEX_FLAGS"), startup: d.startup, language: readConfigValue("RESPONSE_LANGUAGE") });
   }
 
   function updateCodexPreview() {
     var r = composeForDialog(), i;
-    setText("flag-effective", r.args.length ? AgentHelpers.previewLine(r.args) : "(none — default Codex behavior)");
+    var copilot = (currentAgent === "copilot");
+    setText("flag-effective", r.args.length ? AgentHelpers.previewLine(r.args) : (copilot ? "(none — default Copilot behavior)" : "(none — default Codex behavior)"));
     var stEl = document.getElementById("preview-startup");
     if (stEl) { stEl.style.display = "none"; stEl.innerHTML = ""; }   // the first message is part of the line above
     renderEnvPreview();
     var html = "";
     for (i = 0; i < r.errors.length; i++) html += '<span style="color:#b00020">' + escapeHtml(r.errors[i]) + '</span><br>';
     for (i = 0; i < r.notices.length; i++) if (r.notices[i] !== "startup message not sent") html += escapeHtml(r.notices[i]) + '<br>';
+    if (copilot) {
+      if (AgentHelpers.copilotLanguageLine(readConfigValue("RESPONSE_LANGUAGE"))) {
+        html += escapeHtml("The response language is added to Copilot's instructions. Your own instructions still apply.") + '<br>';
+      }
+      if (getRadioValue("flag-conv") === "--continue") {
+        html += escapeHtml("Continue last reopens the last Copilot conversation in this folder. If there is none, a new one starts.") + '<br>';
+      }
+      html += escapeHtml("Copilot shows Hebrew and Arabic left to right. Right-to-left display works only with Claude Code.");
+      var cn = document.getElementById("codex-notes");
+      if (cn) cn.innerHTML = html;
+      return;
+    }
     if (AgentHelpers.modelUnavailable(getRadioValue("codex-model"), loadCodexModels())) {
       html += escapeHtml("The model saved in this profile is no longer offered. Codex will use its default model.") + '<br>';
     }
@@ -1777,7 +1830,7 @@
 
   function addCodexFolder() {
     var startPath = wshShell.ExpandEnvironmentStrings("%USERPROFILE%");
-    var folder = shell.BrowseForFolder(0, "Pick an extra folder Codex may use", 0x50, startPath);
+    var folder = shell.BrowseForFolder(0, "Pick an extra folder " + (currentAgent === "copilot" ? "Copilot" : "Codex") + " may use", 0x50, startPath);
     if (folder != null) addCodexFlag('--add-dir "' + folder.Self.Path + '"', true);
   }
 
@@ -1798,8 +1851,9 @@
   }
 
   function launchCodex(folder) {
-    if (!detectInstalled().codex) {
-      showError("Codex is not installed. Run the ClaudeCode Launchpad CLI installer again and choose Codex.");
+    var copilotLaunch = (currentAgent === "copilot");
+    if (!detectInstalled()[currentAgent]) {
+      showError(copilotLaunch ? "GitHub Copilot is not installed. Run the ClaudeCode Launchpad CLI installer again and choose GitHub Copilot." : "Codex is not installed. Run the ClaudeCode Launchpad CLI installer again and choose Codex.");
       return;
     }
     var r = composeForDialog();
@@ -1813,13 +1867,13 @@
     try { var _cv = currentColorValue(); if (_cv) writeTerminalColorToConfig(_cv); } catch (e) {}
     var id;
     try { id = createLaunchFolder(codexLaunchData(folder)); } catch (e) {
-      showError("Could not prepare the Codex launch: " + (e.message || e.description || e));
+      showError("Could not prepare the " + (copilotLaunch ? "Copilot" : "Codex") + " launch: " + (e.message || e.description || e));
       return;
     }
     window.__ccLaunched = true;
     try {
       var batPath = kivunDir + "\\claudecode-launchpad.bat";
-      if (fso.FileExists(batPath)) wshShell.Run("\"" + batPath + "\" \"LAUNCH\" \"" + id + "\"", 0, false);
+      if (fso.FileExists(batPath)) wshShell.Run("\"" + batPath + "\" \"" + (copilotLaunch ? "LAUNCH-COPILOT" : "LAUNCH") + "\" \"" + id + "\"", 0, false);
     } catch (e) {}
     window.close();
   }
@@ -1865,6 +1919,7 @@
     <span class="lbl">Agent:</span>
     <label><input type="radio" name="agent" value="claude" onclick="onAgentChange('claude')" /> Claude Code</label>
     <label><input type="radio" name="agent" value="codex" onclick="onAgentChange('codex')" /> Codex <span style="color:#707070">(OpenAI)</span></label>
+    <label><input type="radio" name="agent" value="copilot" onclick="onAgentChange('copilot')" /> Copilot <span style="color:#707070">(GitHub)</span></label>
     <span class="status" id="agent-note" style="color:#b00020"></span>
   </div>
 
@@ -1903,7 +1958,10 @@
         <label for="m-sonnet"><input type="radio" id="m-sonnet" name="flag-model" value="sonnet" onclick="setRadioValue('flag-model','sonnet');updateFlagPreview()" /> Sonnet <span style="color:#707070">(balanced)</span></label>
         <label for="m-haiku"><input type="radio" id="m-haiku" name="flag-model" value="haiku" onclick="setRadioValue('flag-model','haiku');updateFlagPreview()" /> Haiku <span style="color:#707070">(fastest)</span></label>
         <label for="m-auto"><input type="radio" id="m-auto" name="flag-model" value="" onclick="setRadioValue('flag-model','');updateFlagPreview()" /> Let Claude decide</label>
-      </div><div class="radio-row" id="codex-models" style="display:none"></div></div>
+      </div><div class="radio-row" id="codex-models" style="display:none"></div><div id="copilot-models" style="display:none">
+        <input type="text" id="copilot-model" onkeyup="updateFlagPreview()" placeholder="Let Copilot decide, or type a model name" />
+        <div class="flag-help">Copilot has no model list to show here. If it can't use the name you type, it says so and decides by itself.</div>
+      </div></div>
 
       <div class="lbl">Conversation:</div>
       <div class="radio-row">
@@ -1927,6 +1985,8 @@
         <button type="button" class="chip" id="chip-cx-search"   title="--search: lets Codex search the web">+ Web search</button>
         <button type="button" class="chip" id="chip-cx-readonly" title="-s read-only: Codex can read and explain files but can't change them">+ Read-only (no file edits)</button>
         <button type="button" class="chip" id="chip-cx-adddir"   title="--add-dir: lets Codex also work in another folder you pick">+ Extra folder...</button>
+      </div><div class="chip-row" id="copilot-chips" style="display:none">
+        <button type="button" class="chip" id="chip-cp-adddir"   title="--add-dir: lets Copilot also work in another folder you pick">+ Extra folder...</button>
       </div></div>
 
       <div class="lbl">Custom:</div>

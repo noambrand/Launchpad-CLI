@@ -147,6 +147,28 @@ right-click "Open with", profiles, terminal theme and sounds.
 
 Details: [Quick Start](docs/QUICK_START.md#using-codex) and [Troubleshooting](TROUBLESHOOTING.md#codex).
 
+## GitHub Copilot CLI instead of Claude Code (Windows)
+
+New in 3.4.0: the installer also offers **GitHub Copilot**, with the same folder picker, right-click
+"Open with", profiles and sounds.
+
+- It is a download of about 170 MB, and needs Node.js 22 or newer and a GitHub account with a Copilot
+  plan (a free plan works). A copy you already have (1.0.105 or newer) is used as is.
+- The first time it opens, answer the folder trust question, press Esc on the terminal setup offer, and
+  type `/login` if it asks you to sign in.
+- With more than one agent installed, the picker shows a choice and each profile keeps its own settings.
+  Right-clicking a folder offers one entry for each agent.
+- **Continue last** only ever reopens a conversation from that exact folder.
+- Copilot draws its own colors over Launchpad's terminal theme. Type `/settings theme default` once to
+  use the terminal's colors instead.
+- PowerShell 7 is not needed. For Copilot's session only, Launchpad lets scripts on your own PC run in
+  the PowerShell built into Windows, so `npm` works there. A script policy you or your company chose is
+  left alone.
+- Not available with Copilot: right-to-left display (it shows Hebrew and Arabic left to right), the idle
+  reminder sound, Launchpad's status bar (Copilot has its own) and auto-continue.
+
+Details: [Quick Start](docs/QUICK_START.md#using-github-copilot) and [Troubleshooting](TROUBLESHOOTING.md#github-copilot).
+
 ## Quick Start
 
 ### Windows
@@ -250,8 +272,9 @@ RESPONSE_LANGUAGE=english     # 24+ languages supported
 TERMINAL_COLOR=kivun          # kivun / dark / black / white / default, or a hex like #1e1e2e
 CLAUDE_FLAGS=                 # e.g. --continue
 AUTO_CONTINUE=false           # auto-type "continue" when the 5-hour limit resets (see below)
-AGENT=                        # empty = Claude Code, codex = Codex (set by the installer)
+AGENT=                        # empty = Claude Code, codex = Codex, copilot = GitHub Copilot (set by the installer)
 CODEX_FLAGS=                  # Codex options for every Codex launch, e.g. --search
+COPILOT_FLAGS=                # Copilot options for every Copilot launch, e.g. --add-dir C:\docs
 ```
 
 ## Auto-continue after the 5-hour limit resets (opt-in)

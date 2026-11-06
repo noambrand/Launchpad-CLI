@@ -60,7 +60,7 @@ Tip: save a folder + options combo as a **named profile** using the chip row at 
 ### Method 2: Right-click a folder - "Open with" (skips the picker)
 
 1. Right-click any folder in Windows Explorer
-2. Select **Open with ClaudeCode CLI**, or **Open with Codex CLI** if Codex is installed
+2. Select **Open with ClaudeCode CLI**, or **Open with Codex CLI** or **Open with Copilot CLI** if those are installed
 3. That agent opens straight into that folder
 
 ### Method 3: Right-click - Send To
@@ -105,8 +105,57 @@ Claude Code. Codex is a download of about 500 MB. A Claude Code already on your 
 
 **Both agents on one PC:** the picker shows a Claude Code / Codex choice, and each profile
 keeps its own. Within a profile, each agent keeps its own options and environment variables, so
-an API key typed for one never reaches the other. Right-click "Open with" and Send To start the
-agent you chose in the installer; run the installer again to change it.
+an API key typed for one never reaches the other. Right-clicking a folder offers one entry for
+each agent. Send To starts the agent you chose in the installer; run the installer again to
+change it.
+
+## Using GitHub Copilot
+
+Choose **GitHub Copilot** in the installer (Windows only) and Launchpad sets up GitHub's Copilot CLI
+instead of Claude Code. It is a download of about 170 MB and needs Node.js 22 or newer, plus a GitHub
+account with a Copilot plan (a free plan works). A copy you already have (1.0.105 or newer) is used
+as is, and an AI agent already on your PC stays.
+
+**The first time Copilot opens:**
+
+1. **Do you trust the files in this folder?** Choose **Yes** for your own project. Choose **Yes, and
+   remember this folder** to stop being asked there.
+2. **Set up terminal for multi-line input support.** Press Esc to skip it. You can set it up later
+   with `/terminal-setup`.
+3. If you aren't signed in, Copilot says **Please use /login**. Type `/login`, choose your account
+   type and follow the steps. If you are already signed in to the GitHub CLI, Copilot may use that
+   and not ask. If your startup message wasn't sent after you signed in, type it again.
+
+**What works differently from Claude Code:**
+
+- The startup message in the picker is sent as your first message once Copilot is ready. Several
+  lines become one message. One command that starts with / can run at startup, on its own.
+- **Continue last** reopens the last Copilot conversation in that exact folder. If there is none, a new
+  one starts, and Launchpad tells you so. A conversation from another folder, or from a subfolder, is
+  reached with **Pick from history**, which lists every folder's conversations.
+- If Copilot says **Session in use**, that conversation is open in another window. Close that window, or
+  choose **Resume anyway**.
+- There's no model list in the picker, because Copilot offers no way to read one from outside a session.
+  Leave the box empty to let Copilot decide, or type a model name. If your plan can't use that name,
+  Copilot says so in red and decides by itself. Inside Copilot, `/model` shows what you can choose.
+- Copilot's own status line at the bottom shows the folder, the credits used and the model.
+  Launchpad's status bar is for Claude Code.
+- Copilot draws its own colors, so its background is white rather than the terminal color you chose.
+  Type `/settings theme default` once inside Copilot to use the terminal's colors. Launchpad doesn't
+  change this for you, because it's stored in your own Copilot settings.
+- The response language is added to Copilot's instructions, alongside your own, which still apply. For
+  less common languages such as N'Ko, Copilot's automatic model may still answer in English or write
+  poorly: that depends on the model it picks.
+- Copilot shows Hebrew and Arabic left to right. Right-to-left display works only with Claude Code.
+- No idle reminder sound and no auto-continue after the usage limit resets.
+
+**PowerShell:** Copilot's documentation asks for PowerShell 6 or newer, but it also runs on the
+PowerShell built into Windows, and Launchpad doesn't install anything extra. Windows normally blocks
+scripts there, which would stop `npm` inside Copilot, so for Copilot's session only, Launchpad lets
+scripts on your own PC run. Unsigned scripts from the internet stay blocked, nothing is saved, and
+Copilot still asks before it runs commands. If you or your company set a script policy, it is left
+alone. You can install PowerShell 7 yourself (`winget install Microsoft.PowerShell`) and Copilot will
+use it.
 
 ## Configuration
 
@@ -118,9 +167,11 @@ All settings live in one plain-text file: `%LOCALAPPDATA%\Kivun\config.txt`. Ope
 - `CLAUDE_FLAGS` - default flags added to every launch (e.g. `--model opus`)
 - `STARTUP_CMD` - a slash command typed in automatically after Claude opens
 - `AUTO_CONTINUE` - `true` to resume automatically after the 5-hour limit resets (off by default, Claude Code only)
-- `AGENT` - the agent right-click launches start: empty for Claude Code, `codex` for Codex (the installer sets it)
+- `AGENT` - the agent Send To starts: empty for Claude Code, `codex` for Codex, `copilot` for GitHub Copilot (the installer sets it)
 - `CODEX_FLAGS` - Codex options added to every Codex launch (e.g. `--search`)
 - `CODEX_STARTUP_CMD` - a first message sent to Codex on right-click launches
+- `COPILOT_FLAGS` - Copilot options added to every Copilot launch (e.g. `--add-dir C:\docs`)
+- `COPILOT_STARTUP_CMD` - a first message sent to Copilot on right-click launches
 
 Most of these can also be set per-launch in the folder picker's **Advanced options**.
 

@@ -143,13 +143,14 @@ function setConfigValue(text, key, value) {
 }
 
 function effectiveAgent(text) {
-  return parseConfig(text).get('AGENT') === 'codex' ? 'codex' : 'claude';
+  const agent = parseConfig(text).get('AGENT');
+  return agent === 'codex' || agent === 'copilot' ? agent : 'claude';
 }
 
 // The only writer of AGENT (D13). Writes nothing when the effective agent is already right, so a
 // Claude upgrade without an AGENT key leaves config.txt byte-identical (requirement A2).
 function setAgent(agent, env) {
-  if (agent !== 'claude' && agent !== 'codex') throw new Error('agent must be claude or codex');
+  if (agent !== 'claude' && agent !== 'codex' && agent !== 'copilot') throw new Error('agent must be claude, codex or copilot');
   const p = paths(env);
   const text = readIfExists(p.config);
   if (effectiveAgent(text) === agent) return false;
@@ -777,4 +778,6 @@ module.exports = {
   promptInputHasUserInstructions, tomlHasInstructions, gitRoot, hasExistingInstructions,
   createLaunch, readLaunch, cleanupLaunches, launchFromConfig, socketPath, plan, run, workFolder, prepare, commit, main,
   nodeTooOld, chooseVersion, installCodex,
+  // Used by configure-copilot.js, so the two agents share this code instead of copying it.
+  readIfExists, log, fileStamp, hostArch, npm, npmCommand, testPause, say,
 };

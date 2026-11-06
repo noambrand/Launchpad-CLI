@@ -359,6 +359,103 @@ there if you want them gone.
 
 ---
 
+## GitHub Copilot
+
+Only for PCs where GitHub Copilot was chosen in the installer. The install log is
+`%LOCALAPPDATA%\Kivun\install-log.txt`.
+
+### "GitHub Copilot could not be installed"
+
+Check the internet connection, then run the installer again. It picks up where it left off. If your PC
+already had another AI agent, Launchpad keeps starting it until Copilot installs. On a PC with none,
+Launchpad shows a repair message.
+
+- **"Node.js ... is too old":** Copilot needs Node.js 22 or newer. Update Node.js from
+  https://nodejs.org/, then run the installer again.
+- **"was not installed with npm":** you have an older Copilot from another installer, and Launchpad doesn't
+  change it. Update it the way you installed it, then run the installer again.
+
+### Launchpad says Copilot was not found, or is too old
+
+Run the installer again and choose GitHub Copilot. Launchpad needs version 1.0.105 or newer, because
+reopening a conversation doesn't work on older ones.
+
+### "Copilot was not started"
+
+Launchpad refuses options that turn off Copilot's permission questions (`--allow-all`, `--yolo`,
+`--autopilot` and the like), `COPILOT_ALLOW_ALL` in a profile, and options that would fight a choice the
+picker makes (`--continue`, `--resume`, `-i`, `-p`). The message names the option. Remove it from the
+picker's Copilot options, or from `COPILOT_FLAGS` in `config.txt`, then launch again.
+
+### Copilot asks me to sign in, and my startup message wasn't sent
+
+Type `/login` and follow the steps, then type your message again if it hasn't appeared.
+
+### "Continue last" started a new conversation
+
+It only reopens a conversation from that exact folder, so one from a parent folder or a subfolder doesn't
+count. Use **Pick from history** instead: it lists every folder's conversations.
+
+A conversation you opened but never sent a message in can't be reopened. If this happens to every folder
+after a Copilot update, Copilot may have changed how it stores conversations, so please
+[report it](https://github.com/noambrand/Launchpad-CLI/issues). **Pick from history** still works.
+
+### Copilot says "Session in use"
+
+That conversation is open in another window. Close that window, or choose **Resume anyway** if you are sure
+it's idle.
+
+### `npm` or another script fails inside Copilot: "running scripts is disabled on this system"
+
+Launchpad allows this for Copilot's session unless a script policy has already been chosen on the PC,
+because it leaves any chosen policy alone. Either change that policy, if you are allowed to, or install
+PowerShell 7 (`winget install Microsoft.PowerShell`), which keeps its own policy and which Copilot uses when
+it's installed. A company PC's Group Policy always wins.
+
+### No sounds in Copilot
+
+Launchpad's sound file is `%USERPROFILE%\.copilot\hooks\launchpad-sounds.json` (or under `COPILOT_HOME` if
+you set it). If it is missing, run the installer again. Inside Copilot, `/env` lists the hooks it loaded.
+Sounds also follow the on/off switch in the folder picker.
+
+To remove the sounds and keep Launchpad, delete that one file.
+
+### Copilot answers in the wrong language
+
+Inside Copilot, `/env` should list a `language.instructions.md` under Custom Instructions. If it's listed and
+Copilot still answers in English, that's the model Copilot picked. It happens mostly with less common
+languages such as N'Ko, and even when the letters are right, the text may be poor. Try again, or if your
+plan allows it, choose a model with `/model`.
+
+If your Windows user name contains a comma, Launchpad can't add the language line, and says so when Copilot
+starts: Copilot splits that setting on commas.
+
+### A model name I typed in the picker didn't work
+
+Copilot says so in red and decides by itself. Copilot Free offers only the automatic choice. Inside Copilot,
+`/model` shows what your plan can use.
+
+### Copilot offers to "Set up terminal for multi-line input support"
+
+Press Esc to skip it. Saying yes edits your Windows Terminal settings to add a Shift+Enter key.
+
+### Copilot's background is white, not the terminal color I chose
+
+Copilot's standard theme draws its own colors. Type `/settings theme default` once inside Copilot to use the
+terminal's colors. To go back, type `/settings theme github`.
+
+### Hebrew or Arabic shows left to right in Copilot
+
+Expected: right-to-left display works only with Claude Code. Each word shows with its letters reversed.
+
+### Copilot is using a lot of disk space
+
+About 170 MB for the program, and about 210 MB more that it unpacks the first time it runs, in
+`%LOCALAPPDATA%\copilot`. To remove Copilot, run `npm uninstall -g @github/copilot`, then delete that folder.
+Uninstalling Launchpad leaves Copilot, its sign-in and its conversations in place.
+
+---
+
 ## macOS
 
 ### Installer blocked by Gatekeeper
