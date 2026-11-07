@@ -45,6 +45,8 @@ call :checkfile "%KDIR%\folder-picker.html"
 call :checkfile "%KDIR%\agent-helpers.js"
 call :checkfile "%KDIR%\claudecode-launchpad.bat"
 call :checkfile "%KDIR%\configure-codex.js"
+call :checkfile "%KDIR%\configure-copilot.js"
+call :checkfile "%KDIR%\copilot-sound.js"
 call :checkfile "%KDIR%\statusline.mjs"
 call :checkfile "%KDIR%\config.txt"
 call :checkfile "%KDIR%\claude_icon.ico"
@@ -71,6 +73,17 @@ if exist "%CXHOME%\hooks.json" (
     findstr /c:"/.claude/sounds/play.js" "%CXHOME%\hooks.json" >nul 2>&1 && (>>"%RPT%" echo Launchpad sound hooks in hooks.json: yes) || (>>"%RPT%" echo Launchpad sound hooks in hooks.json: no)
 )
 call :checkfile "%KDIR%\kivun-codex-path.txt"
+
+>>"%RPT%" echo.
+>>"%RPT%" echo ===== [3c] GitHub Copilot CLI (where + version, sound hooks, PowerShell 7) =====
+REM As for Codex: only file names, a version and yes/no answers.
+where copilot >>"%RPT%" 2>&1
+where copilot >nul 2>&1 && cmd /c copilot --version >>"%RPT%" 2>&1
+set "CPHOME=%COPILOT_HOME%"
+if not defined CPHOME set "CPHOME=%USERPROFILE%\.copilot"
+call :checkfile "%CPHOME%\hooks\launchpad-sounds.json"
+call :checkfile "%KDIR%\kivun-copilot-path.txt"
+where pwsh >nul 2>&1 && (>>"%RPT%" echo PowerShell 7 ^(pwsh^): yes) || (>>"%RPT%" echo PowerShell 7 ^(pwsh^): no ^(optional^))
 
 >>"%RPT%" echo.
 >>"%RPT%" echo ===== [4] Node.js (where + version) =====

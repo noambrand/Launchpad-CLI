@@ -35,6 +35,8 @@ REM --- Phase 2: inside terminal, apply colors and run Claude ---
 if "%~1"=="--run" goto :run_claude
 REM --- Phase 2 for Codex (v3.3.0): the only argument after it is the launch id ---
 if "%~1"=="--run-codex" goto :run_codex
+REM --- Phase 2 for Copilot (v3.4.0), the same way ---
+if "%~1"=="--run-copilot" goto :run_copilot
 
 title ClaudeCode Launchpad CLI
 
@@ -60,16 +62,21 @@ if exist "!SCRIPT_DIR!config.txt" (
 )
 
 REM --- Which agent (v3.3.0) ----------------------------------------------
-REM LAUNCH <id> is a Codex picker launch. READFILE is a Claude picker launch, whatever AGENT
-REM says. OPEN-CODEX and OPEN-CLAUDE are the right-click entries: each names its agent, whatever
-REM AGENT says, and the folder comes next (shift /1 leaves the path of this script alone). Every
-REM other launch (Send To, a folder alone) follows AGENT in config.txt; missing or unknown means
-REM Claude. Nothing set here reaches Claude's environment.
+REM LAUNCH <id> is a Codex picker launch, LAUNCH-COPILOT <id> a Copilot one. READFILE is a Claude
+REM picker launch, whatever AGENT says. OPEN-CODEX, OPEN-COPILOT and OPEN-CLAUDE are the right-click
+REM entries: each names its agent, whatever AGENT says, and the folder comes next (shift /1 leaves
+REM the path of this script alone). Every other launch (Send To, a folder alone) follows AGENT in
+REM config.txt; missing or unknown means Claude. Nothing set here reaches Claude's environment.
 if /i "%~1"=="LAUNCH" goto :codex_phase1
+if /i "%~1"=="LAUNCH-COPILOT" goto :copilot_phase1
 if /i "%~1"=="READFILE" goto :agent_done
 if /i "%~1"=="OPEN-CODEX" (
     shift /1
     goto :codex_phase1
+)
+if /i "%~1"=="OPEN-COPILOT" (
+    shift /1
+    goto :copilot_phase1
 )
 if /i "%~1"=="OPEN-CLAUDE" (
     shift /1
@@ -80,6 +87,10 @@ if "!KV_AGENT!"=="?" goto :config_empty
 if /i "!KV_AGENT!"=="codex" (
     set "KV_AGENT="
     goto :codex_phase1
+)
+if /i "!KV_AGENT!"=="copilot" (
+    set "KV_AGENT="
+    goto :copilot_phase1
 )
 set "KV_AGENT="
 :agent_done
@@ -449,8 +460,8 @@ exit /b
 :read_agent
 REM Sets KV_AGENT from config.txt. The Claude picker rewrites config.txt without a temp file,
 REM so a right-click at that exact moment can find it empty: wait for it (about 5 seconds at
-REM most) instead of guessing which agent the user chose. If it stays empty on a PC where Codex
-REM is set up, KV_AGENT is "?" and the caller says so; a Claude-only PC goes on as in v3.2.2.
+REM most) instead of guessing which agent the user chose. If it stays empty on a PC where Codex or
+REM Copilot is set up, KV_AGENT is "?" and the caller says so; a Claude-only PC goes on as in v3.2.2.
 set "KV_AGENT="
 if not exist "!SCRIPT_DIR!config.txt" exit /b 0
 for /l %%T in (1,1,5) do (
@@ -458,6 +469,7 @@ for /l %%T in (1,1,5) do (
     ping -n 2 127.0.0.1 >nul
 )
 if exist "!SCRIPT_DIR!kivun-codex-path.txt" set "KV_AGENT=?"
+if exist "!SCRIPT_DIR!kivun-copilot-path.txt" set "KV_AGENT=?"
 exit /b 0
 :read_agent_now
 for /f "usebackq tokens=1,* delims==" %%A in ("!SCRIPT_DIR!config.txt") do if "%%A"=="AGENT" set "KV_AGENT=%%B"
@@ -522,7 +534,7 @@ exit /b 0
 
 :config_empty
 echo.
-echo   Launchpad's settings file is empty, so it can't tell whether to start Claude Code or Codex:
+echo   Launchpad's settings file is empty, so it can't tell which AI agent to start:
 echo   !SCRIPT_DIR!config.txt
 echo   Delete that file, then run the ClaudeCode Launchpad CLI installer again.
 echo.
@@ -565,6 +577,88 @@ exit /b 0
 :codex_relaunch
 node "%~dp0configure-codex.js" run %KV_ID% --relaunch
 goto :codex_shell
+
+REM ========================================
+REM   GitHub Copilot CLI (v3.4.0)
+REM ========================================
+REM Built the same way as Codex, and for the same reasons: this file carries no Copilot user data,
+REM only the launch id and, for the terminal tab, the work folder, with delayed expansion OFF.
+REM configure-copilot.js builds the launch folder, prints every message that contains user text,
+REM and starts Copilot with an argument array. The id check and the repaint are shared with Codex.
+:copilot_phase1
+setlocal disabledelayedexpansion
+set "KV_ID="
+if /i "%~1"=="LAUNCH-COPILOT" set "KV_ID=%~2"
+if /i "%~1"=="LAUNCH-COPILOT" goto :copilot_have_id
+REM The clicked folder reaches Node in KV_FOLDER, for the reasons given at :codex_phase1.
+set "KV_FOLDER=%~1"
+if "%~1"=="" set "KV_FOLDER=%USERPROFILE%"
+for /f "delims=" %%I in ('node "%~dp0configure-copilot.js" prepare') do set "KV_ID=%%I"
+set "KV_FOLDER="
+:copilot_have_id
+call :codex_check_id || goto :copilot_bad_id
+node "%~dp0configure-copilot.js" check %KV_ID% >nul 2>&1 || goto :copilot_missing_folder
+for /f "delims=" %%W in ('node "%~dp0configure-copilot.js" info %KV_ID% workdir') do set "WORK_DIR=%%W"
+if "%WORK_DIR:~-1%"=="\" set "WORK_DIR=%WORK_DIR:~0,-1%"
+if "%WORK_DIR:~-1%"==":" set "WORK_DIR=%WORK_DIR%\."
+set "WT_TAB=%WORK_DIR%"
+for %%I in ("%WT_TAB%") do set "WT_TAB=%%~nxI"
+if not defined WT_TAB set "WT_TAB=ClaudeCode Launchpad CLI"
+REM Auto-continue is always off for Copilot, as for Codex.
+where node >nul 2>&1 && node "%~dp0apply-terminal-color.js" >nul 2>&1
+where node >nul 2>&1 && node "%~dp0dedupe-launch-tab.js" "%WT_TAB%" "%WORK_DIR%" >nul 2>&1
+where wt.exe >nul 2>&1 || goto :copilot_fallback
+start "" wt.exe -w "ClaudeCodeLaunchpad" --maximized new-tab --title "%WT_TAB%" -p "ClaudeCode Launchpad CLI" -d "%WORK_DIR%" -- "%~dp0claudecode-launchpad.bat" --run-copilot %KV_ID%
+exit /b 0
+
+:copilot_fallback
+cd /d "%WORK_DIR%"
+goto :run_copilot_body
+
+:copilot_bad_id
+echo.
+echo   Launchpad could not prepare Copilot for this folder.
+echo   Run the ClaudeCode Launchpad CLI installer again, then try once more.
+echo.
+pause
+exit /b 1
+
+:copilot_missing_folder
+REM The message names the folder, so Node prints it (a folder name could break an echo).
+where wt.exe >nul 2>&1 && goto :copilot_missing_wt
+node "%~dp0configure-copilot.js" missing %KV_ID%
+exit /b 1
+:copilot_missing_wt
+start "" wt.exe -w "ClaudeCodeLaunchpad" new-tab --title "Folder not found" -p "ClaudeCode Launchpad CLI" -d "%USERPROFILE%" -- node "%~dp0configure-copilot.js" missing %KV_ID%
+exit /b 1
+
+:run_copilot
+setlocal disabledelayedexpansion
+set "KV_ID=%~2"
+call :codex_check_id || goto :copilot_bad_id
+:run_copilot_body
+title ClaudeCode Launchpad CLI
+set "TERMINAL_COLOR=kivun"
+if exist "%~dp0config.txt" for /f "usebackq tokens=1,* delims==" %%A in ("%~dp0config.txt") do if "%%A"=="TERMINAL_COLOR" set "TERMINAL_COLOR=%%B"
+call :codex_paint
+node "%~dp0configure-copilot.js" run %KV_ID%
+:copilot_shell
+REM Copilot has exited. Stay in the tab at a normal prompt: typing copilot there relaunches it with
+REM the same options (and without the startup message); exit closes the tab.
+echo.
+echo  ------------------------------------------------------------
+echo   Copilot ended. You're now at a normal command prompt.
+echo   Type  copilot  to return to Copilot, or  exit  to close.
+echo  ------------------------------------------------------------
+echo.
+cmd /k "doskey copilot=exit 43"
+if %ERRORLEVEL% EQU 43 goto :copilot_relaunch
+REM The session is over: remove this launch's folder (a closed tab is swept by later launches).
+rmdir /s /q "%LOCALAPPDATA%\Kivun\launch\%KV_ID%" >nul 2>&1
+exit /b 0
+:copilot_relaunch
+node "%~dp0configure-copilot.js" run %KV_ID% --relaunch
+goto :copilot_shell
 
 :codex_paint
 REM The same instant ANSI repaint as the Claude path (phase 2), in its own scope.
