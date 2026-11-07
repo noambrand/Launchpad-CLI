@@ -135,7 +135,8 @@ New in 3.3.0: the installer asks which AI agent to set up. Claude Code is the de
 exactly as before. Choose **Codex** to get OpenAI's coding agent with the same folder picker,
 right-click "Open with", profiles, terminal theme and sounds.
 
-- Codex is a download of about 500 MB. A Codex you already have (0.166.0 or newer) is used as is.
+- Codex is a download of about 500 MB, and you get the newest version. If npm installed the Codex you
+  already have, Launchpad updates it. One installed any other way is used as is, if it's 0.166.0 or newer.
 - The first time Codex opens, sign in with your ChatGPT account or an OpenAI API key. In a Git
   project folder, it asks whether to trust the folder. When it shows **Hooks need review**, choose **Trust all and continue** to turn on Launchpad's two sounds.
   Then answer its sandbox question: choose the default if you can approve the Windows administrator
@@ -146,6 +147,30 @@ right-click "Open with", profiles, terminal theme and sounds.
   the idle reminder sound, and auto-continue. macOS stays Claude-only.
 
 Details: [Quick Start](docs/QUICK_START.md#using-codex) and [Troubleshooting](TROUBLESHOOTING.md#codex).
+
+## GitHub Copilot CLI instead of Claude Code (Windows)
+
+New in 3.4.0: the installer also offers **GitHub Copilot**, with the same folder picker, right-click
+"Open with", profiles and sounds.
+
+- It is a download of about 170 MB, and needs Node.js 22 or newer and a GitHub account with a Copilot
+  plan (a free plan works). You get the newest version. If npm installed the copy you already have,
+  Launchpad updates it. One installed any other way is used as is, if it's 1.0.105 or newer.
+- The first time it opens, answer the folder trust question, press Esc on the terminal setup offer, and
+  type `/login` if it asks you to sign in.
+- With more than one agent installed, the picker shows a choice and each profile keeps its own settings.
+  Right-clicking a folder offers one entry for each agent.
+- **Continue last** only ever reopens a conversation from that exact folder.
+- Copilot draws its own colors over Launchpad's terminal theme. Type `/settings theme default` once to
+  use the terminal's colors instead.
+- PowerShell 7 is not needed. For Copilot's session only, Launchpad lets scripts on your own PC run in
+  the PowerShell built into Windows, so `npm` works there. A script policy you or your company chose is
+  left alone.
+- Not available with Copilot: right-to-left display (it shows Hebrew and Arabic left to right), the idle
+  reminder sound, Launchpad's status bar (Copilot has its own, and the installer turns on its context and
+  quota items) and auto-continue.
+
+Details: [Quick Start](docs/QUICK_START.md#using-github-copilot) and [Troubleshooting](TROUBLESHOOTING.md#github-copilot).
 
 ## Quick Start
 
@@ -250,14 +275,27 @@ RESPONSE_LANGUAGE=english     # 24+ languages supported
 TERMINAL_COLOR=kivun          # kivun / dark / black / white / default, or a hex like #1e1e2e
 CLAUDE_FLAGS=                 # e.g. --continue
 AUTO_CONTINUE=false           # auto-type "continue" when the 5-hour limit resets (see below)
-AGENT=                        # empty = Claude Code, codex = Codex (set by the installer)
+AGENT=                        # empty = Claude Code, codex = Codex, copilot = GitHub Copilot (set by the installer)
 CODEX_FLAGS=                  # Codex options for every Codex launch, e.g. --search
+COPILOT_FLAGS=                # Copilot options for every Copilot launch, e.g. --add-dir C:\docs
 ```
 
 ## Auto-continue after the 5-hour limit resets (opt-in)
 
-When Claude Code hits the 5-hour usage cap, the session stays alive but idle until you come
-back and type something after the limit resets. Turn on **Auto-continue when limit resets**
+**Most people can leave this off.** Claude Code (v2.1.234 or later, signed in with a claude.ai
+subscription) waits in the open session and continues the task by itself after a usage limit
+resets. It does this by default, with no Launchpad setting. To have it carry on by itself, keep the
+PC awake through the reset: if the PC slept for more than about 30 minutes and the limit reset during
+that sleep, Claude Code shows `Press enter to continue` and waits for you. Anthropic's page
+[Wait for a usage limit to reset](https://code.claude.com/docs/en/interactive-mode#wait-for-a-usage-limit-to-reset)
+has the details.
+
+Launchpad's option is older and blunter, so it's only worth turning on when Claude Code's own
+continue isn't available, for example with an older Claude Code or with `autoContinueAtUsageLimit`
+turned off. With both on, they can overlap: the watcher types its message 1 to 2 minutes after the
+reset, when Claude Code may already be working again.
+
+Turn on **Auto-continue when limit resets**
 (folder picker → **Advanced options**, or set `AUTO_CONTINUE=true` in `config.txt`) and a small
 background watcher waits until the limit's real reset time passes, focuses this tab, and resumes
 your work once so it continues on its own. By default it doesn't type a bare `continue` — it asks

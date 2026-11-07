@@ -105,6 +105,85 @@ var AgentHelpers = (function () {
     return { args: args, errors: errors, notices: notices, fatal: fatal };
   }
 
+  // ---- GitHub Copilot CLI (v3.4.0) ---------------------------------------
+
+  // Copilot's permission bypasses are refused, as Codex's are. The other two lists would fight a
+  // choice the picker makes: which conversation to open, and the first message.
+  var COPILOT_BYPASS = ["--allow-all", "--allow-all-tools", "--allow-all-paths", "--allow-all-urls", "--yolo", "--autopilot"];
+  var COPILOT_CONVERSATION = ["--continue", "--resume", "-r", "--session-id", "--connect"];
+  var COPILOT_PROMPT = ["-i", "--interactive", "-p", "--prompt"];
+
+  function optionName(t) { var i = t.indexOf("="); return (t.charAt(0) === "-" && i > 0) ? t.substring(0, i) : t; }
+
+  // Copilot has no language option: configure-copilot.js puts this line in a file. It is firmer than
+  // the line Claude and Codex get, because Copilot's automatic model choice ignored the plain line
+  // for N'Ko (Step 0, S6).
+  function copilotLanguageLine(code) {
+    var name = LANGUAGES[String(code || "").toLowerCase()];
+    return name ? "Always respond in " + name + ", whatever language the user writes in. Do not answer in English." : null;
+  }
+
+  // Copilot takes one first message, and a /command works as one (Step 0, S5). A /command can't be
+  // joined with other text, because it would then become that command's arguments.
+  function copilotStartup(entries) {
+    var raw = (entries instanceof Array) ? entries : [entries], list = [], i, e;
+    for (i = 0; i < raw.length; i++) { e = trim(raw[i]); if (e) list.push(e); }
+    for (i = 0; i < list.length; i++) {
+      if (/[\u0000-\u001f\u007f]/.test(list[i])) return { text: null, error: "CONTROL", message: "The startup message can only be one line." };
+      if (list.length > 1 && list[i].charAt(0) === "/") return { text: null, error: "SLASH", message: "Copilot can run one command at startup, on its own. Remove the other lines or the command." };
+    }
+    return { text: list.length ? list.join(" ") : null };
+  }
+
+  // Build Copilot's exact argument array. Returns { args, errors, notices, fatal }, as composeCodex does.
+  //   launch: { conv: fresh|last|pick, sessionId, model, customFlags, copilotFlags, startup, env, relaunch }
+  // sessionId is what the runner found for this folder. Plain --continue is never used: with no
+  // conversation here it opens another folder's (Step 0, S4). Nor is plain --resume: it shows no list
+  // after a trust screen, while the /resume command does.
+  function composeCopilot(launch) {
+    var errors = [], notices = [], user = [], i, t, name, bad = [], kept = [], k;
+    try { user = tokenize(launch.copilotFlags).concat(tokenize(launch.customFlags)); } catch (err) { errors.push(err.message); user = []; }
+    for (i = 0; i < user.length; i++) {
+      t = user[i]; name = optionName(t);
+      if (contains(COPILOT_BYPASS, name) || t === "--mode=autopilot" || (t === "--mode" && user[i + 1] === "autopilot")) bad.push(t);
+      else kept.push(t);
+    }
+    if (bad.length) { errors.push("Launchpad does not start Copilot with " + bad.join(" ") + "."); user = kept; }
+    for (k in (launch.env || {})) {
+      if (launch.env.hasOwnProperty(k) && String(k).toUpperCase() === "COPILOT_ALLOW_ALL") errors.push("Launchpad does not start Copilot with COPILOT_ALLOW_ALL: it also trusts the folder's own settings. Remove it from this profile.");
+    }
+    var modelCount = 0, convTold = false, promptTold = false;
+    for (i = 0; i < user.length; i++) {
+      name = optionName(user[i]);
+      if (name === "--model") modelCount++;
+      if (contains(COPILOT_CONVERSATION, name) && !convTold) { errors.push('Choose "continue last" or "pick from history" in the picker instead of typing ' + name + "."); convTold = true; }
+      if (contains(COPILOT_PROMPT, name) && !promptTold) { errors.push("Use the startup message box instead of typing " + name + "."); promptTold = true; }
+    }
+    if (modelCount > 1) errors.push("The custom options name a model more than once.");
+
+    var args = [];
+    if (launch.conv === "last" && launch.sessionId) args.push("--session-id", launch.sessionId);
+    if (launch.model && modelCount === 0) args.push("--model", launch.model);
+    for (i = 0; i < user.length; i++) args.push(user[i]);
+    var fatal = errors.slice();   // every error so far is about the options
+    if (launch.conv === "pick") {
+      args.push("-i", "/resume");
+      if (!launch.relaunch && copilotStartup(launch.startup).text) notices.push("The startup message is not sent when you pick a conversation from the list.");
+    } else if (!launch.relaunch) {
+      var st = copilotStartup(launch.startup);
+      if (st.error) { errors.push(st.message); notices.push("startup message not sent"); }
+      else if (st.text && st.text.charAt(0) === "-") args.push("--interactive=" + st.text); // -i would read it as an option (Step 0)
+      else if (st.text) args.push("-i", st.text);
+    }
+    return { args: args, errors: errors, notices: notices, fatal: fatal };
+  }
+
+  // Copilot's settings live in their own part of the profile, as Codex's do.
+  function copilotFields(profile) {
+    var c = profile.copilot || {};
+    return { model: c.model || "", conv: c.conv || "fresh", customFlags: c.customFlags || "", startupCmds: c.startupCmds || "", envVars: c.envVars || "" };
+  }
+
   // ---- picker helpers --------------------------------------------------
 
   // The picker's conversation radios keep their v3.2.2 values; this maps them for Codex.
@@ -112,17 +191,18 @@ var AgentHelpers = (function () {
   function convRadio(codexConvValue) { return codexConvValue === "last" ? "--continue" : (codexConvValue === "pick" ? "--resume" : ""); }
 
   // Which agent the picker shows, and whether it shows the agent choice (D3, D6).
-  //   profileAgent: the profile's agent field (missing = Claude); installed: { claude, codex }
+  //   profileAgent: the profile's agent field (missing = Claude); installed: { claude, codex, copilot }
   function resolveAgent(profileAgent, installed) {
-    var agent = profileAgent === "codex" ? "codex" : "claude";
+    var agent = (profileAgent === "codex" || profileAgent === "copilot") ? profileAgent : "claude";
     var missing = !installed[agent];
-    return { agent: agent, missing: missing, showChoice: (installed.claude && installed.codex) || missing };
+    var count = (installed.claude ? 1 : 0) + (installed.codex ? 1 : 0) + (installed.copilot ? 1 : 0);
+    return { agent: agent, missing: missing, showChoice: count > 1 || missing };
   }
 
-  // Store the agent the way D16 says: agent:"codex" only for Codex; choosing Claude removes it.
-  // A profile never used with Codex keeps exactly the fields v3.2.2 wrote.
+  // Store the agent the way D16 says: agent:"codex" or "copilot" only for those; choosing Claude
+  // removes it. A profile only ever used with Claude keeps exactly the fields v3.2.2 wrote.
   function setProfileAgent(profile, agent) {
-    if (agent === "codex") profile.agent = "codex";
+    if (agent === "codex" || agent === "copilot") profile.agent = agent;
     else if (profile.hasOwnProperty("agent")) delete profile.agent;
     return profile;
   }
@@ -159,7 +239,8 @@ var AgentHelpers = (function () {
     LANGUAGES: LANGUAGES, tokenize: tokenize, startupText: startupText, languageLine: languageLine, languageArg: languageArg,
     composeCodex: composeCodex, codexConv: codexConv, convRadio: convRadio, resolveAgent: resolveAgent,
     setProfileAgent: setProfileAgent, codexFields: codexFields, modelUnavailable: modelUnavailable,
-    newLaunchId: newLaunchId, previewLine: previewLine, contains: contains
+    newLaunchId: newLaunchId, previewLine: previewLine, contains: contains,
+    composeCopilot: composeCopilot, copilotFields: copilotFields, copilotLanguageLine: copilotLanguageLine, copilotStartup: copilotStartup
   };
 })();
 

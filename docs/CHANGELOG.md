@@ -1,5 +1,56 @@
 # Changelog
 
+## [3.4.0] - unreleased
+
+### Added: GitHub Copilot CLI as a third AI agent, on Windows
+
+The installer now also offers GitHub Copilot, GitHub's coding agent. Claude Code works exactly as it did
+in 3.3.0, Codex does too apart from how it updates (below), and macOS stays Claude-only.
+
+When you choose GitHub Copilot:
+
+- The installer downloads the newest version with npm (about 170 MB). A copy npm installed earlier is
+  updated to the newest version. A copy installed any other way is used if it is version 1.0.105 or
+  newer, and otherwise left alone with a message. npm's copy needs Node.js 22 or newer: if yours is
+  older, Launchpad says so and gives the command to update it. A stand-alone copy doesn't use Node.js.
+- The folder picker, right-click and Send To start Copilot. Right-clicking a folder adds **Open with
+  Copilot CLI** and, inside a folder, **Open Copilot CLI here**. The picker's button says **Launch
+  Copilot CLI**, and each profile keeps Copilot's own model, options, startup message and environment
+  variables, apart from the other agents'.
+- **Continue last** reopens the newest conversation of that exact folder, or starts a new one and says
+  so. It reads Copilot's own session folders, because Copilot's `--continue` opens another folder's
+  conversation when this one has none. Launchpad keeps no record of its own. **Pick from history** shows
+  Copilot's list of every folder's conversations.
+- The two sounds work: *done* at the end of a reply and *permission* when Copilot asks before acting. They
+  come from one file of Launchpad's own in Copilot's settings folder, which uninstalling removes. Copilot
+  shows no review screen for it.
+- Copilot's own status line also shows how full the conversation is and how much of your plan's limit
+  you've used. The installer turns on these two items in Copilot's `settings.json`, unless you already
+  chose them, and leaves that file alone if it isn't plain JSON. Uninstalling takes them out again if
+  they're still on. `/statusline` inside Copilot changes what it shows.
+- The response language is added through a file Launchpad owns, alongside your own instructions.
+- Launchpad refuses Copilot's permission bypasses: `--allow-all`, `--allow-all-tools`, `--allow-all-paths`,
+  `--allow-all-urls`, `--yolo`, `--autopilot`, `--mode autopilot`, and `COPILOT_ALLOW_ALL` in a profile.
+- For Copilot's session only, Launchpad sets PowerShell's script policy to `RemoteSigned`, when nobody has
+  chosen a policy on that PC. Without it, Windows PowerShell blocks `npm.ps1`, so `npm` fails inside Copilot.
+  Nothing is saved and nothing extra is installed. PowerShell 7 stays optional.
+- Copilot draws its own colors over the terminal theme. `/settings theme default` inside Copilot shows
+  the terminal's colors. Launchpad doesn't change that setting, because it belongs to your own Copilot
+  settings.
+
+### Changed: choosing an agent updates the copy you have
+
+When you choose Codex or GitHub Copilot in the installer, a copy that npm installed is now updated to the
+newest version. Before, Codex was only updated when it fell below the minimum version. If the update fails,
+or npm can't be reached, the copy you have stays and the install still succeeds. A copy installed any
+other way is never changed.
+
+### Changed: the docs on Auto-continue
+
+Claude Code now continues by itself after a usage limit resets, unless the PC slept through the reset.
+The README and Quick Start now say so, and that most people can leave Launchpad's **Auto-continue when
+limit resets** off. The option itself works as before.
+
 ## [3.3.0] - 2026-11-06
 
 ### Added: Codex (OpenAI) as a second AI agent, on Windows

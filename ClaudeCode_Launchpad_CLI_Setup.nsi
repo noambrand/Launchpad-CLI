@@ -5,7 +5,7 @@
 Unicode True
 
 !define PRODUCT_NAME "ClaudeCode Launchpad CLI"
-!define PRODUCT_VERSION "3.3.0"
+!define PRODUCT_VERSION "3.4.0"
 !define PRODUCT_PUBLISHER "Noam Brand"
 !define PRODUCT_WEB_SITE "https://github.com"
 !define PRODUCT_DESCRIPTION "Claude Code installer for Windows"
@@ -40,12 +40,12 @@ InstallDir "${INSTALL_DIR}"
 ShowInstDetails show
 
 ; Version info
-VIProductVersion "3.3.0.0"
+VIProductVersion "3.4.0.0"
 VIAddVersionKey "ProductName" "${PRODUCT_NAME}"
 VIAddVersionKey "ProductVersion" "${PRODUCT_VERSION}"
 VIAddVersionKey "CompanyName" "${PRODUCT_PUBLISHER}"
 VIAddVersionKey "FileDescription" "${PRODUCT_DESCRIPTION}"
-VIAddVersionKey "FileVersion" "3.3.0.0"
+VIAddVersionKey "FileVersion" "3.4.0.0"
 VIAddVersionKey "LegalCopyright" "(C) 2026 ${PRODUCT_PUBLISHER}"
 
 ; Modern UI Configuration
@@ -78,6 +78,7 @@ Page custom ConfigPage ConfigPageLeave
 Var FinishText
 !define FINISH_TEXT_CLAUDE "${PRODUCT_NAME} has been installed successfully.$\r$\n$\r$\n${PRODUCT_DESCRIPTION}$\r$\n$\r$\nTIP: Pin it to your taskbar for one-click access — click Start, type '${PRODUCT_NAME}', right-click the result and choose 'Pin to taskbar'. No need to hunt for the desktop icon.$\r$\n$\r$\nYou will need an Anthropic API key to use Claude Code.$\r$\nGet one at: https://console.anthropic.com/"
 !define FINISH_TEXT_CODEX "Codex is ready. When it first opens, sign in with your ChatGPT account or an OpenAI API key. On the Hooks need review screen, choose Trust all and continue to turn on Launchpad's sounds.$\r$\n$\r$\nThe Quick Start Guide explains the sandbox question Codex asks on its first run."
+!define FINISH_TEXT_COPILOT "GitHub Copilot is ready. When it first opens, answer the folder trust question, then type /login if it asks you to sign in with your GitHub account.$\r$\n$\r$\nThe Quick Start Guide explains the other questions Copilot asks on its first run."
 !define MUI_FINISHPAGE_TITLE "${PRODUCT_NAME} Installation Complete!"
 !define MUI_FINISHPAGE_TEXT "$FinishText"
 !define MUI_FINISHPAGE_RUN
@@ -117,7 +118,7 @@ Var NodeExe
 ; there (this process's PATH is stale right after install, same as NodeExe),
 ; else `cmd /c claude` so an npm-installed claude.cmd on PATH still works.
 Var ClaudeCmd
-; v3.3.0: the agent chosen on the configuration page, "claude" or "codex". .onInit starts it
+; v3.3.0: the agent chosen on the configuration page, "claude", "codex" or "copilot". .onInit starts it
 ; from AGENT in an existing config.txt (missing or anything else = claude), so an upgrade,
 ; also a silent one, keeps the agent the PC already uses.
 Var ConfigAgent
@@ -126,6 +127,10 @@ Var AgentCodexRadio
 Var AgentCodexNote
 ; "1" once SecCodex installed Codex and committed it as the agent (D18).
 Var CodexOK
+; v3.4.0: the same for GitHub Copilot CLI.
+Var AgentCopilotRadio
+Var AgentCopilotNote
+Var CopilotOK
 
 ; Pre-install warning: remind users to finish active CLI sessions
 Function .onInit
@@ -156,8 +161,11 @@ Function .onInit
   ${ConfigRead} "$INSTDIR\config.txt" "AGENT=" $0
   ${If} $0 S== "codex"
     StrCpy $ConfigAgent "codex"
+  ${ElseIf} $0 S== "copilot"
+    StrCpy $ConfigAgent "copilot"
   ${EndIf}
   Call ApplyAgentChoice
+  Call ApplyCopilotChoice
 FunctionEnd
 
 ; Configuration page
@@ -179,12 +187,15 @@ nsDialogs::Create 1018
   ; v3.3.0: the AI agent Launchpad installs and starts (D17). Claude Code is the default.
   ${NSD_CreateLabel} 0 31u 100% 12u "AI agent:"
   Pop $0
-  ${NSD_CreateFirstRadioButton} 0 43u 48% 12u "Claude Code (Anthropic)"
+  ${NSD_CreateFirstRadioButton} 0 43u 38% 12u "Claude Code (Anthropic)"
   Pop $AgentClaudeRadio
-  ${NSD_CreateAdditionalRadioButton} 50% 43u 50% 12u "Codex (OpenAI)"
+  ${NSD_CreateAdditionalRadioButton} 39% 43u 28% 12u "Codex (OpenAI)"
   Pop $AgentCodexRadio
+  ${NSD_CreateAdditionalRadioButton} 68% 43u 32% 12u "GitHub Copilot"
+  Pop $AgentCopilotRadio
   ${NSD_OnClick} $AgentClaudeRadio AgentRadioClicked
   ${NSD_OnClick} $AgentCodexRadio AgentRadioClicked
+  ${NSD_OnClick} $AgentCopilotRadio AgentRadioClicked
 
   ; Language selection (used by both agents; on an upgrade config.txt keeps its own)
   ${NSD_CreateLabel} 0 61u 100% 12u "Response language:"
@@ -227,11 +238,19 @@ nsDialogs::Create 1018
   ; Shown only while Codex is selected.
   ${NSD_CreateLabel} 0 110u 100% 28u "Codex is a large download (about 500 MB). Codex shows Hebrew and Arabic left to right. Right-to-left display works only with Claude Code."
   Pop $AgentCodexNote
+  ; Shown only while Copilot is selected.
+  ${NSD_CreateLabel} 0 110u 100% 28u "GitHub Copilot is a download of about 170 MB, and needs Node.js 22 or newer and a GitHub account with Copilot. Copilot shows Hebrew and Arabic left to right. Right-to-left display works only with Claude Code."
+  Pop $AgentCopilotNote
+  ShowWindow $AgentCodexNote ${SW_HIDE}
+  ShowWindow $AgentCopilotNote ${SW_HIDE}
   ${If} $ConfigAgent == "codex"
     ${NSD_Check} $AgentCodexRadio
+    ShowWindow $AgentCodexNote ${SW_SHOW}
+  ${ElseIf} $ConfigAgent == "copilot"
+    ${NSD_Check} $AgentCopilotRadio
+    ShowWindow $AgentCopilotNote ${SW_SHOW}
   ${Else}
     ${NSD_Check} $AgentClaudeRadio
-    ShowWindow $AgentCodexNote ${SW_HIDE}
   ${EndIf}
 
 nsDialogs::Show
@@ -242,12 +261,16 @@ Function ConfigPageLeave
   ${NSD_GetText} $ConfigUsername $ConfigUsername
   ${NSD_GetState} $ConfigTerminalColor $ConfigTerminalColor
   ${NSD_GetState} $AgentCodexRadio $0
+  ${NSD_GetState} $AgentCopilotRadio $1
   ${If} $0 == ${BST_CHECKED}
     StrCpy $ConfigAgent "codex"
+  ${ElseIf} $1 == ${BST_CHECKED}
+    StrCpy $ConfigAgent "copilot"
   ${Else}
     StrCpy $ConfigAgent "claude"
   ${EndIf}
   Call ApplyAgentChoice
+  Call ApplyCopilotChoice
 FunctionEnd
 
 Function AgentRadioClicked
@@ -257,6 +280,12 @@ Function AgentRadioClicked
     ShowWindow $AgentCodexNote ${SW_SHOW}
   ${Else}
     ShowWindow $AgentCodexNote ${SW_HIDE}
+  ${EndIf}
+  ${NSD_GetState} $AgentCopilotRadio $0
+  ${If} $0 == ${BST_CHECKED}
+    ShowWindow $AgentCopilotNote ${SW_SHOW}
+  ${Else}
+    ShowWindow $AgentCopilotNote ${SW_HIDE}
   ${EndIf}
 FunctionEnd
 
@@ -343,6 +372,9 @@ Section "!Core Components (Required)" SecCore
   File "source\configure-fast-updates.js"
   ; v3.3.0: Codex setup, launch and uninstall (Node built-ins only).
   File "source\configure-codex.js"
+  ; v3.4.0: GitHub Copilot CLI setup and launch, and the script its sound hooks call.
+  File "source\configure-copilot.js"
+  File "source\copilot-sound.js"
   File "source\install.cmd"
   File "source\launchpad-diagnostics.cmd"
   File "source\install-node-elevated.js"
@@ -756,6 +788,7 @@ Section "-Use Claude Code" SecAgentClaude
   ${If} $ConfigAgent == "claude"
     ${ConfigRead} "$INSTDIR\config.txt" "AGENT=" $0
     ${If} $0 S== "codex"
+    ${OrIf} $0 S== "copilot"
       DetailPrint "Switching Launchpad back to Claude Code..."
       nsExec::ExecToLog '"$NodeExe" "$INSTDIR\configure-codex.js" set-agent claude'
       Pop $0
@@ -870,6 +903,115 @@ Section "-Right-click entries for Codex" SecCodexMenu
   ${EndIf}
 SectionEnd
 
+; v3.4.0: GitHub Copilot CLI instead of Claude Code. Built the same way as SecCodex: AGENT is switched
+; to copilot only after the installed copy is verified. PowerShell 7 is not installed: Copilot works
+; without it, and the launch sets the script policy npm needs for that session (configure-copilot.js).
+Section /o "!Install GitHub Copilot (Required)" SecCopilot
+  SectionIn RO
+  StrCpy $CopilotOK "0"
+
+  ; Node by full path, exactly as SecClaudeCode resolves it (this process's PATH is stale).
+  StrCpy $NodeExe "node"
+  ${If} ${FileExists} "$PROGRAMFILES64\nodejs\node.exe"
+    StrCpy $NodeExe "$PROGRAMFILES64\nodejs\node.exe"
+  ${ElseIf} ${FileExists} "$PROGRAMFILES\nodejs\node.exe"
+    StrCpy $NodeExe "$PROGRAMFILES\nodejs\node.exe"
+  ${ElseIf} ${FileExists} "$LOCALAPPDATA\Programs\nodejs\node.exe"
+    StrCpy $NodeExe "$LOCALAPPDATA\Programs\nodejs\node.exe"
+  ${EndIf}
+  DetailPrint "Using Node at: $NodeExe"
+
+  DetailPrint "Installing GitHub Copilot via install.cmd (a download of about 170 MB)..."
+  ExecWait 'cmd /c ""$INSTDIR\install.cmd" /copilot "$NodeExe""' $0
+  DetailPrint "install.cmd /copilot exit code: $0"
+
+  ${If} $0 == 0
+    ; The shared sounds only; a Copilot-only PC gets no Claude settings.json.
+    DetailPrint "Deploying voice alerts for Copilot..."
+    nsExec::ExecToLog '"$NodeExe" "$INSTDIR\sounds\configure-sound-hooks.js" --deploy-only'
+    Pop $1
+    DetailPrint "Configuring Copilot (sound hooks)..."
+    nsExec::ExecToLog '"$NodeExe" "$INSTDIR\configure-copilot.js" install'
+    Pop $1
+    ${If} $1 S!= "0"
+      DetailPrint "WARNING: Could not configure Copilot's sound hooks (result: $1)"
+    ${EndIf}
+    ; Noam, 2026-11-07: two of Copilot's own status line items, unless the user already chose them.
+    DetailPrint "Turning on Copilot's status line items (context and quota)..."
+    nsExec::ExecToLog '"$NodeExe" "$INSTDIR\configure-copilot.js" statusline'
+    Pop $1
+    ${If} $1 S!= "0"
+      DetailPrint "WARNING: Could not turn on Copilot's status line items (result: $1)"
+    ${EndIf}
+  ${EndIf}
+
+  ; Windows Terminal profile and color, as at the end of SecClaudeCode.
+  DetailPrint "Applying Windows Terminal profile settings..."
+  nsExec::ExecToLog '"$NodeExe" "$INSTDIR\apply-wt-settings.js"'
+  Pop $1
+  DetailPrint "Applying terminal color from config..."
+  nsExec::ExecToLog '"$NodeExe" "$INSTDIR\apply-terminal-color.js"'
+  Pop $1
+
+  ; The one commit point: verify the copy, cache its path, then AGENT=copilot.
+  ${If} $0 == 0
+    nsExec::ExecToLog '"$NodeExe" "$INSTDIR\configure-copilot.js" commit'
+    Pop $1
+    ${If} $1 S== "0"
+      StrCpy $CopilotOK "1"
+      DetailPrint "GitHub Copilot installed and selected"
+    ${EndIf}
+  ${EndIf}
+
+  ${If} $CopilotOK != "1"
+    DetailPrint "WARNING: GitHub Copilot could not be installed"
+    ; With another agent on this PC nothing changes. On a PC with no agent, AGENT records Copilot, so
+    ; the launcher shows the repair message rather than trying Claude.
+    StrCpy $2 "0"
+    ${If} ${FileExists} "$PROFILE\.local\bin\claude.exe"
+    ${OrIf} ${FileExists} "$INSTDIR\kivun-codex-path.txt"
+      StrCpy $2 "1"
+    ${Else}
+      nsExec::ExecToStack 'where claude'
+      Pop $3
+      Pop $4
+      ${If} $3 S== "0"
+        StrCpy $2 "1"
+      ${EndIf}
+    ${EndIf}
+    ${If} $2 == "1"
+      MessageBox MB_OK|MB_ICONEXCLAMATION "GitHub Copilot could not be installed, so nothing was changed: Launchpad keeps starting the AI agent it used before.$\n$\nDetails: $LOCALAPPDATA\Kivun\install-log.txt$\n$\nIf the details say Node.js is too old, open Command Prompt and run: winget install OpenJS.NodeJS.LTS$\n$\nRun this installer again to try once more." /SD IDOK
+    ${Else}
+      nsExec::ExecToLog '"$NodeExe" "$INSTDIR\configure-codex.js" set-agent copilot'
+      Pop $1
+      MessageBox MB_OK|MB_ICONEXCLAMATION "GitHub Copilot could not be installed.$\n$\nDetails: $LOCALAPPDATA\Kivun\install-log.txt$\n$\nIf the details say Node.js is too old, open Command Prompt and run: winget install OpenJS.NodeJS.LTS$\n$\nRun this installer again to finish installing it. Until then, Launchpad shows a repair message instead of starting Copilot." /SD IDOK
+    ${EndIf}
+  ${EndIf}
+SectionEnd
+
+; Right-click: one entry per agent, as for Codex. Copilot's appear once a Copilot copy is verified, even
+; when this run chose another agent, and stay until uninstall. A PC with no Claude gets no Claude entry.
+; Kept out of SecCopilot, which the installer tests run for real: this writes to the real registry.
+Section "-Right-click entries for Copilot" SecCopilotMenu
+  ${If} ${FileExists} "$INSTDIR\kivun-copilot-path.txt"
+    WriteRegStr HKCU "Software\Classes\Directory\shell\ClaudeCodeLaunchpadCopilot" "" "Open with Copilot CLI"
+    WriteRegStr HKCU "Software\Classes\Directory\shell\ClaudeCodeLaunchpadCopilot" "Icon" "$INSTDIR\claude_icon.ico"
+    WriteRegStr HKCU "Software\Classes\Directory\shell\ClaudeCodeLaunchpadCopilot\command" "" '"$INSTDIR\claudecode-launchpad.bat" OPEN-COPILOT "%1"'
+    WriteRegStr HKCU "Software\Classes\Directory\Background\shell\ClaudeCodeLaunchpadCopilot" "" "Open Copilot CLI here"
+    WriteRegStr HKCU "Software\Classes\Directory\Background\shell\ClaudeCodeLaunchpadCopilot" "Icon" "$INSTDIR\claude_icon.ico"
+    WriteRegStr HKCU "Software\Classes\Directory\Background\shell\ClaudeCodeLaunchpadCopilot\command" "" '"$INSTDIR\claudecode-launchpad.bat" OPEN-COPILOT "%V"'
+    ${IfNot} ${FileExists} "$PROFILE\.local\bin\claude.exe"
+      nsExec::ExecToStack 'where claude'
+      Pop $3
+      Pop $4
+      ${If} $3 S!= "0"
+        DeleteRegKey HKCU "Software\Classes\Directory\shell\ClaudeCodeLaunchpad"
+        DeleteRegKey HKCU "Software\Classes\Directory\Background\shell\ClaudeCodeLaunchpad"
+      ${EndIf}
+    ${EndIf}
+  ${EndIf}
+SectionEnd
+
 Section "Install Windows Terminal (Recommended)" SecWindowsTerminal
   DetailPrint "Installing Windows Terminal via install.cmd..."
   ExecWait 'cmd /c "$INSTDIR\install.cmd" /wt' $0
@@ -898,6 +1040,7 @@ SectionEnd
   !insertmacro MUI_DESCRIPTION_TEXT ${SecNodeJS} "Node.js runtime (required for statusline display). Skipped if already installed."
   !insertmacro MUI_DESCRIPTION_TEXT ${SecClaudeCode} "Claude Code CLI tool (installed via Anthropic native installer)."
   !insertmacro MUI_DESCRIPTION_TEXT ${SecCodex} "Codex CLI by OpenAI, installed with npm (a download of about 500 MB). Chosen on the configuration page instead of Claude Code."
+  !insertmacro MUI_DESCRIPTION_TEXT ${SecCopilot} "GitHub Copilot CLI, installed with npm (a download of about 170 MB). Chosen on the configuration page instead of Claude Code."
   !insertmacro MUI_DESCRIPTION_TEXT ${SecWindowsTerminal} "Windows Terminal with light blue color scheme. Falls back to cmd.exe if not installed."
   !insertmacro MUI_DESCRIPTION_TEXT ${SecGit} "Git version control (optional, for development workflows)."
 !insertmacro MUI_FUNCTION_DESCRIPTION_END
@@ -917,6 +1060,24 @@ Function ApplyAgentChoice
     !insertmacro UnselectSection ${SecCodex}
     SectionSetText ${SecCodex} ""
     StrCpy $FinishText "${FINISH_TEXT_CLAUDE}"
+  ${EndIf}
+FunctionEnd
+
+; v3.4.0: a Copilot choice skips the Claude and Codex installs. Runs after ApplyAgentChoice, which
+; knows only those two, and overrides what it did. A separate function, because the installer tests
+; compile ApplyAgentChoice on its own.
+Function ApplyCopilotChoice
+  ${If} $ConfigAgent == "copilot"
+    !insertmacro UnselectSection ${SecClaudeCode}
+    SectionSetText ${SecClaudeCode} ""
+    !insertmacro UnselectSection ${SecCodex}
+    SectionSetText ${SecCodex} ""
+    !insertmacro SelectSection ${SecCopilot}
+    SectionSetText ${SecCopilot} "Install GitHub Copilot (Required)"
+    StrCpy $FinishText "${FINISH_TEXT_COPILOT}"
+  ${Else}
+    !insertmacro UnselectSection ${SecCopilot}
+    SectionSetText ${SecCopilot} ""
   ${EndIf}
 FunctionEnd
 
@@ -957,6 +1118,25 @@ Section "Uninstall"
     ${ElseIf} $0 S!= "0"
       MessageBox MB_OK|MB_ICONSTOP "Launchpad couldn't remove its Codex settings. Close Codex and run the uninstaller again." /SD IDOK
       Abort "Launchpad couldn't remove its Codex settings."
+    ${EndIf}
+  ${EndIf}
+
+  ; v3.4.0: take the two status line items Launchpad turned on out of Copilot's settings.json, if
+  ; they're still on. The record lives in this folder, so this runs before anything is deleted.
+  ; Unlike Codex, a failure doesn't stop the uninstall: those are ordinary Copilot settings.
+  ${If} ${FileExists} "$LOCALAPPDATA\Kivun\kivun-copilot-changes.json"
+    StrCpy $NodeExe "node"
+    ${If} ${FileExists} "$PROGRAMFILES64\nodejs\node.exe"
+      StrCpy $NodeExe "$PROGRAMFILES64\nodejs\node.exe"
+    ${ElseIf} ${FileExists} "$PROGRAMFILES\nodejs\node.exe"
+      StrCpy $NodeExe "$PROGRAMFILES\nodejs\node.exe"
+    ${ElseIf} ${FileExists} "$LOCALAPPDATA\Programs\nodejs\node.exe"
+      StrCpy $NodeExe "$LOCALAPPDATA\Programs\nodejs\node.exe"
+    ${EndIf}
+    nsExec::ExecToLog '"$NodeExe" "$INSTDIR\configure-copilot.js" uninstall'
+    Pop $0
+    ${If} $0 S!= "0"
+      MessageBox MB_OK|MB_ICONINFORMATION "Launchpad couldn't take its two status line items out of your Copilot settings (settings.json in the .copilot folder in your user folder). Copilot keeps working, and you can turn them off with /statusline. The rest of Launchpad is removed now." /SD IDOK
     ${EndIf}
   ${EndIf}
 
@@ -1007,6 +1187,16 @@ Section "Uninstall"
   DeleteRegKey HKCU "Software\Classes\Directory\Background\shell\ClaudeCodeLaunchpad"
   DeleteRegKey HKCU "Software\Classes\Directory\shell\ClaudeCodeLaunchpadCodex"
   DeleteRegKey HKCU "Software\Classes\Directory\Background\shell\ClaudeCodeLaunchpadCodex"
+  DeleteRegKey HKCU "Software\Classes\Directory\shell\ClaudeCodeLaunchpadCopilot"
+  DeleteRegKey HKCU "Software\Classes\Directory\Background\shell\ClaudeCodeLaunchpadCopilot"
+
+  ; v3.4.0: Launchpad's one hook file in Copilot's settings folder. A plain delete, so it works with
+  ; Node.js gone. Copilot itself, its sign-in and its sessions are the user's and stay.
+  ReadEnvStr $0 COPILOT_HOME
+  ${If} $0 == ""
+    StrCpy $0 "$PROFILE\.copilot"
+  ${EndIf}
+  Delete "$0\hooks\launchpad-sounds.json"
   DeleteRegKey HKCR "Directory\shell\ClaudeCodeLaunchpad"
   DeleteRegKey HKCR "Directory\Background\shell\ClaudeCodeLaunchpad"
 

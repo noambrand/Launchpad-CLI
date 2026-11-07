@@ -19,7 +19,7 @@ Someone who prefers OpenAI's Codex, or who already pays for ChatGPT and not for 
 - **Hook approval survives upgrades**: Launchpad's two hook entries keep the exact frozen text and positions of the handout, section 5.
 - **Launchpad never removes what it did not add.** Uninstall removes only recorded entries whose exact text is still present; it never touches sign-in, sessions, `packages`, user hooks, user status settings, or either AI agent.
 - **Existing developer instructions are never replaced** (Q1): when any are detected, or detection is uncertain, the language line is skipped and the picker says so.
-- **Never an unpinned install** (D14): Codex is installed only as a pinned pair whose Windows package exists, minimum version 0.166.0. `codex update` is never called. A non-npm copy is never updated or duplicated.
+- **Never an unpinned install** (D14): Codex is installed only as a pinned pair whose Windows package exists, minimum version 0.166.0. `codex update` is never called. A non-npm copy is never updated or duplicated. **Changed for v3.4.0 (Noam, 2026-11-07, "the latest version available"; replaces Q5's "use it if new enough"):** when Codex is selected, a copy npm installed moves to the newest such pair, not only when it is below the minimum. A failed update, or no answer from npm within a minute, keeps the copy, and the install succeeds.
 - **Nothing pops up on the user's screen** beyond the terminal the user asked for; helpers run hidden. An interactive Codex session is never started from an elevated process.
 
 ## Money and data consequences
