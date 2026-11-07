@@ -455,8 +455,11 @@ Press Esc to skip it. Saying yes edits your Windows Terminal settings to add a S
 
 ### Copilot's background is white, not the terminal color I chose
 
-Copilot's standard theme draws its own colors. Type `/settings theme default` once inside Copilot to use the
-terminal's colors. To go back, type `/settings theme github`.
+Copilot's standard theme draws its own colors. The installer sets Copilot's `default` theme, which uses the
+terminal's colors, but it never changes a theme you had already chosen, and it leaves `settings.json` alone if
+that file holds comments or isn't plain JSON. In those cases, type `/settings theme default` once inside
+Copilot. To go back, type `/settings theme github`. Uninstalling Launchpad takes the theme out again if it's
+still `default`.
 
 ### Copilot's status line doesn't show how full the conversation is, or the plan's limit
 

@@ -34,9 +34,10 @@ When you choose GitHub Copilot:
 - For Copilot's session only, Launchpad sets PowerShell's script policy to `RemoteSigned`, when nobody has
   chosen a policy on that PC. Without it, Windows PowerShell blocks `npm.ps1`, so `npm` fails inside Copilot.
   Nothing is saved and nothing extra is installed. PowerShell 7 stays optional.
-- Copilot draws its own colors over the terminal theme. `/settings theme default` inside Copilot shows
-  the terminal's colors. Launchpad doesn't change that setting, because it belongs to your own Copilot
-  settings.
+- Copilot uses the terminal's colors, so Launchpad's light blue shows. Copilot's standard theme paints its
+  own background over it. The installer sets Copilot's theme to `default`, the terminal's own colors, in
+  the same `settings.json`, unless you already chose a theme. Uninstalling takes it out again if it's
+  still `default`. `/settings theme github` inside Copilot brings back its standard look.
 
 ### Changed: choosing an agent updates the copy you have
 

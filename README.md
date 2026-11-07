@@ -161,8 +161,8 @@ New in 3.4.0: the installer also offers **GitHub Copilot**, with the same folder
 - With more than one agent installed, the picker shows a choice and each profile keeps its own settings.
   Right-clicking a folder offers one entry for each agent.
 - **Continue last** only ever reopens a conversation from that exact folder.
-- Copilot draws its own colors over Launchpad's terminal theme. Type `/settings theme default` once to
-  use the terminal's colors instead.
+- The installer sets Copilot to use the terminal's colors, so Launchpad's terminal theme shows. A theme
+  you had already chosen in Copilot stays.
 - PowerShell 7 is not needed. For Copilot's session only, Launchpad lets scripts on your own PC run in
   the PowerShell built into Windows, so `npm` works there. A script policy you or your company chose is
   left alone.

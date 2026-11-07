@@ -145,9 +145,9 @@ newer. An AI agent already on your PC stays.
   also turns on two of its items: how full the conversation is, and how much of your plan's limit you've
   used. An item you had already chosen stays as you set it. Type `/statusline` inside Copilot to choose
   what it shows. Launchpad's own status bar is for Claude Code.
-- Copilot draws its own colors, so its background is white rather than the terminal color you chose.
-  Type `/settings theme default` once inside Copilot to use the terminal's colors. Launchpad doesn't
-  change this for you, because it's stored in your own Copilot settings.
+- Copilot uses the terminal's colors, so its background is the terminal color you chose. The installer
+  sets this as Copilot's `default` theme, unless you had already chosen a theme. To change it, type
+  `/settings theme` inside Copilot: `github` is Copilot's standard look, with its own white background.
 - The response language is added to Copilot's instructions, alongside your own, which still apply. For
   less common languages such as N'Ko, Copilot's automatic model may still answer in English or write
   poorly: that depends on the model it picks.

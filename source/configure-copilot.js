@@ -8,7 +8,9 @@
 //   install            add Launchpad's one hook file to Copilot's settings folder
 //   statusline         turn on two of Copilot's own status line items in its settings.json, unless
 //                      the user already chose them, and record what was added
-//   uninstall          delete that file, and take out the recorded status line items still on
+//   theme              set Copilot's theme to "default" (the terminal's own colors) the same way
+//   uninstall          delete the hook file, and take out the recorded settings that still have
+//                      Launchpad's values
 //   commit             verify the installed Copilot, cache its path, then set AGENT to copilot
 //   prepare [folder]   create a launch folder for a right-click / shortcut launch, print its id
 //                      (the launcher passes the folder in KV_FOLDER, not as an argument)
@@ -44,7 +46,7 @@ function paths(env) {
     copilotHome,
     hooksFile: path.join(copilotHome, 'hooks', HOOKS_NAME),
     settingsFile: path.join(copilotHome, 'settings.json'),
-    statusRecord: path.join(base.kivun, 'kivun-copilot-changes.json'),
+    changesRecord: path.join(base.kivun, 'kivun-copilot-changes.json'),
     sessions: path.join(copilotHome, 'session-state'),
     pathCache: path.join(base.kivun, 'kivun-copilot-path.txt'),
     log: path.join(base.kivun, 'copilot-setup.log'),
@@ -72,20 +74,24 @@ function install(env) {
 function uninstall(env) {
   const p = paths(env);
   fs.rmSync(p.hooksFile, { force: true });
-  removeStatusLine(env);
+  removeSettings(env);
   CC.log(p, 'uninstall: done');
 }
 
-// ---------------------------------------------------------------- Copilot's own status line items
+// ---------------------------------------------------------------- Copilot's own settings: status line items and theme
 // Noam, 2026-11-07: users shouldn't have to find /statusline to get a fuller status line, so the
 // installer turns on two of Copilot's own items: how full the conversation is, and use of the plan's
 // limit. Copilot reads each footer key on its own, with its own default, so two keys change nothing
-// else. settings.json is the user's file:
+// else. Noam, the same day: the theme too. Copilot's standard "github" theme paints its own background
+// over Launchpad's terminal color, and "default" uses the terminal's own colors. settings.json is the
+// user's file:
 //   - only plain JSON is edited: Copilot also accepts comments there, and a rewrite would drop them;
 //   - a key the user set, to anything, is never changed;
-//   - the record is written before the file, and uninstall takes out only recorded keys that are
-//     still on. It deletes the file only if Launchpad made it and nothing else is left in it.
+//   - the record is written before the file, and uninstall takes out only recorded keys that still
+//     have Launchpad's value. It deletes the file only if Launchpad made it and nothing else is left.
 const FOOTER_ITEMS = ['showContextWindow', 'showQuota'];
+const THEME = 'default';
+const NOT_PLAIN = "Copilot's settings.json isn't plain JSON, so Launchpad left it as it is";
 
 const isObject = v => v !== null && typeof v === 'object' && !Array.isArray(v);
 
@@ -100,64 +106,89 @@ function readSettings(text) {
 }
 function settingsText(s) { return s.bom + JSON.stringify(s.obj, null, 2).replace(/\n/g, s.nl) + s.nl; }
 
-function loadStatusRecord(p) {
-  const t = readIfExists(p.statusRecord);
+function loadChanges(p) {
+  const t = readIfExists(p.changesRecord);
   if (!t) return { version: 1, files: {} };
   try { const r = JSON.parse(t); if (r && isObject(r.files)) return r; } catch (e) { /* below */ }
   throw new Error('kivun-copilot-changes.json is unreadable; nothing changed');
 }
-function saveStatusRecord(p, r) {
-  if (!Object.keys(r.files).length) { fs.rmSync(p.statusRecord, { force: true }); return; }
-  fs.mkdirSync(path.dirname(p.statusRecord), { recursive: true });
-  atomicWrite(p.statusRecord, JSON.stringify(r, null, 2) + '\n');
+function saveChanges(p, r) {
+  if (!Object.keys(r.files).length) { fs.rmSync(p.changesRecord, { force: true }); return; }
+  fs.mkdirSync(path.dirname(p.changesRecord), { recursive: true });
+  atomicWrite(p.changesRecord, JSON.stringify(r, null, 2) + '\n');
+}
+
+// settings.json for one install step; s is null (and logged) when the file must be left as it is.
+function settingsFor(p, step) {
+  const text = readIfExists(p.settingsFile);
+  const s = readSettings(text);
+  if (!s) CC.log(p, step + ': ' + p.settingsFile + ' is not plain JSON; left as it is');
+  return { text, s };
+}
+
+// Records what the step adds, then writes settings.json. A crash between the two leaves a record of
+// something that isn't there, and uninstall skips it.
+function writeRecorded(p, text, s, note) {
+  const r = loadChanges(p);
+  const rec = r.files[p.settingsFile] || { created: false, keys: [] };
+  if (text == null) rec.created = true;
+  note(rec);
+  r.files[p.settingsFile] = rec;
+  saveChanges(p, r);
+  fs.mkdirSync(path.dirname(p.settingsFile), { recursive: true });
+  atomicWrite(p.settingsFile, settingsText(s));
 }
 
 function addStatusLine(env) {
   const p = paths(env);
-  const text = readIfExists(p.settingsFile);
-  const s = readSettings(text);
-  if (!s) {
-    CC.log(p, 'statusline: ' + p.settingsFile + ' is not plain JSON; left as it is');
-    return ["Copilot's settings.json isn't plain JSON, so Launchpad left it as it is"];
-  }
+  const { text, s } = settingsFor(p, 'statusline');
+  if (!s) return [NOT_PLAIN];
   const footer = s.obj.footer || {};
   const added = FOOTER_ITEMS.filter(k => !(k in footer));
   if (!added.length) return ['status line items already set'];
-  const r = loadStatusRecord(p);
-  const rec = r.files[p.settingsFile] || { created: false, keys: [] };
-  if (text == null) rec.created = true;
-  for (const k of added) if (!rec.keys.includes(k)) rec.keys.push(k);
-  r.files[p.settingsFile] = rec;
-  saveStatusRecord(p, r);
   for (const k of added) footer[k] = true;
   s.obj.footer = footer;
-  fs.mkdirSync(path.dirname(p.settingsFile), { recursive: true });
-  atomicWrite(p.settingsFile, settingsText(s));
+  writeRecorded(p, text, s, rec => { for (const k of added) if (!rec.keys.includes(k)) rec.keys.push(k); });
   CC.log(p, 'statusline: turned on ' + added.join(', '));
   return ['status line items turned on: ' + added.join(', ')];
 }
 
-// Uses the recorded file, so a COPILOT_HOME set or changed since the install doesn't matter.
-function removeStatusLine(env) {
+function addTheme(env) {
   const p = paths(env);
-  const r = loadStatusRecord(p);
+  const { text, s } = settingsFor(p, 'theme');
+  if (!s) return [NOT_PLAIN];
+  // Copilot reads theme, then its older name colorMode: either one is the user's choice.
+  if ('theme' in s.obj || 'colorMode' in s.obj) return ['theme already chosen'];
+  s.obj.theme = THEME;
+  writeRecorded(p, text, s, rec => { rec.theme = THEME; });
+  CC.log(p, 'theme: set to ' + THEME);
+  return ['theme set to ' + THEME + ": the terminal's own colors"];
+}
+
+// Uses the recorded file, so a COPILOT_HOME set or changed since the install doesn't matter.
+function removeSettings(env) {
+  const p = paths(env);
+  const r = loadChanges(p);
   for (const file of Object.keys(r.files)) {
-    const keys = r.files[file].keys || [];
+    const rec = r.files[file];
     const text = readIfExists(file);
     const s = text == null ? null : readSettings(text);
     if (text != null && !s) CC.log(p, 'uninstall: ' + file + ' is no longer plain JSON; left as it is');
-    else if (s && s.obj.footer) {
-      const gone = keys.filter(k => s.obj.footer[k] === true);
-      if (gone.length) {
-        for (const k of gone) delete s.obj.footer[k];
-        if (!Object.keys(s.obj.footer).length) delete s.obj.footer;
-        if (r.files[file].created && !Object.keys(s.obj).length) fs.rmSync(file, { force: true });
+    else if (s) {
+      const footer = s.obj.footer || {};
+      const items = (rec.keys || []).filter(k => footer[k] === true);
+      const theme = rec.theme !== undefined && s.obj.theme === rec.theme;
+      if (items.length || theme) {
+        for (const k of items) delete footer[k];
+        if (items.length && !Object.keys(footer).length) delete s.obj.footer;
+        if (theme) delete s.obj.theme;
+        if (rec.created && !Object.keys(s.obj).length) fs.rmSync(file, { force: true });
         else atomicWrite(file, settingsText(s));
-        CC.log(p, 'uninstall: status line items taken out of ' + file + ': ' + gone.join(', '));
+        CC.log(p, 'uninstall: taken out of ' + file + ': ' + items.concat(theme ? ['theme'] : []).join(', '));
       }
     }
     delete r.files[file];
-    saveStatusRecord(p, r);
+    saveChanges(p, r);
   }
 }
 
@@ -465,6 +496,7 @@ function main(argv) {
   switch (mode) {
     case 'install': for (const m of install()) console.log(m); return 0;
     case 'statusline': for (const m of addStatusLine()) console.log(m); return 0;
+    case 'theme': for (const m of addTheme()) console.log(m); return 0;
     case 'install-copilot': return installCopilot();
     case 'uninstall': uninstall(); return 0;
     case 'commit': return commit() ? 0 : 6;
@@ -482,7 +514,7 @@ function main(argv) {
     case 'check': { let w; try { w = readLaunch(a1).workdir; } catch (e) { return 1; } try { return fs.statSync(w).isDirectory() ? 0 : 1; } catch (e) { return 1; } }
     case 'missing': return missingFolder(a1);
     default:
-      console.log('usage: node configure-copilot.js install|statusline|uninstall|install-copilot|commit|prepare <folder>|info <id> workdir|check <id>|compose <id>|run <id> [--relaunch]');
+      console.log('usage: node configure-copilot.js install|statusline|theme|uninstall|install-copilot|commit|prepare <folder>|info <id> workdir|check <id>|compose <id>|run <id> [--relaunch]');
       return 2;
   }
 }
@@ -494,7 +526,7 @@ if (require.main === module) {
 }
 
 module.exports = {
-  MIN_VERSION, MIN_NODE, FOOTER_ITEMS, paths, install, uninstall, addStatusLine, removeStatusLine, findConversation, languageFolder, scriptPolicyChosen,
+  MIN_VERSION, MIN_NODE, FOOTER_ITEMS, THEME, paths, install, uninstall, addStatusLine, addTheme, removeSettings, findConversation, languageFolder, scriptPolicyChosen,
   npmCandidate, discover, resolveCopilot, launchFromConfig, plan, run, nodeTooOld, installCopilot, prepare, commit, main,
   createLaunch, readLaunch,
 };

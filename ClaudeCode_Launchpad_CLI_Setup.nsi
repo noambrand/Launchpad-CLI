@@ -943,6 +943,14 @@ Section /o "!Install GitHub Copilot (Required)" SecCopilot
     ${If} $1 S!= "0"
       DetailPrint "WARNING: Could not turn on Copilot's status line items (result: $1)"
     ${EndIf}
+    ; Noam, 2026-11-07: Copilot's "default" theme uses the terminal's own colors, so Launchpad's color
+    ; shows instead of the standard theme's white. A theme the user chose stays.
+    DetailPrint "Setting Copilot's theme to the terminal's own colors..."
+    nsExec::ExecToLog '"$NodeExe" "$INSTDIR\configure-copilot.js" theme'
+    Pop $1
+    ${If} $1 S!= "0"
+      DetailPrint "WARNING: Could not set Copilot's theme (result: $1)"
+    ${EndIf}
   ${EndIf}
 
   ; Windows Terminal profile and color, as at the end of SecClaudeCode.
@@ -1121,8 +1129,9 @@ Section "Uninstall"
     ${EndIf}
   ${EndIf}
 
-  ; v3.4.0: take the two status line items Launchpad turned on out of Copilot's settings.json, if
-  ; they're still on. The record lives in this folder, so this runs before anything is deleted.
+  ; v3.4.0: take the two status line items and the theme Launchpad set out of Copilot's settings.json,
+  ; if they still have Launchpad's values. The record lives in this folder, so this runs before
+  ; anything is deleted.
   ; Unlike Codex, a failure doesn't stop the uninstall: those are ordinary Copilot settings.
   ${If} ${FileExists} "$LOCALAPPDATA\Kivun\kivun-copilot-changes.json"
     StrCpy $NodeExe "node"
@@ -1136,7 +1145,7 @@ Section "Uninstall"
     nsExec::ExecToLog '"$NodeExe" "$INSTDIR\configure-copilot.js" uninstall'
     Pop $0
     ${If} $0 S!= "0"
-      MessageBox MB_OK|MB_ICONINFORMATION "Launchpad couldn't take its two status line items out of your Copilot settings (settings.json in the .copilot folder in your user folder). Copilot keeps working, and you can turn them off with /statusline. The rest of Launchpad is removed now." /SD IDOK
+      MessageBox MB_OK|MB_ICONINFORMATION "Launchpad couldn't take its two status line items and its theme out of your Copilot settings (settings.json in the .copilot folder in your user folder). Copilot keeps working. To change them yourself, type /statusline or /settings theme in Copilot. The rest of Launchpad is removed now." /SD IDOK
     ${EndIf}
   ${EndIf}
 
