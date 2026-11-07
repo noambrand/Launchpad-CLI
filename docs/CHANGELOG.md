@@ -1,6 +1,6 @@
 # Changelog
 
-## [3.4.0] - unreleased
+## [3.4.0] - 2026-11-07
 
 ### Added: GitHub Copilot CLI as a third AI agent, on Windows
 
