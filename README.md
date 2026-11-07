@@ -22,10 +22,10 @@
 
 </p>
 
-<h3 align="center">Point it at a folder, describe the job in your own language, and Anthropic's AI agent does the work on your own files.</h3>
+<h3 align="center">Point it at a folder, describe the job in your own language, and an AI agent does the work on your own files: Claude Code, Codex or GitHub Copilot.</h3>
 
 <p align="center">
-  <b>Built for people who do not write code.</b> Claude Code is a genuinely capable AI agent, but it lives in a terminal built for programmers, and that is where most people stop. This puts a normal window in front of it: pick your folder, type a sentence, watch it work. Nothing to configure, no commands to memorise, no administrator rights.
+  <b>Built for people who do not write code.</b> Anthropic's Claude Code, OpenAI's Codex and GitHub Copilot CLI are genuinely capable AI agents, but they live in a terminal built for programmers, and that is where most people stop. This puts a normal window in front of them: pick your folder, type a sentence, watch it work. On Windows, the installer asks which agent you want; on macOS, it sets up Claude Code. Nothing to configure, no commands to memorise, no administrator rights.
 </p>
 
 <table align="center">
@@ -54,7 +54,7 @@
 
 |  | Manual Setup | Launchpad CLI |
 |---|---|---|
-| **Get Claude Code running** | Find Node.js, Git, and Claude installers, run them in order, fix PATH | One installer, one click |
+| **Get Claude Code, Codex or GitHub Copilot running** | Find Node.js, Git and the agent's installer, run them in order, fix PATH | One installer, one click |
 | **Live status bar** (model, context %, usage) | Write your own statusline script + configure `settings.json` | Pre-installed |
 | **Desktop shortcut + right-click "Open with..."** | Manual `.lnk` files + registry edits | Included |
 | **Pick a folder before launching** | `cd` into every project | GUI picker dialog (browse tree or paste a path) |
@@ -74,7 +74,7 @@
   <img src="assets/picker.png" alt="ClaudeCode Launchpad CLI folder picker (v2.6.16) — folder selection up top, an Advanced options toggle that hides model / flags / startup slash-commands / env-vars by default, and a yellow 'Update available' banner that checks GitHub Releases on launch and offers a one-click Download button" width="780">
 </p>
 
-The desktop shortcut opens this picker: pick a profile from the chip row at the top (or `+ New` to save the current setup as a named profile — folder + model + flags + startup commands + env vars), type/paste a Windows path or browse the tree, optionally pick a model (Opus / Sonnet / Haiku), tap chips for common options (Respond in Hebrew, High effort, Auto-accept file edits, Read-only, Don't fail if Opus is busy, Confirm before changes), and add startup slash commands like `/voicemode:converse` that get typed into Claude after it opens.
+The desktop shortcut opens this picker: pick a profile from the chip row at the top (or `+ New` to save the current setup as a named profile — folder + model + flags + startup commands + env vars), type/paste a Windows path or browse the tree, optionally pick a model (Opus / Sonnet / Haiku), tap chips for common options (Respond in Hebrew, High effort, Auto-accept file edits, Read-only, Don't fail if Opus is busy, Confirm before changes), and add startup slash commands like `/voicemode:converse` that get typed into Claude after it opens. With Codex or GitHub Copilot, the picker shows that agent's own options instead, and each profile keeps each agent's settings apart.
 
 ## Launchpad CLI vs Kivun Terminal — which one?
 
@@ -177,11 +177,11 @@ Details: [Quick Start](docs/QUICK_START.md#using-github-copilot) and [Troublesho
 ### Windows
 
 1. **[Download `ClaudeCode_Launchpad_CLI_Setup.exe`](https://github.com/noambrand/launchpad-cli/releases/latest)**
-2. Run as Administrator - the wizard auto-detects what's already installed
+2. Run it - no administrator rights needed. The wizard asks which AI agent to set up (Claude Code, Codex or GitHub Copilot) and detects what's already installed
 3. Double-click the **"ClaudeCode Launchpad CLI"** desktop shortcut
-4. Start coding with Claude
+4. Pick a folder and tell your agent what to do
 
-> **SmartScreen / antivirus note:** the installer is **code-signed** by its verified publisher. A brand-new signature still builds Microsoft SmartScreen reputation over time, so for a short while you may still see *"Windows protected your PC"* (click **More info → Run anyway**), and some antivirus (e.g. McAfee) may warn. This is a **false positive**. Launchpad CLI is open-source (MIT) with [auditable source](https://github.com/noambrand/launchpad-cli), installs only official tools (Node.js, Git, Windows Terminal, and Claude via [Anthropic's official installer](https://claude.ai/install.cmd)), and deliberately avoids the download/elevation tricks antivirus watches for. You can scan the file yourself on [VirusTotal](https://www.virustotal.com/). More detail in [TROUBLESHOOTING](TROUBLESHOOTING.md#antivirus-or-smartscreen-flags-the-installer-false-positive).
+> **SmartScreen / antivirus note:** the installer is **code-signed** by its verified publisher. A brand-new signature still builds Microsoft SmartScreen reputation over time, so for a short while you may still see *"Windows protected your PC"* (click **More info → Run anyway**), and some antivirus (e.g. McAfee) may warn. This is a **false positive**. Launchpad CLI is open-source (MIT) with [auditable source](https://github.com/noambrand/launchpad-cli), installs only official tools (Node.js, Git, Windows Terminal, Claude via [Anthropic's official installer](https://claude.ai/install.cmd), and Codex or GitHub Copilot from npm), and deliberately avoids the download/elevation tricks antivirus watches for. You can scan the file yourself on [VirusTotal](https://www.virustotal.com/). More detail in [TROUBLESHOOTING](TROUBLESHOOTING.md#antivirus-or-smartscreen-flags-the-installer-false-positive).
 
 ### macOS
 
@@ -190,7 +190,7 @@ Details: [Quick Start](docs/QUICK_START.md#using-github-copilot) and [Troublesho
 3. Open **Terminal** and type `claude`
 4. Start coding with Claude
 
-> **First time?** You'll need a Claude Pro/Max subscription or [Anthropic API key](https://console.anthropic.com).
+> **First time?** You'll need an account for your agent: a Claude Pro/Max subscription or [Anthropic API key](https://console.anthropic.com) for Claude Code, a ChatGPT account or OpenAI API key for Codex, or a GitHub account with a Copilot plan (a free plan works) for GitHub Copilot.
 
 ## Want a hand with your first real task?
 
