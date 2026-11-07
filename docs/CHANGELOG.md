@@ -22,8 +22,12 @@ When you choose GitHub Copilot:
   conversation when this one has none. Launchpad keeps no record of its own. **Pick from history** shows
   Copilot's list of every folder's conversations.
 - The two sounds work: *done* at the end of a reply and *permission* when Copilot asks before acting. They
-  come from one file of Launchpad's own in Copilot's settings folder, which uninstalling removes. Nothing
-  else there is changed, and Copilot shows no review screen for it.
+  come from one file of Launchpad's own in Copilot's settings folder, which uninstalling removes. Copilot
+  shows no review screen for it.
+- Copilot's own status line also shows how full the conversation is and how much of your plan's limit
+  you've used. The installer turns on these two items in Copilot's `settings.json`, unless you already
+  chose them, and leaves that file alone if it isn't plain JSON. Uninstalling takes them out again if
+  they're still on. `/statusline` inside Copilot changes what it shows.
 - The response language is added through a file Launchpad owns, alongside your own instructions.
 - Launchpad refuses Copilot's permission bypasses: `--allow-all`, `--allow-all-tools`, `--allow-all-paths`,
   `--allow-all-urls`, `--yolo`, `--autopilot`, `--mode autopilot`, and `COPILOT_ALLOW_ALL` in a profile.

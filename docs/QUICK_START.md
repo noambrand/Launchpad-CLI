@@ -141,8 +141,10 @@ newer. An AI agent already on your PC stays.
 - There's no model list in the picker, because Copilot offers no way to read one from outside a session.
   Leave the box empty to let Copilot decide, or type a model name. If your plan can't use that name,
   Copilot says so in red and decides by itself. Inside Copilot, `/model` shows what you can choose.
-- Copilot's own status line at the bottom shows the folder, the credits used and the model.
-  Launchpad's status bar is for Claude Code.
+- Copilot's own status line at the bottom shows the folder, the credits used and the model. The installer
+  also turns on two of its items: how full the conversation is, and how much of your plan's limit you've
+  used. An item you had already chosen stays as you set it. Type `/statusline` inside Copilot to choose
+  what it shows. Launchpad's own status bar is for Claude Code.
 - Copilot draws its own colors, so its background is white rather than the terminal color you chose.
   Type `/settings theme default` once inside Copilot to use the terminal's colors. Launchpad doesn't
   change this for you, because it's stored in your own Copilot settings.

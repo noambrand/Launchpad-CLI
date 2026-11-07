@@ -167,7 +167,8 @@ New in 3.4.0: the installer also offers **GitHub Copilot**, with the same folder
   the PowerShell built into Windows, so `npm` works there. A script policy you or your company chose is
   left alone.
 - Not available with Copilot: right-to-left display (it shows Hebrew and Arabic left to right), the idle
-  reminder sound, Launchpad's status bar (Copilot has its own) and auto-continue.
+  reminder sound, Launchpad's status bar (Copilot has its own, and the installer turns on its context and
+  quota items) and auto-continue.
 
 Details: [Quick Start](docs/QUICK_START.md#using-github-copilot) and [Troubleshooting](TROUBLESHOOTING.md#github-copilot).
 

@@ -29,9 +29,9 @@
 | D12 | The hook script starts the player with no pipes and returns at once. | A pipe kept the hook alive until the clip ended, holding up the end of the turn. Found by a test. |
 | D13 | Minimum Copilot 1.0.105. | Reopening with `--session-id` failed on 1.0.65. 1.0.105 is the only version that passed. |
 | D14 | Refuse `--allow-all`, `--allow-all-tools`, `--allow-all-paths`, `--allow-all-urls`, `--yolo`, `--autopilot`, `--mode autopilot`, and `COPILOT_ALLOW_ALL` in a profile. | The same rule as Codex. `COPILOT_ALLOW_ALL="true"` also trusts the folder and loads its hooks. Narrow choices such as `--allow-tool=write` stay the user's. |
-| D15 | Copilot's own footer is the status bar. | A custom `statusLine` is documented, but it would edit a settings file the user owns. |
+| D15 | Copilot's own footer is the status bar. The installer turns on two of its items that are off by default, `context-used` and `quota`, as `footer.showContextWindow` and `footer.showQuota` in Copilot's `settings.json`, unless the user already chose them. Only plain JSON is edited. A record, `kivun-copilot-changes.json`, lists what was added, and uninstall takes out the recorded keys that are still on. No custom `statusLine` command. | Noam, 2026-11-07: "the user does not need to turn it on himself if launchpad can turn it on at install time". Copilot reads each footer key on its own, with its own default (1.0.105 and 1.0.107), so two keys change nothing else, and `/statusline` changes them. Copilot also accepts comments in that file, and a rewrite would drop them. It's a separate step, `statusline`, so the hook install stays one file of Launchpad's own. |
 | D16 | No model list. | Copilot has no command for one outside a session, and hard-coded names go stale. A wrong name is reported by Copilot in red, and it continues. |
-| D17 | Uninstall deletes the hook file with a plain NSIS `Delete`. | It works with Node.js gone. |
+| D17 | Uninstall deletes the hook file with a plain NSIS `Delete`. When there's a status line record, it first runs `configure-copilot.js uninstall`; if that fails, a note says so and the uninstall goes on. | The hook file goes even with Node.js gone. The two status line keys are ordinary Copilot settings, so unlike Codex's record they don't justify stopping an uninstall. |
 | D18 | Launchpad doesn't set Copilot's `theme`; the docs give `/settings theme default`. | Copilot's standard `github` theme paints over Launchpad's terminal color, and `default` shows it (seen in a real tab). No option or variable sets it per launch, and changing it means editing a settings file the user owns, which would need a change record. |
 | D19 | Below Node 22, the installer and the launcher both skip an npm copy and can still use a stand-alone `copilot.exe`. | npm's copy runs on that Node; a stand-alone copy doesn't use Node. The first version refused everything on an old Node, which CI's Node 20 exposed. Tested with a stand-in: Step 0 never ran the real winget package. |
 | D20 | When Copilot is selected, a copy npm installed moves to the newest version, as for Codex. A failed update, or no answer from npm within a minute, keeps the copy, and the install succeeds. A copy installed any other way is never changed. | Noam, 2026-11-07: "the latest version available". Copilot updates itself by default, but not with auto-update turned off. The update also works with the agent open (tested for both agents): npm moves the old folder aside, and removes it on the next update. |
@@ -39,7 +39,7 @@
 
 ## Acceptance
 
-Automated, in `source/test/`: `UT_Copilot_Compose`, `UT_Copilot_Run`, `UT_Copilot_Sound`, `UT_Copilot_Install`, `UT_Launcher_Copilot`, `UT_Picker_Copilot`, `UT_Installer_Copilot`, `UT_Agent_Update`.
+Automated, in `source/test/`: `UT_Copilot_Compose`, `UT_Copilot_Run`, `UT_Copilot_Sound`, `UT_Copilot_Install`, `UT_Launcher_Copilot`, `UT_Picker_Copilot`, `UT_Installer_Copilot`, `UT_Agent_Update`, `UT_Copilot_StatusLine`.
 
 Must also hold:
 

@@ -936,6 +936,13 @@ Section /o "!Install GitHub Copilot (Required)" SecCopilot
     ${If} $1 S!= "0"
       DetailPrint "WARNING: Could not configure Copilot's sound hooks (result: $1)"
     ${EndIf}
+    ; Noam, 2026-11-07: two of Copilot's own status line items, unless the user already chose them.
+    DetailPrint "Turning on Copilot's status line items (context and quota)..."
+    nsExec::ExecToLog '"$NodeExe" "$INSTDIR\configure-copilot.js" statusline'
+    Pop $1
+    ${If} $1 S!= "0"
+      DetailPrint "WARNING: Could not turn on Copilot's status line items (result: $1)"
+    ${EndIf}
   ${EndIf}
 
   ; Windows Terminal profile and color, as at the end of SecClaudeCode.
@@ -1111,6 +1118,25 @@ Section "Uninstall"
     ${ElseIf} $0 S!= "0"
       MessageBox MB_OK|MB_ICONSTOP "Launchpad couldn't remove its Codex settings. Close Codex and run the uninstaller again." /SD IDOK
       Abort "Launchpad couldn't remove its Codex settings."
+    ${EndIf}
+  ${EndIf}
+
+  ; v3.4.0: take the two status line items Launchpad turned on out of Copilot's settings.json, if
+  ; they're still on. The record lives in this folder, so this runs before anything is deleted.
+  ; Unlike Codex, a failure doesn't stop the uninstall: those are ordinary Copilot settings.
+  ${If} ${FileExists} "$LOCALAPPDATA\Kivun\kivun-copilot-changes.json"
+    StrCpy $NodeExe "node"
+    ${If} ${FileExists} "$PROGRAMFILES64\nodejs\node.exe"
+      StrCpy $NodeExe "$PROGRAMFILES64\nodejs\node.exe"
+    ${ElseIf} ${FileExists} "$PROGRAMFILES\nodejs\node.exe"
+      StrCpy $NodeExe "$PROGRAMFILES\nodejs\node.exe"
+    ${ElseIf} ${FileExists} "$LOCALAPPDATA\Programs\nodejs\node.exe"
+      StrCpy $NodeExe "$LOCALAPPDATA\Programs\nodejs\node.exe"
+    ${EndIf}
+    nsExec::ExecToLog '"$NodeExe" "$INSTDIR\configure-copilot.js" uninstall'
+    Pop $0
+    ${If} $0 S!= "0"
+      MessageBox MB_OK|MB_ICONINFORMATION "Launchpad couldn't take its two status line items out of your Copilot settings (settings.json in the .copilot folder in your user folder). Copilot keeps working, and you can turn them off with /statusline. The rest of Launchpad is removed now." /SD IDOK
     ${EndIf}
   ${EndIf}
 

@@ -6,7 +6,9 @@
 //   install-copilot    install Copilot itself for install.cmd /copilot: bring a copy npm installed up to
 //                      the newest version, never touch another copy, else npm install
 //   install            add Launchpad's one hook file to Copilot's settings folder
-//   uninstall          delete that file
+//   statusline         turn on two of Copilot's own status line items in its settings.json, unless
+//                      the user already chose them, and record what was added
+//   uninstall          delete that file, and take out the recorded status line items still on
 //   commit             verify the installed Copilot, cache its path, then set AGENT to copilot
 //   prepare [folder]   create a launch folder for a right-click / shortcut launch, print its id
 //                      (the launcher passes the folder in KV_FOLDER, not as an argument)
@@ -41,6 +43,8 @@ function paths(env) {
   return Object.assign({}, base, {
     copilotHome,
     hooksFile: path.join(copilotHome, 'hooks', HOOKS_NAME),
+    settingsFile: path.join(copilotHome, 'settings.json'),
+    statusRecord: path.join(base.kivun, 'kivun-copilot-changes.json'),
     sessions: path.join(copilotHome, 'session-state'),
     pathCache: path.join(base.kivun, 'kivun-copilot-path.txt'),
     log: path.join(base.kivun, 'copilot-setup.log'),
@@ -68,7 +72,93 @@ function install(env) {
 function uninstall(env) {
   const p = paths(env);
   fs.rmSync(p.hooksFile, { force: true });
+  removeStatusLine(env);
   CC.log(p, 'uninstall: done');
+}
+
+// ---------------------------------------------------------------- Copilot's own status line items
+// Noam, 2026-11-07: users shouldn't have to find /statusline to get a fuller status line, so the
+// installer turns on two of Copilot's own items: how full the conversation is, and use of the plan's
+// limit. Copilot reads each footer key on its own, with its own default, so two keys change nothing
+// else. settings.json is the user's file:
+//   - only plain JSON is edited: Copilot also accepts comments there, and a rewrite would drop them;
+//   - a key the user set, to anything, is never changed;
+//   - the record is written before the file, and uninstall takes out only recorded keys that are
+//     still on. It deletes the file only if Launchpad made it and nothing else is left in it.
+const FOOTER_ITEMS = ['showContextWindow', 'showQuota'];
+
+const isObject = v => v !== null && typeof v === 'object' && !Array.isArray(v);
+
+// The settings file as something Launchpad may edit, or null when it must be left as it is.
+function readSettings(text) {
+  if (text == null) return { obj: {}, bom: '', nl: '\n' };
+  const bom = text.charCodeAt(0) === 0xFEFF ? '\uFEFF' : '';
+  let obj;
+  try { obj = JSON.parse(text.slice(bom.length)); } catch (e) { return null; }
+  if (!isObject(obj) || ('footer' in obj && !isObject(obj.footer))) return null;
+  return { obj, bom, nl: text.includes('\r\n') ? '\r\n' : '\n' };
+}
+function settingsText(s) { return s.bom + JSON.stringify(s.obj, null, 2).replace(/\n/g, s.nl) + s.nl; }
+
+function loadStatusRecord(p) {
+  const t = readIfExists(p.statusRecord);
+  if (!t) return { version: 1, files: {} };
+  try { const r = JSON.parse(t); if (r && isObject(r.files)) return r; } catch (e) { /* below */ }
+  throw new Error('kivun-copilot-changes.json is unreadable; nothing changed');
+}
+function saveStatusRecord(p, r) {
+  if (!Object.keys(r.files).length) { fs.rmSync(p.statusRecord, { force: true }); return; }
+  fs.mkdirSync(path.dirname(p.statusRecord), { recursive: true });
+  atomicWrite(p.statusRecord, JSON.stringify(r, null, 2) + '\n');
+}
+
+function addStatusLine(env) {
+  const p = paths(env);
+  const text = readIfExists(p.settingsFile);
+  const s = readSettings(text);
+  if (!s) {
+    CC.log(p, 'statusline: ' + p.settingsFile + ' is not plain JSON; left as it is');
+    return ["Copilot's settings.json isn't plain JSON, so Launchpad left it as it is"];
+  }
+  const footer = s.obj.footer || {};
+  const added = FOOTER_ITEMS.filter(k => !(k in footer));
+  if (!added.length) return ['status line items already set'];
+  const r = loadStatusRecord(p);
+  const rec = r.files[p.settingsFile] || { created: false, keys: [] };
+  if (text == null) rec.created = true;
+  for (const k of added) if (!rec.keys.includes(k)) rec.keys.push(k);
+  r.files[p.settingsFile] = rec;
+  saveStatusRecord(p, r);
+  for (const k of added) footer[k] = true;
+  s.obj.footer = footer;
+  fs.mkdirSync(path.dirname(p.settingsFile), { recursive: true });
+  atomicWrite(p.settingsFile, settingsText(s));
+  CC.log(p, 'statusline: turned on ' + added.join(', '));
+  return ['status line items turned on: ' + added.join(', ')];
+}
+
+// Uses the recorded file, so a COPILOT_HOME set or changed since the install doesn't matter.
+function removeStatusLine(env) {
+  const p = paths(env);
+  const r = loadStatusRecord(p);
+  for (const file of Object.keys(r.files)) {
+    const keys = r.files[file].keys || [];
+    const text = readIfExists(file);
+    const s = text == null ? null : readSettings(text);
+    if (text != null && !s) CC.log(p, 'uninstall: ' + file + ' is no longer plain JSON; left as it is');
+    else if (s && s.obj.footer) {
+      const gone = keys.filter(k => s.obj.footer[k] === true);
+      if (gone.length) {
+        for (const k of gone) delete s.obj.footer[k];
+        if (!Object.keys(s.obj.footer).length) delete s.obj.footer;
+        if (r.files[file].created && !Object.keys(s.obj).length) fs.rmSync(file, { force: true });
+        else atomicWrite(file, settingsText(s));
+        CC.log(p, 'uninstall: status line items taken out of ' + file + ': ' + gone.join(', '));
+      }
+    }
+    delete r.files[file];
+    saveStatusRecord(p, r);
+  }
 }
 
 // ---------------------------------------------------------------- finding a conversation
@@ -374,6 +464,7 @@ function main(argv) {
   const [mode, a1, a2] = argv;
   switch (mode) {
     case 'install': for (const m of install()) console.log(m); return 0;
+    case 'statusline': for (const m of addStatusLine()) console.log(m); return 0;
     case 'install-copilot': return installCopilot();
     case 'uninstall': uninstall(); return 0;
     case 'commit': return commit() ? 0 : 6;
@@ -391,7 +482,7 @@ function main(argv) {
     case 'check': { let w; try { w = readLaunch(a1).workdir; } catch (e) { return 1; } try { return fs.statSync(w).isDirectory() ? 0 : 1; } catch (e) { return 1; } }
     case 'missing': return missingFolder(a1);
     default:
-      console.log('usage: node configure-copilot.js install|uninstall|install-copilot|commit|prepare <folder>|info <id> workdir|check <id>|compose <id>|run <id> [--relaunch]');
+      console.log('usage: node configure-copilot.js install|statusline|uninstall|install-copilot|commit|prepare <folder>|info <id> workdir|check <id>|compose <id>|run <id> [--relaunch]');
       return 2;
   }
 }
@@ -403,7 +494,7 @@ if (require.main === module) {
 }
 
 module.exports = {
-  MIN_VERSION, MIN_NODE, paths, install, uninstall, findConversation, languageFolder, scriptPolicyChosen,
+  MIN_VERSION, MIN_NODE, FOOTER_ITEMS, paths, install, uninstall, addStatusLine, removeStatusLine, findConversation, languageFolder, scriptPolicyChosen,
   npmCandidate, discover, resolveCopilot, launchFromConfig, plan, run, nodeTooOld, installCopilot, prepare, commit, main,
   createLaunch, readLaunch,
 };

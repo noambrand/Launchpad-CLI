@@ -458,6 +458,14 @@ Press Esc to skip it. Saying yes edits your Windows Terminal settings to add a S
 Copilot's standard theme draws its own colors. Type `/settings theme default` once inside Copilot to use the
 terminal's colors. To go back, type `/settings theme github`.
 
+### Copilot's status line doesn't show how full the conversation is, or the plan's limit
+
+The installer turns these two items on in `settings.json` in Copilot's settings folder: `.copilot` in your
+user folder, or the folder `COPILOT_HOME` names. It never changes an item you had already chosen, and it
+leaves the file alone if it holds comments or isn't plain JSON. Type `/statusline` inside Copilot to turn
+them on or off. Uninstalling Launchpad takes them out again if they're still on. If the uninstaller says it
+couldn't, Copilot keeps working, and `/statusline` turns them off.
+
 ### Hebrew or Arabic shows left to right in Copilot
 
 Expected: right-to-left display works only with Claude Code. Each word shows with its letters reversed.
