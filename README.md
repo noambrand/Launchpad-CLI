@@ -71,10 +71,10 @@
 ### Here's the picker you'll get
 
 <p align="center">
-  <img src="assets/picker.png" alt="ClaudeCode Launchpad CLI folder picker (v2.6.16) — folder selection up top, an Advanced options toggle that hides model / flags / startup slash-commands / env-vars by default, and a yellow 'Update available' banner that checks GitHub Releases on launch and offers a one-click Download button" width="780">
+  <img src="assets/picker.png" alt="ClaudeCode Launchpad CLI folder picker (v3.5.1): saved profiles at the top, a choice of four AI agents (Claude Code, Codex, GitHub Copilot, Antigravity), a path box, a folder tree button, an Advanced options toggle, and the Launch button" width="780">
 </p>
 
-The desktop shortcut opens this picker: pick a profile from the chip row at the top (or `+ New` to save the current setup as a named profile — folder + model + flags + startup commands + env vars), type/paste a Windows path or browse the tree, optionally pick a model (Opus / Sonnet / Haiku), tap chips for common options (Respond in Hebrew, High effort, Auto-accept file edits, Read-only, Don't fail if Opus is busy, Confirm before changes), and add startup slash commands like `/voicemode:converse` that get typed into Claude after it opens. With Codex, GitHub Copilot or Antigravity, the picker shows that agent's own options instead, and each profile keeps each agent's settings apart.
+The desktop shortcut opens this picker: pick a profile from the chip row at the top (or `+ New` to save the current setup as a named profile — folder + model + flags + startup commands + env vars), choose the AI agent when you have more than one installed, type/paste a Windows path or browse the tree, optionally pick a model (Opus / Sonnet / Haiku), tap chips for common options (Respond in Hebrew, High effort, Auto-accept file edits, Read-only, Don't fail if Opus is busy, Confirm before changes), and add startup slash commands like `/voicemode:converse` that get typed into Claude after it opens. With Codex, GitHub Copilot or Antigravity, the picker shows that agent's own options instead, and each profile keeps each agent's settings apart.
 
 ## Launchpad CLI vs Kivun Terminal — which one?
 
