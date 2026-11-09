@@ -145,8 +145,36 @@
   // picker's window.resizeTo(w,h) to the host, which sizes the form's client
   // area (converting CSS px -> physical px) and centers it. window.moveTo then
   // becomes a no-op because the host already centered the window.
+  //
+  // v3.5.1: the host's conversion uses the form's DeviceDpi, which reads 96 on this
+  // system-DPI-aware .NET Framework form even at 125% or 150% display scaling. The
+  // window then came out 1/devicePixelRatio too small (552 CSS px tall for 690 at 125%),
+  // so users saw a scroll bar and no Launch button. Shortly after the first resize,
+  // compare the height the page got with the height it asked for: if it is short by
+  // the display scale, the host did not convert, so from then on the page converts
+  // itself. A host that does convert gets the full height and is left alone. (A
+  // timer, not the resize event: the host's starting size is often exactly the first
+  // size asked for, and then no resize event fires.)
+  var sizeFactor = 1, sizeChecked = false, sizeCheckQueued = false, lastSize = null;
+  function checkSize() {
+    sizeCheckQueued = false;
+    if (sizeChecked || !lastSize) return;
+    var got = window.innerHeight || 0;
+    if (got <= 0) return;   // not laid out yet: the next resizeTo checks again
+    sizeChecked = true;
+    var r = window.devicePixelRatio || 1;
+    if (r > 1.05 && got < lastSize.h * 0.95 && Math.abs(got * r - lastSize.h) <= lastSize.h * 0.05) {
+      sizeFactor = r;
+      window.resizeTo(lastSize.w, lastSize.h);
+    }
+  }
   window.resizeTo = function (w, h) {
-    try { host().SizeAndCenter(w | 0, h | 0); } catch (e) {}
+    lastSize = { w: w | 0, h: h | 0 };
+    try { host().SizeAndCenter(Math.round(lastSize.w * sizeFactor), Math.round(lastSize.h * sizeFactor)); } catch (e) {}
+    if (!sizeChecked && !sizeCheckQueued) {
+      sizeCheckQueued = true;
+      try { window.setTimeout(checkSize, 200); } catch (e) { sizeCheckQueued = false; }
+    }
   };
   window.moveTo = function (/* x, y */) { /* host centers in resizeTo */ };
 })();

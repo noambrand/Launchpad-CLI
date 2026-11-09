@@ -440,6 +440,16 @@
         // D12) adds its height; a one-line note, or none, leaves 690.
         var agentNote = document.getElementById("agent-note");
         if (agentNote && agentNote.offsetHeight > 20) h = Math.max(690, Math.min(h + agentNote.offsetHeight + 8, availH - 60));
+        // v3.5.1: the profile row and the agent choice (3.3.0) sit above the folder box and push
+        // the Launch button below 690, so users saw a scroll bar and no Launch button. Measure
+        // where the button ends (page position, whatever is scrolled) and fit to it, plus the
+        // page's bottom padding; never past the screen, never below 690.
+        var launchBtn = document.getElementById("launch-btn");
+        if (launchBtn && launchBtn.getBoundingClientRect) {
+          var scrolled = window.pageYOffset || (document.documentElement && document.documentElement.scrollTop) || 0;
+          var need = Math.ceil(launchBtn.getBoundingClientRect().bottom + scrolled + 28);
+          h = Math.max(h, Math.min(need, availH - 60));
+        }
       }
       window.resizeTo(w, h);
       // Center the dialog so the bottom (Launch button + actions) stays

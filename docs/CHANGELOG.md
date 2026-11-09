@@ -1,5 +1,21 @@
 # Changelog
 
+## [3.5.1] - 2026-11-09
+
+### Fixed: the folder picker opens with the Launch button in view
+
+On a PC with display scaling above 100% (125% or 150%, as on most laptops), the folder picker
+opened too small and showed a scroll bar, so the Launch button sat below the window's edge until
+you scrolled. The window was 20% too small at 125% and a third too small at 150%; this goes back
+to the picker's move to its own signed program in 3.0.0. The profile row and the agent choice
+(3.3.0) then pushed the Launch button further down.
+
+- The picker now opens at its intended size at any display scaling, with everything down to the
+  Launch button in view, and grows when Antigravity's data-use note or an update notice needs the
+  room. It never grows past the screen.
+- At 100% display scaling the picker keeps its old size unless its content needs more room.
+- The README shows the current picker, with the choice of four AI agents.
+
 ## [3.5.0] - 2026-11-09
 
 ### Added: Google Antigravity CLI as a fourth AI agent, on Windows
