@@ -1,6 +1,6 @@
 # Changelog
 
-## [3.5.1] - Unreleased
+## [3.5.1] - 2026-11-09
 
 ### Fixed: the folder picker opens with the Launch button in view
 
