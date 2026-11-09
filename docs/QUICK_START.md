@@ -13,7 +13,7 @@ ClaudeCode Launchpad CLI is a Claude Code installer for Windows and macOS. It se
 1. Double-click `ClaudeCode_Launchpad_CLI_Setup.exe` (no admin needed - it installs just for you)
 2. Follow the wizard:
    - Enter your name
-   - Choose the AI agent: Claude Code (default) or Codex by OpenAI (see [Using Codex](#using-codex))
+   - Choose the AI agent: Claude Code (default), Codex by OpenAI, GitHub Copilot or Antigravity by Google (see [Using Codex](#using-codex), [Using GitHub Copilot](#using-github-copilot) and [Using Google Antigravity](#using-google-antigravity))
    - Choose response language (English or Hebrew)
    - Select components (Windows Terminal recommended, Git optional)
 3. Done! Launch from the desktop shortcut.
@@ -60,7 +60,7 @@ Tip: save a folder + options combo as a **named profile** using the chip row at 
 ### Method 2: Right-click a folder - "Open with" (skips the picker)
 
 1. Right-click any folder in Windows Explorer
-2. Select **Open with ClaudeCode CLI**, or **Open with Codex CLI** or **Open with Copilot CLI** if those are installed
+2. Select **Open with ClaudeCode CLI**, or **Open with Codex CLI**, **Open with Copilot CLI** or **Open with Antigravity CLI** if those are installed
 3. That agent opens straight into that folder
 
 ### Method 3: Right-click - Send To
@@ -162,6 +162,62 @@ Copilot still asks before it runs commands. If you or your company set a script 
 alone. You can install PowerShell 7 yourself (`winget install Microsoft.PowerShell`) and Copilot will
 use it.
 
+## Using Google Antigravity
+
+Choose **Antigravity (Google)** in the installer (Windows only) and Launchpad sets up Google's Antigravity
+CLI instead of Claude Code. It is a download of about 225 MB and it needs a Google account. Antigravity
+itself doesn't need Node.js; Launchpad uses Node.js to install and start it. A free Google account works,
+with a weekly limit (see below). If you already have Antigravity, Launchpad updates it. Why not Gemini
+CLI? Google stopped serving free and Google AI Pro and Ultra accounts with it in June 2026, and moved them
+to Antigravity. An AI agent already on your PC stays.
+
+**The first time Antigravity opens, you answer a few screens:**
+
+1. **Sign in.** Choose **Google OAuth**. Your browser opens. Sign in to Google there. The page then shows a
+   code. Copy it, go back to the Antigravity window and paste it in. The sign-in screen waits for you.
+2. **Colour scheme.** Press Enter to keep the one it picked (`terminal`).
+3. **Terms of Service & Data Use. Do this one before anything else.** The screen has a tick that is
+   already set: it lets Google collect and use what you type, to improve Antigravity. If you don't want
+   that, press **Enter** to clear the tick, then press the **Down arrow**, then the **Right arrow** to
+   reach **Done**, and press **Enter**. Antigravity shows this screen once and keeps your choice with
+   your Google account.
+4. **The folder trust question.** Say yes for your own project. Antigravity asks this again for every new
+   folder.
+
+**To turn data use off later:** type `/config` inside Antigravity, then change **Enable Telemetry** to
+off. It stays off in new sessions and new folders.
+
+**What works differently from Claude Code:**
+
+- The startup message in the picker is sent as your first message once Antigravity is ready. Several
+  lines become one message. Text that starts with / is sent as a message, not run as a command.
+- **Continue last** reopens that folder's last Antigravity conversation. If the folder has none, a new one
+  starts. It never opens another folder's. Antigravity treats `C:\Work\Notes` and `C:\work\notes` as two
+  different folders, so if Continue starts a new conversation, check the spelling of the folder.
+- **Pick from history** starts a normal session and prints **Type /resume to choose a conversation.**
+  Type `/resume` and Antigravity lists every folder's conversations. Launchpad can't open that list for you.
+- The free plan has a weekly limit. Antigravity shows how much is left (see the bottom line, below).
+- Antigravity's bottom line, in a launch from Launchpad, shows the model, how full the conversation is, and
+  how much of your weekly limit is left, with the day and hour it resets. If you chose a status line of
+  your own in Antigravity's settings, yours is kept. Launchpad's own status bar is for Claude Code.
+- The *done* sound plays when Antigravity finishes a reply. There is no *permission* sound, because
+  Antigravity has no way to tell Launchpad it is asking before it acts. Sounds play only in launches from
+  Launchpad, and they follow the on/off switch in the picker.
+- There's no model list in the picker, because Antigravity offers none to read from outside a session. Leave
+  the box empty to let Antigravity decide, or type a model name.
+- The response language is added to the new conversation by a small plugin of Launchpad's own. If the
+  folder has its own `AGENTS.md`, the first reply may still come in English. A conversation keeps its
+  first language: changing the language in a profile only affects new conversations. A session you start
+  by hand gets no language line.
+- Launchpad refuses `--dangerously-skip-permissions`, `--mode auto`, `--settings`, `--remote-control` and
+  `--remote-agent` in a profile. `--mode plan` and the like are fine.
+- No idle reminder sound and no auto-continue after the usage limit resets.
+
+**PowerShell:** Antigravity's shell is the PowerShell built into Windows. Windows normally blocks scripts
+there, which would stop `npm` inside Antigravity, so for Antigravity's session only, Launchpad lets scripts
+on your own PC run. Unsigned scripts from the internet stay blocked, nothing is saved, and Antigravity
+still asks before it runs commands. If you or your company set a script policy, it is left alone.
+
 ## Configuration
 
 All settings live in one plain-text file: `%LOCALAPPDATA%\Kivun\config.txt`. Open it in Notepad and change anything - nothing is permanent. Common keys:
@@ -172,11 +228,13 @@ All settings live in one plain-text file: `%LOCALAPPDATA%\Kivun\config.txt`. Ope
 - `CLAUDE_FLAGS` - default flags added to every launch (e.g. `--model opus`)
 - `STARTUP_CMD` - a slash command typed in automatically after Claude opens
 - `AUTO_CONTINUE` - `true` to have Launchpad type a resume message after the 5-hour limit resets (off by default, Claude Code only). Claude Code now continues by itself, so most people can leave this off; see the README
-- `AGENT` - the agent Send To starts: empty for Claude Code, `codex` for Codex, `copilot` for GitHub Copilot (the installer sets it)
+- `AGENT` - the agent Send To starts: empty for Claude Code, `codex` for Codex, `copilot` for GitHub Copilot, `antigravity` for Antigravity (the installer sets it)
 - `CODEX_FLAGS` - Codex options added to every Codex launch (e.g. `--search`)
 - `CODEX_STARTUP_CMD` - a first message sent to Codex on right-click launches
 - `COPILOT_FLAGS` - Copilot options added to every Copilot launch (e.g. `--add-dir C:\docs`)
 - `COPILOT_STARTUP_CMD` - a first message sent to Copilot on right-click launches
+- `ANTIGRAVITY_FLAGS` - Antigravity options added to every Antigravity launch (e.g. `--mode plan`)
+- `ANTIGRAVITY_STARTUP_CMD` - a first message sent to Antigravity on right-click launches
 
 Most of these can also be set per-launch in the folder picker's **Advanced options**.
 
@@ -220,7 +278,7 @@ Run **Diagnostics** (Start Menu → ClaudeCode Launchpad CLI → Diagnostics), o
 install failed and you have no shortcut — download **`launchpad-diagnostics.cmd`** from the
 [latest release](https://github.com/noambrand/launchpad-cli/releases/latest) and double-click it.
 It saves **`Launchpad-Report.txt`** to your Desktop and opens it in Notepad. No admin, no
-PowerShell, nothing is sent automatically. **Email it to noambbb@gmail.com** or attach it to a
+PowerShell, nothing is sent automatically. **Email it to launchpad@excel-armor.com** or attach it to a
 [GitHub issue](https://github.com/noambrand/launchpad-cli/issues).
 
 ### Windows Terminal not installed

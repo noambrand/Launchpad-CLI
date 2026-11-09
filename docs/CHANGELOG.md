@@ -1,5 +1,107 @@
 # Changelog
 
+## [3.5.0] - Unreleased
+
+### Added: Google Antigravity CLI as a fourth AI agent, on Windows
+
+The installer now also offers **Antigravity (Google)**, Google's coding agent (`agy`). Claude Code works
+exactly as it did in 3.3.0, Codex and GitHub Copilot work as in 3.4.0, apart from the install fixes below,
+and macOS stays Claude-only.
+
+**Why Antigravity and not Gemini CLI:** since 18 June 2026 Gemini CLI no longer serves free or Google AI
+Pro and Ultra accounts. That access moved to Antigravity CLI.
+
+When you choose Antigravity (Google):
+
+- The installer downloads Google's own installer and runs it (about 225 MB). It puts `agy.exe` in
+  `%LOCALAPPDATA%\agy\bin` and adds that folder to your PATH. It needs no administrator rights and no
+  Node.js. Google's installer checks the download against Google's published checksum. Launchpad then
+  looks for `agy.exe` itself and reads its version: 1.5.3 or newer is needed. A copy you already have
+  is updated first (`agy update`, one minute at most); if that fails, the copy stays.
+- If it can't be installed, the installer says so and prints one line to run yourself in Command
+  Prompt. A PC that already had another AI agent keeps starting that agent until Antigravity installs.
+- Google's installer won't run when its own command line holds any of `& | ; < > ^`. Launchpad starts it
+  without those. Its download uses Launchpad's curl setting that skips certificate revocation checks,
+  as Anthropic's Claude Code download already does.
+- The folder picker, right-click and Send To start Antigravity. Right-clicking a folder adds **Open with
+  Antigravity CLI** and, inside a folder, **Open Antigravity CLI here**. The picker's button says **Launch
+  Antigravity CLI**, and each profile keeps Antigravity's own model, options, startup message and
+  environment variables, apart from the other agents'.
+- `config.txt` gets `AGENT=antigravity` for Send To, and two new lines: `ANTIGRAVITY_FLAGS` and
+  `ANTIGRAVITY_STARTUP_CMD`.
+- **Continue last** reopens that folder's conversation, or starts a new one if it has none. It never opens
+  another folder's. **Pick from history** starts a normal session and prints "Type /resume to choose a
+  conversation.": Antigravity's list can only be opened from inside a session.
+- Launchpad starts Antigravity in the folder's real spelling. Antigravity treats `C:\Work\Notes` and
+  `C:\work\notes` as two different folders, so Continue needs the same spelling each time.
+- The installer page now has four choices, in two rows of two: Claude Code, Codex, GitHub Copilot and
+  Antigravity (Google).
+
+**Google uses what you type, unless you switch that off.** The first time Antigravity opens, after the
+sign-in and the colour scheme, its "Terms of Service & Data Use" screen has a tick, already set, that lets
+Google collect and use what you type. Antigravity keeps the choice with your Google account, so the
+installer can't change it for you. Launchpad tells you instead: the installer's Antigravity note and finish
+page, the picker's note and Quick Start. Press Enter to clear the tick, then press the Down arrow, then the
+Right arrow to reach **Done**, and press Enter. You can turn it off later too: type `/config` in
+Antigravity, then change **Enable Telemetry**.
+
+**The response language:** Launchpad adds a small plugin of its own in `%USERPROFILE%\.gemini\config\plugins\launchpad`
+(four files). When Launchpad starts Antigravity, the plugin adds the language line to the new
+conversation. Nothing in your own Antigravity files is edited. Sessions you start by hand, and Google's
+Antigravity app, get no language line.
+
+**One sound, and a status line:**
+
+- The **done** sound plays when Antigravity finishes a reply, once per turn. There is no *permission*
+  sound, because Antigravity has no event for its approval question. The sound plays only in launches
+  from Launchpad, and follows the on/off switch in the picker.
+- For launches from Launchpad, Antigravity's bottom line also shows the model, how full the conversation
+  is, and how much of your weekly free limit is left, with the day and hour it resets. It is passed for
+  that session only and never saved. If you chose your own status line in Antigravity's `settings.json`,
+  Launchpad leaves it alone. The line is `antigravity-statusline.cmd` in the Launchpad folder.
+- For Antigravity's session only, Launchpad sets PowerShell's script policy to `RemoteSigned`, when
+  nobody has chosen a policy on that PC. Without it, `npm` fails inside the agent. Nothing is saved.
+- Launchpad refuses Antigravity's permission bypasses in a profile: `--dangerously-skip-permissions`,
+  `--mode auto`, and `--settings` (it could switch off the permission questions, and Launchpad uses
+  `--settings` itself). It also refuses `--remote-control` and `--remote-agent`. One dash counts as two
+  (`-mode auto` is refused too), and a word that isn't an option or an option's value, such as
+  `changelog`, is refused because Antigravity would run it as one of its own commands. Narrower choices
+  such as `--mode plan`, `--model` and `--sandbox` stay yours.
+- Uninstalling deletes Launchpad's plugin folder and the right-click entries. It leaves Antigravity, its
+  sign-in and its conversations. To remove the sign-in, delete the `gemini:antigravity` entry in
+  Windows Credential Manager.
+- The model box in the picker is free text, passed as `--model`: Antigravity gives no list to read.
+
+**Limits:**
+
+- The free plan has a weekly limit. Antigravity shows it, and Launchpad's status line too.
+- If a folder has its own `AGENTS.md`, Antigravity may miss it in the very first message, so the first
+  reply can come in English. Changing a profile's language doesn't change a conversation that has
+  already started.
+- Antigravity asks about trusting every new folder.
+- No idle reminder sound and no auto-continue after the usage limit resets.
+- macOS is still Claude Code only.
+
+### Fixed: installs of Codex and GitHub Copilot
+
+- When a Codex or Copilot install fails, Launchpad keeps starting the agent you already had. That check
+  looked only for Claude Code (and, for Copilot, a working Codex). It now also notices a working
+  Copilot or Antigravity, so one failed install no longer shows the "nothing is installed" repair message
+  on a PC that has another agent.
+- A new `config.txt` now has the `COPILOT_FLAGS` and `COPILOT_STARTUP_CMD` lines. 3.4.0 documented them
+  but didn't write them. A `config.txt` you already have is not changed.
+
+### Changed: the contact address
+
+Reports and questions now go to **launchpad@excel-armor.com**. It is the same address in the README,
+Security, Start Here, Troubleshooting, Quick Start and the diagnostics tool.
+
+### Changed: the diagnostics tool
+
+**Diagnostics** now has a section for Antigravity. It shows whether `agy.exe` was found, its version,
+and whether Launchpad's plugin folder (four files) and the status line file are in place. It also checks
+Launchpad's four new files. It only reads file names and a version: no account details, no PowerShell.
+
 ## [3.4.0] - 2026-11-07
 
 ### Added: GitHub Copilot CLI as a third AI agent, on Windows
@@ -763,7 +865,7 @@ one click instead of describing the problem from memory.
   tell-tale sign antivirus removed it), Claude Code / Node / Windows Terminal /
   winget / Git detection, running antivirus, a Windows Defender quarantine hint,
   and the install log. **No admin, no PowerShell, nothing is sent automatically** —
-  the user chooses whether to email it (noambbb@gmail.com) or attach it to a GitHub
+  the user chooses whether to email it (launchpad@excel-armor.com) or attach it to a GitHub
   issue.
 - Reachable two ways: **Start Menu → ClaudeCode Launchpad CLI → Diagnostics**, and —
   crucially — as a **standalone download on the GitHub release page**, so a user

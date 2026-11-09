@@ -14,7 +14,7 @@ set "KDIR=%LOCALAPPDATA%\Kivun"
 if not exist "%KDIR%" mkdir "%KDIR%" 2>nul
 set "RPT=%KDIR%\Launchpad-Report.txt"
 set "WT_ALIAS=%LOCALAPPDATA%\Microsoft\WindowsApps\wt.exe"
-set "CONTACT=noambbb@gmail.com"
+set "CONTACT=launchpad@excel-armor.com"
 set "ISSUES=https://github.com/noambrand/launchpad-cli/issues"
 
 echo Collecting a diagnostic report, please wait...
@@ -47,6 +47,10 @@ call :checkfile "%KDIR%\claudecode-launchpad.bat"
 call :checkfile "%KDIR%\configure-codex.js"
 call :checkfile "%KDIR%\configure-copilot.js"
 call :checkfile "%KDIR%\copilot-sound.js"
+call :checkfile "%KDIR%\configure-antigravity.js"
+call :checkfile "%KDIR%\antigravity-hook.js"
+call :checkfile "%KDIR%\antigravity-statusline.js"
+call :checkfile "%KDIR%\antigravity-statusline.cmd"
 call :checkfile "%KDIR%\statusline.mjs"
 call :checkfile "%KDIR%\config.txt"
 call :checkfile "%KDIR%\claude_icon.ico"
@@ -84,6 +88,26 @@ if not defined CPHOME set "CPHOME=%USERPROFILE%\.copilot"
 call :checkfile "%CPHOME%\hooks\launchpad-sounds.json"
 call :checkfile "%KDIR%\kivun-copilot-path.txt"
 where pwsh >nul 2>&1 && (>>"%RPT%" echo PowerShell 7 ^(pwsh^): yes) || (>>"%RPT%" echo PowerShell 7 ^(pwsh^): no ^(optional^))
+
+>>"%RPT%" echo.
+>>"%RPT%" echo ===== [3d] Google Antigravity CLI (where + version, Launchpad plugin, status line) =====
+REM As for Codex and Copilot: only file names, a version and yes/no answers. Never the contents of
+REM Antigravity's settings or its sign-in (the sign-in lives in Windows Credential Manager).
+set "AGYEXE=%LOCALAPPDATA%\agy\bin\agy.exe"
+call :checkfile "%KDIR%\kivun-antigravity-path.txt"
+call :checkfile "%AGYEXE%"
+where agy >>"%RPT%" 2>&1
+if exist "%AGYEXE%" (
+    "%AGYEXE%" --version >>"%RPT%" 2>&1 <nul
+) else (
+    where agy >nul 2>&1 && cmd /c agy --version >>"%RPT%" 2>&1 <nul
+)
+set "AGPLUG=%USERPROFILE%\.gemini\config\plugins\launchpad"
+call :checkfile "%AGPLUG%\plugin.json"
+call :checkfile "%AGPLUG%\hooks.json"
+call :checkfile "%AGPLUG%\hook.cmd"
+call :checkfile "%AGPLUG%\antigravity-hook.js"
+call :checkfile "%KDIR%\antigravity-statusline.cmd"
 
 >>"%RPT%" echo.
 >>"%RPT%" echo ===== [4] Node.js (where + version) =====

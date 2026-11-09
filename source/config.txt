@@ -5,8 +5,9 @@
 # Default: english
 RESPONSE_LANGUAGE=english
 # AI agent for launches that skip the folder picker (right-click a folder, Send To):
-# empty or claude = Claude Code, codex = Codex. Chosen in the installer; run the
-# installer again to change it. The folder picker keeps its own choice per profile.
+# empty or claude = Claude Code, codex = Codex, copilot = GitHub Copilot,
+# antigravity = Antigravity CLI. Chosen in the installer; run the installer again
+# to change it. The folder picker keeps its own choice per profile.
 AGENT=
 # Terminal background color
 #   kivun   - light blue (the default look)
@@ -37,6 +38,17 @@ CODEX_FLAGS=
 # First message sent to Codex on launches that skip the folder picker (optional).
 # Commands that start with / can't run at startup.
 CODEX_STARTUP_CMD=
+# GitHub Copilot startup options (optional, applied on every Copilot launch)
+# Example: COPILOT_FLAGS=--add-dir C:\docs
+COPILOT_FLAGS=
+# First message sent to Copilot on launches that skip the folder picker (optional).
+COPILOT_STARTUP_CMD=
+# Antigravity startup options (optional, applied on every Antigravity launch)
+# Example: ANTIGRAVITY_FLAGS=--mode plan
+ANTIGRAVITY_FLAGS=
+# First message sent to Antigravity on launches that skip the folder picker (optional).
+# Text that starts with / is sent to Antigravity as a message, not run as a command.
+ANTIGRAVITY_STARTUP_CMD=
 # Claude Code only (Codex never auto-continues).
 # Auto-continue when the 5-hour usage limit resets (opt-in, default off).
 # When true, a small background watcher waits until the limit's real reset time

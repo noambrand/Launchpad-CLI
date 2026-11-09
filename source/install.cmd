@@ -63,6 +63,8 @@ set "DO_CODEX=0"
 set "CODEX_NODE="
 set "DO_COPILOT=0"
 set "COPILOT_NODE="
+set "DO_ANTIGRAVITY=0"
+set "ANTIGRAVITY_NODE="
 
 :parse_args
 if "%~1"=="" goto :args_done
@@ -81,6 +83,15 @@ if /i "%~1"=="/copilot" (
     set "NEXT_ARG=%~2"
     if defined NEXT_ARG if not "!NEXT_ARG:~0,1!"=="/" (
         set "COPILOT_NODE=!NEXT_ARG!"
+        shift
+    )
+)
+REM /antigravity [full path of node.exe], the same way (v3.5.0).
+if /i "%~1"=="/antigravity" (
+    set "DO_ANTIGRAVITY=1"
+    set "NEXT_ARG=%~2"
+    if defined NEXT_ARG if not "!NEXT_ARG:~0,1!"=="/" (
+        set "ANTIGRAVITY_NODE=!NEXT_ARG!"
         shift
     )
 )
@@ -117,6 +128,8 @@ if not "!EXIT_CODE!"=="0" goto :cleanup
 if "!DO_CODEX!"=="1" call :install_codex
 if not "!EXIT_CODE!"=="0" goto :cleanup
 if "!DO_COPILOT!"=="1" call :install_copilot
+if not "!EXIT_CODE!"=="0" goto :cleanup
+if "!DO_ANTIGRAVITY!"=="1" call :install_antigravity
 if not "!EXIT_CODE!"=="0" goto :cleanup
 if "!DO_WT!"=="1" call :install_wt
 
@@ -326,6 +339,22 @@ if not defined COPILOT_NODE (
 )
 "!COPILOT_NODE!" "%~dp0configure-copilot.js" install-copilot
 if errorlevel 1 set "EXIT_CODE=6"
+goto :eof
+
+:install_antigravity
+REM Google Antigravity CLI (v3.5.0). Exit code 7 on failure. configure-antigravity.js updates a copy
+REM that is already there, or fetches Google's own install.cmd and runs it; either way it then finds
+REM and checks agy.exe itself (Google's script exits 0 even when it fails). agy.exe needs no Node.js,
+REM but that helper does. It never starts an interactive Antigravity session.
+call :refresh_path
+if not defined ANTIGRAVITY_NODE for /f "delims=" %%N in ('where node.exe 2^>nul') do if not defined ANTIGRAVITY_NODE set "ANTIGRAVITY_NODE=%%N"
+if not defined ANTIGRAVITY_NODE (
+    call :say "[Antigravity] ERROR: Node.js was not found. Run this installer again so it can install Node.js first."
+    set "EXIT_CODE=7"
+    goto :eof
+)
+"!ANTIGRAVITY_NODE!" "%~dp0configure-antigravity.js" install-antigravity
+if errorlevel 1 set "EXIT_CODE=7"
 goto :eof
 
 :ensure_claude_path

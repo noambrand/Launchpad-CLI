@@ -46,7 +46,7 @@ PROBLEMS?
   → Run "Diagnostics" (Start Menu → ClaudeCode Launchpad CLI → Diagnostics),
     or download launchpad-diagnostics.cmd from the release page and run it.
     It saves Launchpad-Report.txt to your Desktop - email it to
-    noambbb@gmail.com so we can help. No admin, nothing is sent automatically.
+    launchpad@excel-armor.com so we can help. No admin, nothing is sent automatically.
   → See docs/QUICK_START.md for setup details
   → See docs/CHANGELOG.md for version history
   → Report issues: https://github.com/noambrand/launchpad-cli/issues

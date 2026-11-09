@@ -421,6 +421,10 @@
         // instead of measuring. Sized to fit the optional update-banner
         // without triggering scrollbars.
         h = 690;
+        // A note that takes lines of its own under the agent choice (Antigravity's data-use note,
+        // D12) adds its height; a one-line note, or none, leaves 690.
+        var agentNote = document.getElementById("agent-note");
+        if (agentNote && agentNote.offsetHeight > 20) h = Math.max(690, Math.min(h + agentNote.offsetHeight + 8, availH - 60));
       }
       window.resizeTo(w, h);
       // Center the dialog so the bottom (Launch button + actions) stays
@@ -593,6 +597,8 @@
   var codexModelsFile = kivunDir + "\\kivun-codex-models.json";
   // v3.4.0 Copilot: the installer writes this once Copilot is verified. Copilot has no model list.
   var copilotPathFile = kivunDir + "\\kivun-copilot-path.txt";
+  // v3.5.0 Antigravity: the same, once agy is verified. Antigravity has no model list either.
+  var antigravityPathFile = kivunDir + "\\kivun-antigravity-path.txt";
   var configFile = installDir + "\\config.txt";
 
   // Voice-alert ("Sound alerts") controls. The live config the alert scripts
@@ -798,7 +804,7 @@
   }
 
   function updateFlagPreview() {
-    if (currentAgent === "codex" || currentAgent === "copilot") { updateCodexPreview(); return; }
+    if (launchAgent(currentAgent)) { updateCodexPreview(); return; }
     var s = composeFlags();
     var flagsEl = document.getElementById("flag-effective");
     if (flagsEl) flagsEl.innerText = s ? s : "(none — default Claude behavior)";
@@ -951,8 +957,8 @@
       document.getElementById("path").focus();
       return;
     }
-    // Codex (v3.3.0): its own launch folder, never Claude's hand-off files (D19).
-    if (currentAgent === "codex" || currentAgent === "copilot") { launchCodex(p); return; }
+    // Codex (v3.3.0), Copilot and Antigravity: their own launch folder, never Claude's hand-off files (D19).
+    if (launchAgent(currentAgent)) { launchCodex(p); return; }
     // Persist current dialog state to the active profile + write the
     // sidecar files the launcher consumes (startup cmds, env vars).
     try {
@@ -1171,17 +1177,19 @@
       AgentHelpers.setProfileAgent(target, "codex");
       return;
     }
-    if (currentAgent === "copilot") {
-      // As for Codex: Copilot's own part of the profile; the Claude and Codex fields keep their values.
-      target.copilot = {
+    var ag = launchAgent(currentAgent);
+    if (ag && ag.modelInput) {
+      // As for Codex: the agent's own part of the profile (profile.copilot, profile.antigravity); the
+      // other agents' fields keep their values.
+      target[currentAgent] = {
         model: dialogModel(),
         conv: AgentHelpers.codexConv(getRadioValue("flag-conv")),
         customFlags: (document.getElementById("flag-custom").value || "").replace(/^\s+|\s+$/g, ""),
         startupCmds: document.getElementById("startup-cmds").value || ""
       };
-      var copilotEnv = document.getElementById("env-vars").value || "";
-      if (copilotEnv) target.copilot.envVars = copilotEnv;
-      AgentHelpers.setProfileAgent(target, "copilot");
+      var ownEnv = document.getElementById("env-vars").value || "";
+      if (ownEnv) target[currentAgent].envVars = ownEnv;
+      AgentHelpers.setProfileAgent(target, currentAgent);
       return;
     }
     // Default profile never persists the model — it always resets to opus on
@@ -1211,15 +1219,17 @@
       updateFlagPreview();
       return;
     }
-    if (currentAgent === "copilot") {
-      var cp = AgentHelpers.copilotFields(p);
+    var ag = launchAgent(currentAgent);
+    if (ag && ag.modelInput) {
+      // Copilot and Antigravity: a free-text model and the agent's own part of the profile.
+      var cp = AgentHelpers[ag.fields](p);
       document.getElementById("path").value          = p.folder || "";
-      document.getElementById("copilot-model").value = cp.model;
+      document.getElementById(ag.modelInput).value   = cp.model;
       setRadioValue("flag-conv", AgentHelpers.convRadio(cp.conv));
       document.getElementById("flag-custom").value   = cp.customFlags;
       document.getElementById("startup-cmds").value  = cp.startupCmds;
       document.getElementById("env-vars").value      = cp.envVars;
-      applyAgentUI("copilot", info);
+      applyAgentUI(currentAgent, info);
       updateFlagPreview();
       return;
     }
@@ -1633,7 +1643,7 @@
     var m = content ? content.match(new RegExp("^[ \\t]*" + key + "[ \\t]*=(.*)$", "m")) : null;
     return m ? m[1].replace(/^\s+|\s+$/g, "") : "";
   }
-  function readGlobalAgent() { var a = readConfigValue("AGENT"); return (a === "codex" || a === "copilot") ? a : "claude"; }
+  function readGlobalAgent() { var a = readConfigValue("AGENT"); return (a === "codex" || a === "copilot" || a === "antigravity") ? a : "claude"; }
 
   function claudeInstalled() {
     var home = wshShell.ExpandEnvironmentStrings("%USERPROFILE%");
@@ -1646,8 +1656,59 @@
     }
     return false;
   }
-  // Codex counts as installed once the installer has verified it (kivun-codex-path.txt).
-  function detectInstalled() { return { claude: claudeInstalled(), codex: fso.FileExists(codexPathFile), copilot: fso.FileExists(copilotPathFile) }; }
+  // Codex counts as installed once the installer has verified it (kivun-codex-path.txt); Copilot and
+  // Antigravity the same way, with their own path files.
+  function detectInstalled() {
+    return { claude: claudeInstalled(), codex: fso.FileExists(codexPathFile), copilot: fso.FileExists(copilotPathFile),
+             antigravity: fso.FileExists(antigravityPathFile) };
+  }
+
+  // The agents a picker launch writes a launch\<id> folder for, each with its own wording, controls and
+  // launcher argument. A lookup by agent, so a new agent never falls into another agent's path. Claude
+  // is not here: it keeps v3.2.2's hand-off files.
+  //   modelInput: the free-text model box (Codex has its model list instead); fields: the AgentHelpers
+  //   function that reads the agent's part of a profile; verb: the launcher argument.
+  var LAUNCH_AGENTS = {
+    codex: {
+      name: "Codex", cmd: "codex", verb: "LAUNCH",
+      missing: "Codex is not installed on this PC.",
+      notInstalled: "Codex is not installed. Run the ClaudeCode Launchpad CLI installer again and choose Codex.",
+      startupHelp: "Sent to Codex as your first message once it opens. Several lines are joined into one message. Commands that start with / can't run at startup.",
+      compose: function (d) {
+        return AgentHelpers.composeCodex({ conv: d.conv, model: d.model, customFlags: d.customFlags,
+          codexFlags: readConfigValue("CODEX_FLAGS"), startup: d.startup, language: readConfigValue("RESPONSE_LANGUAGE") });
+      },
+      notes: codexNotes
+    },
+    copilot: {
+      name: "Copilot", cmd: "copilot", verb: "LAUNCH-COPILOT", modelInput: "copilot-model", fields: "copilotFields",
+      missing: "GitHub Copilot is not installed on this PC.",
+      notInstalled: "GitHub Copilot is not installed. Run the ClaudeCode Launchpad CLI installer again and choose GitHub Copilot.",
+      startupHelp: "Sent to Copilot as your first message once it opens. Several lines are joined into one message. One command that starts with / can run at startup, on its own.",
+      compose: function (d) {
+        return AgentHelpers.composeCopilot({ conv: d.conv, model: d.model, customFlags: d.customFlags,
+          copilotFlags: readConfigValue("COPILOT_FLAGS"), startup: d.startup, env: d.env });
+      },
+      notes: copilotNotes
+    },
+    antigravity: {
+      name: "Antigravity", cmd: "agy", verb: "LAUNCH-ANTIGRAVITY", modelInput: "antigravity-model", fields: "antigravityFields",
+      missing: "Antigravity is not installed on this PC.",
+      notInstalled: "Antigravity is not installed. Run the ClaudeCode Launchpad CLI installer again and choose Antigravity.",
+      // D12: Google uses what the user types until this tick is cleared; the installer can't clear it.
+      note: "On Antigravity's \"Terms of Service & Data Use\" screen (shown once, after the sign-in and the colour scheme), press Enter to clear the tick (Google uses what you type while it is ticked), then press the Down arrow, then the Right arrow to reach Done, and press Enter. You can also turn it off later: type /config, then Enable Telemetry.",
+      startupHelp: "Sent to Antigravity as your first message once it opens. Several lines are joined into one message. Text that starts with / is sent as a message, not run as a command.",
+      // The runner leaves the status line out when the user's own Antigravity settings have one (D13).
+      compose: function (d) {
+        return AgentHelpers.composeAntigravity({ conv: d.conv, model: d.model, customFlags: d.customFlags,
+          antigravityFlags: readConfigValue("ANTIGRAVITY_FLAGS"), startup: d.startup, statusLine: true });
+      },
+      notes: antigravityNotes
+    }
+  };
+  function launchAgent(agent) { return LAUNCH_AGENTS.hasOwnProperty(agent) ? LAUNCH_AGENTS[agent] : null; }
+  // The agent row's "Agent:" label and radios: hidden when the row shows only an agent's note.
+  var AGENT_CHOICE_IDS = ["agent-label", "agent-opt-claude", "agent-opt-codex", "agent-opt-copilot", "agent-opt-antigravity"];
 
   function loadCodexModels() {
     try { var raw = readUtf8(codexModelsFile); return raw ? JSON.parse(raw) : null; } catch (e) { return null; }
@@ -1691,18 +1752,27 @@
         hintFlags: (document.getElementById("hint-flags") || {}).innerText || ""
       };
     }
-    var codex = (agent === "codex"), copilot = (agent === "copilot"), other = codex || copilot;
-    var name = copilot ? "Copilot" : "Codex";
+    var ag = launchAgent(agent), other = !!ag, k;
+    var name = other ? ag.name : "";
     setRadioValue("agent", agent);
-    showEl("agent-row", info.showChoice);
-    setText("agent-note", info.missing ? (copilot ? "GitHub Copilot is not installed on this PC." : codex ? "Codex is not installed on this PC." : "Claude Code is not installed on this PC.") : "");
-    showEl("claude-models", !other); showEl("codex-models", codex); showEl("copilot-models", copilot);
-    showEl("claude-chips", !other); showEl("codex-chips", codex); showEl("copilot-chips", copilot);
+    // An agent's own note (only Antigravity's data-use note, D12) must show even with no choice to offer
+    // (the only agent on this PC): then the row shows with the note alone. Claude, Codex and Copilot have
+    // no note, so their row shows or hides exactly as before.
+    var noteOnly = !info.showChoice && other && !!ag.note, j;
+    showEl("agent-row", info.showChoice || noteOnly);
+    for (j = 0; j < AGENT_CHOICE_IDS.length; j++) showEl(AGENT_CHOICE_IDS[j], !noteOnly);
+    var noteEl = document.getElementById("agent-note");
+    if (noteEl) noteEl.style.color = info.missing ? "#b00020" : "";   // red only for "not installed"
+    setText("agent-note", info.missing ? (other ? ag.missing : "Claude Code is not installed on this PC.") : (other && ag.note ? ag.note : ""));
+    showEl("claude-models", !other); showEl("claude-chips", !other);
+    for (k in LAUNCH_AGENTS) {
+      if (LAUNCH_AGENTS.hasOwnProperty(k)) { showEl(k + "-models", k === agent); showEl(k + "-chips", k === agent); }
+    }
     setText("flags-title", other ? name + " options (optional):" : claudeTexts.flags);
     setText("custom-help", other ? "Anything in this box is passed to " + name + " as extra options. Put quotes around text that contains spaces." : claudeTexts.custom);
-    setText("preview-cmd", copilot ? "copilot" : codex ? "codex" : "claude");
+    setText("preview-cmd", other ? ag.cmd : "claude");
     setText("startup-title", other ? "Startup message (optional):" : claudeTexts.startupTitle);
-    setText("startup-help", copilot ? "Sent to Copilot as your first message once it opens. Several lines are joined into one message. One command that starts with / can run at startup, on its own." : codex ? "Sent to Codex as your first message once it opens. Several lines are joined into one message. Commands that start with / can't run at startup." : claudeTexts.startupHelp);
+    setText("startup-help", other ? ag.startupHelp : claudeTexts.startupHelp);
     var st = document.getElementById("startup-cmds");
     if (st) st.placeholder = other ? "e.g. Explain what this project does" : claudeTexts.startupPh;
     setText("launch-btn", other ? "Launch " + name + " CLI" : claudeTexts.launch);
@@ -1724,14 +1794,15 @@
     }
   }
 
-  // The model as the dialog shows it: Codex's list, or Copilot's free text (it has no list).
+  // The model as the dialog shows it: Codex's list, or Copilot's or Antigravity's free text (they have no list).
   function dialogModel() {
-    if (currentAgent === "copilot") return (document.getElementById("copilot-model").value || "").replace(/^\s+|\s+$/g, "");
+    var ag = launchAgent(currentAgent);
+    if (ag && ag.modelInput) return (document.getElementById(ag.modelInput).value || "").replace(/^\s+|\s+$/g, "");
     return getRadioValue("codex-model");
   }
 
-  // Everything a Codex or Copilot launch carries, from the dialog. The runner reads the agent's
-  // flags and the response language from config.txt itself.
+  // Everything a Codex, Copilot or Antigravity launch carries, from the dialog. The runner reads the
+  // agent's flags and the response language from config.txt itself.
   function codexLaunchData(folder) {
     var lines = (document.getElementById("startup-cmds").value || "").split(/\r?\n/), startup = [], i;
     for (i = 0; i < lines.length; i++) { var ln = lines[i].replace(/^\s+|\s+$/g, ""); if (ln) startup.push(ln); }
@@ -1748,37 +1819,26 @@
 
   // The preview is built by the same compose function the runner uses (agent-helpers.js).
   function composeForDialog() {
-    var d = codexLaunchData("");
-    if (currentAgent === "copilot") {
-      return AgentHelpers.composeCopilot({ conv: d.conv, model: d.model, customFlags: d.customFlags,
-        copilotFlags: readConfigValue("COPILOT_FLAGS"), startup: d.startup, env: d.env });
-    }
-    return AgentHelpers.composeCodex({ conv: d.conv, model: d.model, customFlags: d.customFlags,
-      codexFlags: readConfigValue("CODEX_FLAGS"), startup: d.startup, language: readConfigValue("RESPONSE_LANGUAGE") });
+    return launchAgent(currentAgent).compose(codexLaunchData(""));
   }
 
   function updateCodexPreview() {
-    var r = composeForDialog(), i;
-    var copilot = (currentAgent === "copilot");
-    setText("flag-effective", r.args.length ? AgentHelpers.previewLine(r.args) : (copilot ? "(none — default Copilot behavior)" : "(none — default Codex behavior)"));
+    var r = composeForDialog(), i, ag = launchAgent(currentAgent);
+    setText("flag-effective", r.args.length ? AgentHelpers.previewLine(r.args) : "(none — default " + ag.name + " behavior)");
     var stEl = document.getElementById("preview-startup");
     if (stEl) { stEl.style.display = "none"; stEl.innerHTML = ""; }   // the first message is part of the line above
     renderEnvPreview();
     var html = "";
     for (i = 0; i < r.errors.length; i++) html += '<span style="color:#b00020">' + escapeHtml(r.errors[i]) + '</span><br>';
     for (i = 0; i < r.notices.length; i++) if (r.notices[i] !== "startup message not sent") html += escapeHtml(r.notices[i]) + '<br>';
-    if (copilot) {
-      if (AgentHelpers.copilotLanguageLine(readConfigValue("RESPONSE_LANGUAGE"))) {
-        html += escapeHtml("The response language is added to Copilot's instructions. Your own instructions still apply.") + '<br>';
-      }
-      if (getRadioValue("flag-conv") === "--continue") {
-        html += escapeHtml("Continue last reopens the last Copilot conversation in this folder. If there is none, a new one starts.") + '<br>';
-      }
-      html += escapeHtml("Copilot shows Hebrew and Arabic left to right. Right-to-left display works only with Claude Code.");
-      var cn = document.getElementById("codex-notes");
-      if (cn) cn.innerHTML = html;
-      return;
-    }
+    html += ag.notes();
+    var n = document.getElementById("codex-notes");
+    if (n) n.innerHTML = html;
+  }
+
+  // Each agent's own lines under the preview (escaped HTML).
+  function codexNotes() {
+    var html = "";
     if (AgentHelpers.modelUnavailable(getRadioValue("codex-model"), loadCodexModels())) {
       html += escapeHtml("The model saved in this profile is no longer offered. Codex will use its default model.") + '<br>';
     }
@@ -1788,9 +1848,33 @@
     if (getRadioValue("flag-conv") === "--continue") {
       html += escapeHtml("If Codex says this conversation is open in another window, close that window or press R.") + '<br>';
     }
-    html += escapeHtml("Codex shows Hebrew and Arabic left to right. Right-to-left display works only with Claude Code.");
-    var n = document.getElementById("codex-notes");
-    if (n) n.innerHTML = html;
+    return html + escapeHtml("Codex shows Hebrew and Arabic left to right. Right-to-left display works only with Claude Code.");
+  }
+
+  function copilotNotes() {
+    var html = "";
+    if (AgentHelpers.copilotLanguageLine(readConfigValue("RESPONSE_LANGUAGE"))) {
+      html += escapeHtml("The response language is added to Copilot's instructions. Your own instructions still apply.") + '<br>';
+    }
+    if (getRadioValue("flag-conv") === "--continue") {
+      html += escapeHtml("Continue last reopens the last Copilot conversation in this folder. If there is none, a new one starts.") + '<br>';
+    }
+    return html + escapeHtml("Copilot shows Hebrew and Arabic left to right. Right-to-left display works only with Claude Code.");
+  }
+
+  function antigravityNotes() {
+    var html = "", conv = getRadioValue("flag-conv");
+    if (AgentHelpers.antigravityLanguageLine(readConfigValue("RESPONSE_LANGUAGE"))) {
+      html += escapeHtml("The response language is added when Antigravity starts. A continued conversation keeps the language it started in.") + '<br>';
+    }
+    if (conv === "--continue") {
+      html += escapeHtml("Continue last reopens the last Antigravity conversation in this folder. If there is none, a new one starts.") + '<br>';
+    } else if (conv === "--resume") {
+      // D5: the list can't be opened from outside, so Antigravity starts normally.
+      html += escapeHtml("Antigravity opens normally. Type /resume to choose a conversation.") + '<br>';
+    }
+    html += escapeHtml("Launchpad's status line (--settings) is added unless you set your own in Antigravity's settings.") + '<br>';
+    return html + escapeHtml("Antigravity shows Hebrew and Arabic left to right. Right-to-left display works only with Claude Code.");
   }
 
   // Add a quick option once (the extra-folder chip may repeat). Tokens are compared whole, so
@@ -1812,7 +1896,8 @@
 
   function addCodexFolder() {
     var startPath = wshShell.ExpandEnvironmentStrings("%USERPROFILE%");
-    var folder = shell.BrowseForFolder(0, "Pick an extra folder " + (currentAgent === "copilot" ? "Copilot" : "Codex") + " may use", 0x50, startPath);
+    var ag = launchAgent(currentAgent);
+    var folder = shell.BrowseForFolder(0, "Pick an extra folder " + (ag ? ag.name : "Codex") + " may use", 0x50, startPath);
     if (folder != null) addCodexFlag('--add-dir "' + folder.Self.Path + '"', true);
   }
 
@@ -1833,9 +1918,9 @@
   }
 
   function launchCodex(folder) {
-    var copilotLaunch = (currentAgent === "copilot");
+    var ag = launchAgent(currentAgent);
     if (!detectInstalled()[currentAgent]) {
-      showError(copilotLaunch ? "GitHub Copilot is not installed. Run the ClaudeCode Launchpad CLI installer again and choose GitHub Copilot." : "Codex is not installed. Run the ClaudeCode Launchpad CLI installer again and choose Codex.");
+      showError(ag.notInstalled);
       return;
     }
     var r = composeForDialog();
@@ -1849,13 +1934,13 @@
     try { var _cv = currentColorValue(); if (_cv) writeTerminalColorToConfig(_cv); } catch (e) {}
     var id;
     try { id = createLaunchFolder(codexLaunchData(folder)); } catch (e) {
-      showError("Could not prepare the " + (copilotLaunch ? "Copilot" : "Codex") + " launch: " + (e.message || e.description || e));
+      showError("Could not prepare the " + ag.name + " launch: " + (e.message || e.description || e));
       return;
     }
     window.__ccLaunched = true;
     try {
       var batPath = kivunDir + "\\claudecode-launchpad.bat";
-      if (fso.FileExists(batPath)) wshShell.Run("\"" + batPath + "\" \"" + (copilotLaunch ? "LAUNCH-COPILOT" : "LAUNCH") + "\" \"" + id + "\"", 0, false);
+      if (fso.FileExists(batPath)) wshShell.Run("\"" + batPath + "\" \"" + ag.verb + "\" \"" + id + "\"", 0, false);
     } catch (e) {}
     window.close();
   }
@@ -1898,10 +1983,11 @@
     <span class="status" id="profile-status"></span>
   </div>
   <div id="agent-row" class="profile-bar" style="display:none">
-    <span class="lbl">Agent:</span>
-    <label><input type="radio" name="agent" value="claude" onclick="onAgentChange('claude')" /> Claude Code</label>
-    <label><input type="radio" name="agent" value="codex" onclick="onAgentChange('codex')" /> Codex <span style="color:#707070">(OpenAI)</span></label>
-    <label><input type="radio" name="agent" value="copilot" onclick="onAgentChange('copilot')" /> Copilot <span style="color:#707070">(GitHub)</span></label>
+    <span class="lbl" id="agent-label">Agent:</span>
+    <label id="agent-opt-claude"><input type="radio" name="agent" value="claude" onclick="onAgentChange('claude')" /> Claude Code</label>
+    <label id="agent-opt-codex"><input type="radio" name="agent" value="codex" onclick="onAgentChange('codex')" /> Codex <span style="color:#707070">(OpenAI)</span></label>
+    <label id="agent-opt-copilot"><input type="radio" name="agent" value="copilot" onclick="onAgentChange('copilot')" /> Copilot <span style="color:#707070">(GitHub)</span></label>
+    <label id="agent-opt-antigravity"><input type="radio" name="agent" value="antigravity" onclick="onAgentChange('antigravity')" /> Antigravity <span style="color:#707070">(Google)</span></label>
     <span class="status" id="agent-note" style="color:#b00020"></span>
   </div>
 
@@ -1943,6 +2029,9 @@
       </div><div class="radio-row" id="codex-models" style="display:none"></div><div id="copilot-models" style="display:none">
         <input type="text" id="copilot-model" onkeyup="updateFlagPreview()" placeholder="Let Copilot decide, or type a model name" />
         <div class="flag-help">Copilot has no model list to show here. If it can't use the name you type, it says so and decides by itself.</div>
+      </div><div id="antigravity-models" style="display:none">
+        <input type="text" id="antigravity-model" onkeyup="updateFlagPreview()" placeholder="Antigravity's default model, or type a model name" />
+        <div class="flag-help">Antigravity has no model list to show here. If it can't use the name you type, Antigravity says so.</div>
       </div></div>
 
       <div class="lbl">Conversation:</div>
@@ -1969,6 +2058,7 @@
         <button type="button" class="chip" id="chip-cx-adddir"   title="--add-dir: lets Codex also work in another folder you pick">+ Extra folder...</button>
       </div><div class="chip-row" id="copilot-chips" style="display:none">
         <button type="button" class="chip" id="chip-cp-adddir"   title="--add-dir: lets Copilot also work in another folder you pick">+ Extra folder...</button>
+      </div><div class="chip-row" id="antigravity-chips" style="display:none">
       </div></div>
 
       <div class="lbl">Custom:</div>

@@ -3,7 +3,7 @@
 ## Windows
 
 1. Download **ClaudeCode_Launchpad_CLI_Setup.exe** below
-2. Run it and follow the wizard - no administrator rights needed. It asks which AI agent to set up: Claude Code, Codex or GitHub Copilot
+2. Run it and follow the wizard - no administrator rights needed. It asks which AI agent to set up: Claude Code, Codex, GitHub Copilot or Antigravity (Google)
 3. Double-click the "ClaudeCode Launchpad CLI" desktop shortcut
 
 > **Note:** The installer may close open terminal windows during setup. Save your work before running.
@@ -34,7 +34,7 @@
 
 | Feature | Windows | macOS |
 |---------|---------|-------|
-| **AI agents** | ✅ Claude Code, Codex or GitHub Copilot | ✅ Claude Code |
+| **AI agents** | ✅ Claude Code, Codex, GitHub Copilot or Antigravity | ✅ Claude Code |
 | **Folder picker** | ✅ Native dialog | ✅ Native dialog |
 | **Right-click menu** | ✅ Context menu | ✅ Quick Action |
 | **Language config** | ✅ config.txt (24+ languages) | ✅ config.txt (24+ languages) |
@@ -45,8 +45,8 @@
 | **Native Claude installer** | ✅ curl | ✅ curl |
 
 ### Included Components
-- **The AI agent you choose** - Claude Code, installed with Anthropic's official native installer, or Codex (OpenAI) or GitHub Copilot CLI, installed with npm. macOS sets up Claude Code
-- **Node.js** - for the status bar, and to install and run Codex or GitHub Copilot
+- **The AI agent you choose** - Claude Code, installed with Anthropic's official native installer, Codex (OpenAI) or GitHub Copilot CLI, installed with npm, or Antigravity CLI (Google), installed with Google's own installer. macOS sets up Claude Code
+- **Node.js** - for the status bar, and to install and run Codex or GitHub Copilot (Antigravity itself doesn't need Node.js; Launchpad uses Node.js to install and start it)
 - **Windows Terminal** (recommended, optional) - with light blue color scheme
 - **Git** (optional)
 
@@ -54,6 +54,6 @@
 
 ## First time?
 
-You'll need an account for the agent you choose: a Claude account or API key for Claude Code, a ChatGPT account or OpenAI API key for Codex, or a GitHub account with a Copilot plan (a free plan works) for GitHub Copilot. The agent asks you to sign in the first time it opens.
+You'll need an account for the agent you choose: a Claude account or API key for Claude Code, a ChatGPT account or OpenAI API key for Codex, a GitHub account with a Copilot plan (a free plan works) for GitHub Copilot, or a Google account (a free one works, with a weekly limit) for Antigravity. The agent asks you to sign in the first time it opens. On Antigravity's "Terms of Service & Data Use" screen (shown once, after the sign-in and the colour scheme), press Enter to clear the tick that lets Google use what you type, then press the Down arrow, then the Right arrow to reach Done, and press Enter.
 
 See [CHANGELOG](https://github.com/noambrand/launchpad-cli/blob/main/docs/CHANGELOG.md) for full history.

@@ -184,6 +184,98 @@ var AgentHelpers = (function () {
     return { model: c.model || "", conv: c.conv || "fresh", customFlags: c.customFlags || "", startupCmds: c.startupCmds || "", envVars: c.envVars || "" };
   }
 
+  // ---- Google Antigravity CLI (v3.5.0) -----------------------------------
+
+  // Antigravity's permission bypass and the options that would change how Launchpad runs it are
+  // refused. The other two lists would fight a choice the picker makes: which conversation to open,
+  // and the first message. agy reads its options with Go's flag package, where -mode and --mode are
+  // the same option, so these lists hold bare names, compared with antigravityName's.
+  var ANTIGRAVITY_REFUSED = ["dangerously-skip-permissions", "settings", "remote-control", "remote-agent"];
+  var ANTIGRAVITY_CONVERSATION = ["c", "continue", "conversation"];
+  var ANTIGRAVITY_PROMPT = ["i", "prompt-interactive", "p", "print", "prompt"];
+  // The options that take a value (agy --help): written without "=", the next word is that value.
+  var ANTIGRAVITY_VALUE = ["add-dir", "agent", "conversation", "effort", "input-format", "json-schema", "log-file", "mode", "model",
+    "output-format", "print-timeout", "project", "settings", "i", "p", "print", "prompt", "prompt-interactive"];
+
+  // An option's bare name, with one or two leading dashes and any "=value" removed: "-mode=auto" and
+  // "--mode" both give "mode". A word that doesn't start with "-" is not an option: null.
+  function antigravityName(t) {
+    if (t.charAt(0) !== "-") return null;
+    var s = t.charAt(1) === "-" ? t.substring(2) : t.substring(1), eq = s.indexOf("=");
+    return eq > 0 ? s.substring(0, eq) : s;
+  }
+  function antigravityInline(t) { var eq = t.indexOf("="); return (t.charAt(0) === "-" && eq > 0) ? t.substring(eq + 1) : null; }
+  function antigravityTakesValue(t) { return contains(ANTIGRAVITY_VALUE, antigravityName(t)) && antigravityInline(t) === null; }
+  function antigravityIsAuto(v) { return v != null && String(v).toLowerCase() === "auto"; }
+
+  // The status line settings Launchpad passes with --settings when the profile asks for it (D13).
+  var ANTIGRAVITY_STATUSLINE = '{"statusLine":{"type":"command","command":"antigravity-statusline.cmd","enabled":true,"stack_with_default":true}}';
+
+  // Antigravity takes one first message and a / entry is plain text to it, so entries are only
+  // trimmed and joined.
+  function antigravityStartup(entries) {
+    var raw = (entries instanceof Array) ? entries : [entries], list = [], i, e;
+    for (i = 0; i < raw.length; i++) { e = trim(raw[i]); if (e) list.push(e); }
+    for (i = 0; i < list.length; i++) {
+      if (/[\u0000-\u001f\u007f]/.test(list[i])) return { text: null, error: "CONTROL", message: "The startup message can only be one line." };
+    }
+    return { text: list.length ? list.join(" ") : null };
+  }
+
+  // Build Antigravity's exact argument array. Returns { args, errors, notices, fatal }, as composeCopilot does.
+  //   launch: { conv: fresh|last|pick, model, customFlags, antigravityFlags, startup, statusLine, relaunch }
+  function composeAntigravity(launch) {
+    var errors = [], notices = [], user = [], i, t, name, bad = [], kept = [], word = null;
+    try { user = tokenize(launch.antigravityFlags).concat(tokenize(launch.customFlags)); } catch (err) { errors.push(err.message); user = []; }
+    for (i = 0; i < user.length; i++) {
+      t = user[i]; name = antigravityName(t);
+      // Go's flag package stops reading options at a lone - or --: everything after it, Launchpad's own
+      // -i included, would be read as one of agy's commands.
+      if (t === "-" || t === "--") bad.push(t);
+      else if (contains(ANTIGRAVITY_REFUSED, name)) { bad.push(t); if (antigravityTakesValue(t) && i + 1 < user.length) i++; }   // its value goes too
+      else if (name === "mode" && antigravityIsAuto(antigravityInline(t))) bad.push(t);
+      else if (name === "mode" && antigravityInline(t) === null && antigravityIsAuto(user[i + 1])) { bad.push(t + " " + user[i + 1]); i++; }
+      else kept.push(t);
+    }
+    if (bad.length) { errors.push("Launchpad does not start Antigravity with " + bad.join(" ") + "."); user = kept; }
+    var modelCount = 0, convTold = false, promptTold = false;
+    for (i = 0; i < user.length; i++) {
+      t = user[i]; name = antigravityName(t);
+      // A word that is neither an option nor an option's value is read by agy as one of its own commands:
+      // agy --sandbox changelog runs changelog, and remote-control start would start remote control (G7).
+      if (name === null) { if (word === null) word = t; continue; }
+      if (name === "model") modelCount++;
+      if (contains(ANTIGRAVITY_CONVERSATION, name) && !convTold) { errors.push('Choose "continue last" or "pick from history" in the picker instead of typing ' + optionName(t) + "."); convTold = true; }
+      if (contains(ANTIGRAVITY_PROMPT, name) && !promptTold) { errors.push("Use the startup message box instead of typing " + optionName(t) + "."); promptTold = true; }
+      // The next word is this option's value. With none, agy would take Launchpad's own -i as the value
+      // and read the startup message as a command.
+      if (antigravityTakesValue(t)) { if (i + 1 >= user.length) errors.push("The custom options end with " + t + ", which needs a value."); i++; }
+    }
+    if (word !== null) errors.push("Launchpad does not start Antigravity with " + previewLine([word]) + ": it would run one of Antigravity's own commands.");
+    if (modelCount > 1) errors.push("The custom options name a model more than once.");
+
+    var args = [];
+    if (launch.conv === "last") args.push("-c");
+    if (launch.model && modelCount === 0) args.push("--model", launch.model);
+    if (launch.statusLine) args.push("--settings", ANTIGRAVITY_STATUSLINE);
+    for (i = 0; i < user.length; i++) args.push(user[i]);
+    var fatal = errors.slice();   // every error so far is about the options
+    if (!launch.relaunch) {
+      var st = antigravityStartup(launch.startup);
+      if (launch.conv === "pick") {
+        if (st.text) notices.push("The startup message is not sent when you pick a conversation from the list.");
+      } else if (st.error) { errors.push(st.message); notices.push("startup message not sent"); }
+      else if (st.text) args.push("-i", st.text);   // even with a leading - or /: Antigravity takes it as the message (Step 0, A5)
+    }
+    return { args: args, errors: errors, notices: notices, fatal: fatal };
+  }
+
+  // Antigravity's settings live in their own part of the profile, as Copilot's do.
+  function antigravityFields(profile) {
+    var c = profile.antigravity || {};
+    return { model: c.model || "", conv: c.conv || "fresh", customFlags: c.customFlags || "", startupCmds: c.startupCmds || "", envVars: c.envVars || "" };
+  }
+
   // ---- picker helpers --------------------------------------------------
 
   // The picker's conversation radios keep their v3.2.2 values; this maps them for Codex.
@@ -191,18 +283,18 @@ var AgentHelpers = (function () {
   function convRadio(codexConvValue) { return codexConvValue === "last" ? "--continue" : (codexConvValue === "pick" ? "--resume" : ""); }
 
   // Which agent the picker shows, and whether it shows the agent choice (D3, D6).
-  //   profileAgent: the profile's agent field (missing = Claude); installed: { claude, codex, copilot }
+  //   profileAgent: the profile's agent field (missing = Claude); installed: { claude, codex, copilot, antigravity }
   function resolveAgent(profileAgent, installed) {
-    var agent = (profileAgent === "codex" || profileAgent === "copilot") ? profileAgent : "claude";
+    var agent = (profileAgent === "codex" || profileAgent === "copilot" || profileAgent === "antigravity") ? profileAgent : "claude";
     var missing = !installed[agent];
-    var count = (installed.claude ? 1 : 0) + (installed.codex ? 1 : 0) + (installed.copilot ? 1 : 0);
+    var count = (installed.claude ? 1 : 0) + (installed.codex ? 1 : 0) + (installed.copilot ? 1 : 0) + (installed.antigravity ? 1 : 0);
     return { agent: agent, missing: missing, showChoice: count > 1 || missing };
   }
 
-  // Store the agent the way D16 says: agent:"codex" or "copilot" only for those; choosing Claude
+  // Store the agent the way D16 says: agent:"codex", "copilot" or "antigravity" only for those; choosing Claude
   // removes it. A profile only ever used with Claude keeps exactly the fields v3.2.2 wrote.
   function setProfileAgent(profile, agent) {
-    if (agent === "codex" || agent === "copilot") profile.agent = agent;
+    if (agent === "codex" || agent === "copilot" || agent === "antigravity") profile.agent = agent;
     else if (profile.hasOwnProperty("agent")) delete profile.agent;
     return profile;
   }
@@ -240,7 +332,9 @@ var AgentHelpers = (function () {
     composeCodex: composeCodex, codexConv: codexConv, convRadio: convRadio, resolveAgent: resolveAgent,
     setProfileAgent: setProfileAgent, codexFields: codexFields, modelUnavailable: modelUnavailable,
     newLaunchId: newLaunchId, previewLine: previewLine, contains: contains,
-    composeCopilot: composeCopilot, copilotFields: copilotFields, copilotLanguageLine: copilotLanguageLine, copilotStartup: copilotStartup
+    composeCopilot: composeCopilot, copilotFields: copilotFields, copilotLanguageLine: copilotLanguageLine, copilotStartup: copilotStartup,
+    composeAntigravity: composeAntigravity, antigravityFields: antigravityFields, antigravityStartup: antigravityStartup,
+    antigravityLanguageLine: copilotLanguageLine, ANTIGRAVITY_STATUSLINE: ANTIGRAVITY_STATUSLINE
   };
 })();
 
