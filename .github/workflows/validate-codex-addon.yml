@@ -48,7 +48,8 @@ jobs:
       - name: UT_CODEX_CI_02 the pinned upstream release plus Launchpad's changes gives exactly the shipped files
         run: |
           set -eu
-          read -r URL TAG COMMIT SUB < source/plugins/codex.upstream
+          # read returns 1 at a last line without a newline, even after reading it.
+          read -r URL TAG COMMIT SUB < source/plugins/codex.upstream || test -n "${SUB:-}"
           git -c core.autocrlf=false clone --quiet --depth 1 --branch "$TAG" "$URL" "$RUNNER_TEMP/upstream"
           test "$(git -C "$RUNNER_TEMP/upstream" rev-parse HEAD)" = "$COMMIT" \
             || (echo "FAIL: $TAG is no longer commit $COMMIT"; exit 1)
