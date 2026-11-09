@@ -3,6 +3,7 @@
   "description": "Plugins bundled with ClaudeCode Launchpad CLI",
   "owner": { "name": "Noam Brand" },
   "plugins": [
-    { "name": "rtl-terminal", "source": "./rtl-terminal", "description": "Right-to-left layout for Hebrew, Arabic, Persian and Urdu replies (by MohammedSaud404, MIT)" }
+    { "name": "rtl-terminal", "source": "./rtl-terminal", "description": "Right-to-left layout for Hebrew, Arabic, Persian and Urdu replies (by MohammedSaud404, MIT)" },
+    { "name": "codex", "source": "./codex", "description": "Let Claude hand work to Codex: /codex:review and /codex:rescue (OpenAI's codex-plugin-cc v1.0.6, Apache-2.0; changed so Claude uses Codex only when asked)" }
   ]
 }

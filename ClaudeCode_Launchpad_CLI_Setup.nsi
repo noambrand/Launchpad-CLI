@@ -5,7 +5,7 @@
 Unicode True
 
 !define PRODUCT_NAME "ClaudeCode Launchpad CLI"
-!define PRODUCT_VERSION "3.5.1"
+!define PRODUCT_VERSION "3.6.0"
 !define PRODUCT_PUBLISHER "Noam Brand"
 !define PRODUCT_WEB_SITE "https://github.com"
 !define PRODUCT_DESCRIPTION "Claude Code installer for Windows"
@@ -40,12 +40,12 @@ InstallDir "${INSTALL_DIR}"
 ShowInstDetails show
 
 ; Version info
-VIProductVersion "3.5.1.0"
+VIProductVersion "3.6.0.0"
 VIAddVersionKey "ProductName" "${PRODUCT_NAME}"
 VIAddVersionKey "ProductVersion" "${PRODUCT_VERSION}"
 VIAddVersionKey "CompanyName" "${PRODUCT_PUBLISHER}"
 VIAddVersionKey "FileDescription" "${PRODUCT_DESCRIPTION}"
-VIAddVersionKey "FileVersion" "3.5.1.0"
+VIAddVersionKey "FileVersion" "3.6.0.0"
 VIAddVersionKey "LegalCopyright" "(C) 2026 ${PRODUCT_PUBLISHER}"
 
 ; Modern UI Configuration
@@ -64,6 +64,8 @@ VIAddVersionKey "LegalCopyright" "(C) 2026 ${PRODUCT_PUBLISHER}"
 Page custom ConfigPage ConfigPageLeave
 
 ; Components page
+; v3.6.0: ComponentsPre shows "Let Claude hand work to Codex" only when it fits this run.
+!define MUI_PAGE_CUSTOMFUNCTION_PRE ComponentsPre
 !insertmacro MUI_PAGE_COMPONENTS
 
 ; Directory page
@@ -138,6 +140,11 @@ Var CopilotOK
 Var AgentAntigravityRadio
 Var AgentAntigravityNote
 Var AntigravityOK
+; v3.6.0: "Let Claude hand work to Codex". CodexPluginFits is "1" when this run leaves both Claude Code
+; and Codex on the PC. CodexPluginShown is "" until the components page has decided (it stays "" in a
+; silent install, which has no pages), then "1" when the tick was shown and "0" when it was hidden.
+Var CodexPluginFits
+Var CodexPluginShown
 
 ; Pre-install warning: remind users to finish active CLI sessions
 Function .onInit
@@ -415,6 +422,8 @@ Section "!Core Components (Required)" SecCore
   File "source\antigravity-hook.js"
   File "source\antigravity-statusline.js"
   File "source\antigravity-statusline.cmd"
+  ; v3.6.0: turns OpenAI's Codex add-on for Claude Code on or off (SecCodexPlugin, SecCodexPluginOff).
+  File "source\configure-codex-plugin.js"
   File "source\install.cmd"
   File "source\launchpad-diagnostics.cmd"
   File "source\install-node-elevated.js"
@@ -1205,6 +1214,49 @@ Section "Install Git (Optional)" SecGit
   ${EndIf}
 SectionEnd
 
+; v3.6.0: OpenAI's Codex add-on for Claude Code: in Claude, /codex:review has Codex check the work and
+; /codex:rescue hands Codex a job. Launchpad's own copy (plugins\codex), changed so Claude uses Codex
+; only when the user asks (docs\CODEX-ADDON.md). Runs after every agent section, so a Codex installed by
+; this run is already here. Ticked by default; ComponentsPre hides it when it doesn't fit and starts it
+; unticked when the user unticked it last time. A failure is only a warning.
+Section "Let Claude hand work to Codex" SecCodexPlugin
+  ${If} $CodexPluginShown == ""
+    ; A silent install: no components page decided, so decide here as it would have.
+    Call CodexPluginFits
+    ${If} $CodexPluginFits != "1"
+      Return
+    ${EndIf}
+    ${If} ${FileExists} "$INSTDIR\kivun-codex-plugin-off.txt"
+      Return
+    ${EndIf}
+  ${EndIf}
+  Call FindNodeExe
+  DetailPrint "Setting up Claude to hand work to Codex (OpenAI's Codex add-on)..."
+  nsExec::ExecToLog '"$NodeExe" "$INSTDIR\configure-codex-plugin.js" install'
+  Pop $0
+  ${If} $0 S== "0"
+    StrCpy $FinishText "Claude can now hand work to Codex: in Claude, type /codex:review or /codex:rescue.$\r$\n$\r$\n$FinishText"
+  ${ElseIf} $0 S!= "3"
+  ${AndIf} $0 S!= "4"
+    DetailPrint "WARNING: Could not set up Claude to hand work to Codex (result: $0). Details: $LOCALAPPDATA\Kivun\codex-plugin-setup.log"
+  ${EndIf}
+SectionEnd
+
+; v3.6.0: the user unticked "Let Claude hand work to Codex": remember it for the next run, and take
+; Launchpad's copy out if Launchpad put it in. Nothing runs when the tick was hidden, so an install
+; without both agents never starts Claude or Node here.
+Section "-Claude-to-Codex off" SecCodexPluginOff
+  ${If} $CodexPluginShown == "1"
+  ${AndIfNot} ${SectionIsSelected} ${SecCodexPlugin}
+    Call FindNodeExe
+    nsExec::ExecToLog '"$NodeExe" "$INSTDIR\configure-codex-plugin.js" remove'
+    Pop $0
+    ${If} $0 S!= "0"
+      DetailPrint "WARNING: Could not turn off Claude-to-Codex (result: $0). Details: $LOCALAPPDATA\Kivun\codex-plugin-setup.log"
+    ${EndIf}
+  ${EndIf}
+SectionEnd
+
 ; Section descriptions
 !insertmacro MUI_FUNCTION_DESCRIPTION_BEGIN
   !insertmacro MUI_DESCRIPTION_TEXT ${SecCore} "Core files: launcher scripts, shortcuts, configuration, and Windows Terminal profile."
@@ -1215,6 +1267,7 @@ SectionEnd
   !insertmacro MUI_DESCRIPTION_TEXT ${SecAntigravity} "Google Antigravity CLI, installed with Google's own installer (a download of about 225 MB). Chosen on the configuration page instead of Claude Code."
   !insertmacro MUI_DESCRIPTION_TEXT ${SecWindowsTerminal} "Windows Terminal with light blue color scheme. Falls back to cmd.exe if not installed."
   !insertmacro MUI_DESCRIPTION_TEXT ${SecGit} "Git version control (optional, for development workflows)."
+  !insertmacro MUI_DESCRIPTION_TEXT ${SecCodexPlugin} "OpenAI's Codex add-on for Claude Code. In Claude, type /codex:review to have Codex check the work, or /codex:rescue to hand Codex a job. Claude uses Codex only when you ask; it counts toward your Codex limits."
 !insertmacro MUI_FUNCTION_DESCRIPTION_END
 
 ; v3.3.0 (D17): a Codex choice skips the Claude install and installs Codex; a Claude choice is
@@ -1272,6 +1325,67 @@ Function ApplyAntigravityChoice
   ${Else}
     !insertmacro UnselectSection ${SecAntigravity}
     SectionSetText ${SecAntigravity} ""
+  ${EndIf}
+FunctionEnd
+
+; v3.6.0: "Let Claude hand work to Codex" fits when this run leaves both Claude Code and Codex on the
+; PC: the agent chosen now, plus the other one already here (each install chooses one agent). Kept out
+; of .onInit and ConfigPageLeave, whose Apply calls the installer tests compile on their own: the
+; components page calls it (ComponentsPre), and SecCodexPlugin calls it itself in a silent install.
+Function CodexPluginFits
+  StrCpy $CodexPluginFits "0"
+  StrCpy $R1 "0"
+  ${If} $ConfigAgent == "claude"
+    StrCpy $R1 "1"
+  ${ElseIf} ${FileExists} "$PROFILE\.local\bin\claude.exe"
+    StrCpy $R1 "1"
+  ${Else}
+    nsExec::ExecToStack 'where claude'
+    Pop $R2
+    Pop $R3
+    ${If} $R2 S== "0"
+      StrCpy $R1 "1"
+    ${EndIf}
+  ${EndIf}
+  ${If} $R1 == "1"
+    ${If} $ConfigAgent == "codex"
+    ${OrIf} ${FileExists} "$INSTDIR\kivun-codex-path.txt"
+      StrCpy $CodexPluginFits "1"
+    ${EndIf}
+  ${EndIf}
+FunctionEnd
+
+; v3.6.0: before the components page. Going Back to the configuration page and on again keeps the
+; user's tick: the default (ticked, or unticked after an earlier untick) applies only when the tick
+; is first shown.
+Function ComponentsPre
+  Call CodexPluginFits
+  ${If} $CodexPluginFits == "1"
+    ${If} $CodexPluginShown != "1"
+      SectionSetText ${SecCodexPlugin} "Let Claude hand work to Codex"
+      ${If} ${FileExists} "$INSTDIR\kivun-codex-plugin-off.txt"
+        !insertmacro UnselectSection ${SecCodexPlugin}
+      ${Else}
+        !insertmacro SelectSection ${SecCodexPlugin}
+      ${EndIf}
+    ${EndIf}
+    StrCpy $CodexPluginShown "1"
+  ${Else}
+    !insertmacro UnselectSection ${SecCodexPlugin}
+    SectionSetText ${SecCodexPlugin} ""
+    StrCpy $CodexPluginShown "0"
+  ${EndIf}
+FunctionEnd
+
+; v3.6.0: Node by full path, as the agent sections find it (this process's PATH is stale).
+Function FindNodeExe
+  StrCpy $NodeExe "node"
+  ${If} ${FileExists} "$PROGRAMFILES64\nodejs\node.exe"
+    StrCpy $NodeExe "$PROGRAMFILES64\nodejs\node.exe"
+  ${ElseIf} ${FileExists} "$PROGRAMFILES\nodejs\node.exe"
+    StrCpy $NodeExe "$PROGRAMFILES\nodejs\node.exe"
+  ${ElseIf} ${FileExists} "$LOCALAPPDATA\Programs\nodejs\node.exe"
+    StrCpy $NodeExe "$LOCALAPPDATA\Programs\nodejs\node.exe"
   ${EndIf}
 FunctionEnd
 

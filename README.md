@@ -200,6 +200,20 @@ free or Google AI Pro and Ultra accounts: those accounts moved to Antigravity CL
 
 Details: [Quick Start](docs/QUICK_START.md#using-google-antigravity) and [Troubleshooting](TROUBLESHOOTING.md#google-antigravity).
 
+## Claude hands work to Codex (Windows)
+
+New in 3.6.0: with both Claude Code and Codex on your PC, Claude can hand work to Codex, so two AIs from
+two companies work on the same job. The installer sets up OpenAI's own free add-on for Claude Code
+(tick **Let Claude hand work to Codex** on the components page).
+
+- **A second opinion:** in Claude, type `/codex:review`. Codex reads your changes and lists the mistakes it
+  finds, and Claude fixes them.
+- **Hand over a job:** type `/codex:rescue` and the job. Codex does it and Claude shows the result.
+- Claude uses Codex **only when you ask**: Launchpad's copy of the add-on is changed so Claude never hands
+  a job to Codex on its own. What Codex does counts toward your Codex (ChatGPT) limits.
+
+Details: [Quick Start](docs/QUICK_START.md#claude-hands-work-to-codex) and [Troubleshooting](TROUBLESHOOTING.md#claude-hands-work-to-codex).
+
 ## Quick Start
 
 ### Windows
@@ -390,6 +404,8 @@ Submitted to awesome lists (pending review):
 ## Credits
 
 Right-to-left layout in Claude's replies comes from [rtl-terminal](https://github.com/MohammedSaud404/rtl-terminal) by MohammedSaud404 (MIT), bundled unmodified in `source/plugins/rtl-terminal/` with its license. Turn it off any time with `/rtl off` inside Claude.
+
+Claude handing work to Codex comes from OpenAI's [Codex plugin for Claude Code](https://github.com/openai/codex-plugin-cc) (Apache-2.0), bundled in `source/plugins/codex/` with its license and notice. Launchpad changed four lines so Claude uses Codex only when you ask: [docs/CODEX-ADDON.md](docs/CODEX-ADDON.md).
 
 ## License
 

@@ -35,6 +35,7 @@
 | Feature | Windows | macOS |
 |---------|---------|-------|
 | **AI agents** | ✅ Claude Code, Codex, GitHub Copilot or Antigravity | ✅ Claude Code |
+| **Claude hands work to Codex** (`/codex:review`, `/codex:rescue`) | ✅ with both installed | ❌ |
 | **Folder picker** | ✅ Native dialog | ✅ Native dialog |
 | **Right-click menu** | ✅ Context menu | ✅ Quick Action |
 | **Language config** | ✅ config.txt (24+ languages) | ✅ config.txt (24+ languages) |
