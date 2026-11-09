@@ -338,11 +338,12 @@ test('UT_InstallerAgy_PageLayout: every control inside the page, none overlappin
     m = /^(\d+)%$/.exec(v); if (m) return whole * Number(m[1]) / 100;
     assert.fail('a size in pixels does not scale with the dialog font: ' + v);
   };
-  const controls = [...page.matchAll(/\$\{NSD_Create(\w+)\} (\S+) (\S+) (\S+) (\S+) [^\n]*\n\s*Pop (\$\w+)/g).map(m => {
+  // Array.from, not .map on matchAll's iterator: iterator helpers need Node 22, and CI runs Node 20.
+  const controls = Array.from(page.matchAll(/\$\{NSD_Create(\w+)\} (\S+) (\S+) (\S+) (\S+) [^\n]*\n\s*Pop (\$\w+)/g), m => {
     const r = { kind: m[1], v: m[6], x: unit(m[2], W), y: unit(m[3], H), w: unit(m[4], W), h: unit(m[5], H) };
     if (r.kind === 'DropList') r.h = DROPLIST;
     return r;
-  })];
+  });
   assert.ok(controls.length >= 12, 'controls found: ' + controls.length);
   for (const c of controls) assert.ok(c.x >= 0 && c.y >= 0 && c.x + c.w <= W && c.y + c.h <= H, 'outside the page: ' + JSON.stringify(c));
   const notes = controls.filter(c => /Note$/.test(c.v));

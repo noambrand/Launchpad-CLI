@@ -40,6 +40,8 @@ function runAntigravityCase(c) {
   const env = h.baseEnv(d, Object.assign({
     FAKE_AGY_LOG: d.agyLog, FAKE_COPILOT_LOG: fakeCopilot.log, FAKE_CODEX_LOG: fakeCodex.log, HOME: d.user,
     KIVUN_TEST_PAUSE_DIR: d.agyPause, KIVUN_TEST_SCRIPT_POLICY: 'none',
+    // The Node that Copilot would run on is a test input, as in Copilot's harness: CI's own Node is older than Copilot allows.
+    KIVUN_TEST_NODE_VERSION: cpx.NODE_OK,
   }, c.env || {}));
   env.PATH = fakeCopilot.prefix + ';' + fakeCodex.prefix + ';' + env.PATH;
   d.env = env;
