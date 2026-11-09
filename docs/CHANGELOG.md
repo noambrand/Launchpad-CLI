@@ -1,5 +1,35 @@
 # Changelog
 
+## [3.6.0] - Unreleased
+
+### Added: Claude hands work to Codex, on Windows
+
+With both Claude Code and Codex on your PC, the installer now offers **Let Claude hand work to Codex**
+on its components page. It sets up OpenAI's own free Codex add-on for Claude Code
+([openai/codex-plugin-cc](https://github.com/openai/codex-plugin-cc) v1.0.6, Apache-2.0), so two AIs
+from two companies work on the same job:
+
+- **A second opinion:** in Claude, `/codex:review` has Codex read your changes and list the mistakes it
+  finds. `/codex:adversarial-review` asks Codex to question the approach itself.
+- **Hand over a job:** `/codex:rescue` and the job, for example `/codex:rescue fix the failing test`.
+  Codex does it, and Claude shows what Codex says.
+
+How it works:
+
+- **Only when you ask.** OpenAI's add-on lets Claude hand jobs to Codex on its own. Launchpad's copy
+  changes four lines so Claude waits for you. What changed and why: `docs/CODEX-ADDON.md`.
+- **Limits.** What Codex does counts toward your Codex (ChatGPT) limits, not Claude's.
+- **The automatic review stays off.** The add-on's automatic review after every Claude reply can loop
+  and use up the limits, so Launchpad never turns it on.
+- **When it appears.** Each install still chooses one AI agent, so the tick shows when this install
+  leaves both on the PC: the agent chosen now plus the other one installed before. It starts ticked.
+- **Unticking.** Untick it to leave it out; the next install remembers that. Running the installer
+  again with it unticked takes it out.
+- **No Git needed to install.** The add-on ships inside the installer, the files OpenAI released, so
+  installing it needs no network and no Git.
+- **Your own copy.** If you installed OpenAI's add-on yourself, Launchpad leaves yours as it is.
+- **Uninstall** takes Launchpad's copy out. Codex, its sign-in and your conversations stay.
+
 ## [3.5.1] - 2026-11-09
 
 ### Fixed: the folder picker opens with the Launch button in view

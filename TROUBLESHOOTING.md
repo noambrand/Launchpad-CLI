@@ -585,6 +585,49 @@ Expected: it asks once for every new folder. Say yes for your own projects.
 
 ---
 
+## Claude hands work to Codex
+
+These apply to the installer's **Let Claude hand work to Codex** tick (Windows, v3.6.0+): OpenAI's Codex
+add-on for Claude Code, with `/codex:review` and `/codex:rescue`. The setup log is
+`%LOCALAPPDATA%\Kivun\codex-plugin-setup.log`.
+
+### The installer doesn't show the tick
+
+It shows only when the install leaves both Claude Code and Codex on your PC. Each install chooses one AI
+agent: run the installer once with Claude Code and once with Codex, in either order, and the tick shows
+on the second run.
+
+### A review says "Reviewer failed to output a response"
+
+Usually Codex isn't signed in. In Claude, type `/codex:setup`: it says what is missing. To sign in, type
+`!codex login` in Claude (or open Codex once from Launchpad), then run the review again.
+
+### A review says there is nothing to review
+
+`/codex:review` reviews the changes in a Git project that aren't committed yet, or a branch with
+`--base main`. A folder that isn't a Git project, or one with no changes, has nothing for it to read. To
+have Codex look at something else, use `/codex:rescue` and say what to look at.
+
+### "Claude already has codex@openai-codex, so Launchpad left it as it is"
+
+You installed OpenAI's add-on yourself before. It is the same add-on, and Launchpad doesn't add a second
+copy, because the commands would have the same names. Yours keeps working; it is OpenAI's original, which
+may hand work to Codex without being asked. To use Launchpad's copy instead, type `/plugin` in Claude,
+uninstall `codex@openai-codex`, and run the installer again.
+
+### "Could not set up Claude to hand work to Codex"
+
+The install itself succeeded; only the add-on was left out. The log above names the reason. Run the
+installer again to try once more.
+
+### Codex used up my limits
+
+Everything Codex does through the add-on counts toward your Codex (ChatGPT) limits. `/codex:status` shows
+jobs still running and `/codex:cancel` stops one. Launchpad never turns on the add-on's automatic review
+after every reply.
+
+---
+
 ## macOS
 
 ### Installer blocked by Gatekeeper

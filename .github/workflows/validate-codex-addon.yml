@@ -1,0 +1,92 @@
+name: Validate bundled Codex add-on
+
+# OpenAI's Codex add-on for Claude Code (openai/codex-plugin-cc, Apache-2.0) ships inside the Windows
+# installer from source/plugins/codex, changed by tools/codex-addon-patch.js so Claude uses Codex only
+# when the user asks (v3.6.0, docs/CODEX-ADDON.md). These checks prove the shipped files are the pinned
+# upstream release plus exactly those changes, that the add-on still loads on the Claude Code Launchpad
+# users get (the `latest` channel), and that the installer's steps are still there. The weekly run
+# catches a Claude Code release that breaks the add-on before a user does.
+
+on:
+  push:
+    paths:
+      - 'source/plugins/**'
+      - 'tools/codex-addon-patch.js'
+      - 'ClaudeCode_Launchpad_CLI_Setup.nsi'
+      - '.github/workflows/validate-codex-addon.yml'
+  pull_request:
+  schedule:
+    - cron: '41 5 * * 1'
+  workflow_dispatch:
+
+jobs:
+  codex-addon:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install Claude Code from the latest channel, as Launchpad users get it
+        run: |
+          npm install -g @anthropic-ai/claude-code@latest
+          claude --version
+
+      - name: UT_CODEX_CI_01 shipped files match codex.sha256 byte for byte
+        run: |
+          set -eu
+          cd source/plugins/codex
+          sha256sum -c --strict --quiet ../codex.sha256
+          diff <(find . -type f | sed 's#^\./##' | LC_ALL=C sort) \
+               <(awk '{print $2}' ../codex.sha256 | LC_ALL=C sort) \
+            || (echo "FAIL: files on disk differ from the checksum list"; exit 1)
+          echo "PASS: matches the checksum list"
+
+      - name: UT_CODEX_CI_02 the pinned upstream release plus Launchpad's changes gives exactly the shipped files
+        run: |
+          set -eu
+          # read returns 1 at a last line without a newline, even after reading it.
+          read -r URL TAG COMMIT SUB < source/plugins/codex.upstream || test -n "${SUB:-}"
+          git -c core.autocrlf=false clone --quiet --depth 1 --branch "$TAG" "$URL" "$RUNNER_TEMP/upstream"
+          test "$(git -C "$RUNNER_TEMP/upstream" rev-parse HEAD)" = "$COMMIT" \
+            || (echo "FAIL: $TAG is no longer commit $COMMIT"; exit 1)
+          cp -r "$RUNNER_TEMP/upstream/$SUB" "$RUNNER_TEMP/rebuilt"
+          node tools/codex-addon-patch.js "$RUNNER_TEMP/rebuilt"
+          diff -r "$RUNNER_TEMP/rebuilt" source/plugins/codex \
+            || (echo "FAIL: the shipped add-on is not upstream plus the documented changes"; exit 1)
+          node tools/codex-addon-patch.js source/plugins/codex --check
+          echo "PASS: $URL $TAG $COMMIT plus tools/codex-addon-patch.js"
+
+      - name: UT_CODEX_CI_03 catalog and add-on pass strict validation
+        run: |
+          set -eu
+          claude plugin validate --strict source/plugins
+          claude plugin validate --strict source/plugins/codex
+
+      - name: UT_CODEX_CI_04 installs from the folder, beside rtl-terminal, and removes cleanly
+        run: |
+          set -eu
+          export CLAUDE_CONFIG_DIR="$(mktemp -d)"
+          claude plugin marketplace add "$PWD/source/plugins"
+          claude plugin install codex@launchpad-plugins --scope user
+          claude plugin list --json | node -e "const l=JSON.parse(require('fs').readFileSync(0,'utf8'));if(!l.some(p=>p.id==='codex@launchpad-plugins'&&p.enabled))process.exit(1)" \
+            || (echo "FAIL: add-on not installed and on"; exit 1)
+          claude plugin install rtl-terminal@launchpad-plugins --scope user
+          claude plugin marketplace remove launchpad-plugins
+          if claude plugin list | grep -q 'codex@launchpad-plugins'; then echo "FAIL: removal left the add-on installed"; exit 1; fi
+          echo "PASS: install and removal"
+
+      - name: UT_CODEX_CI_05 installer ships the helper, offers the tick and turns it on and off
+        run: |
+          set -eu
+          NSI=ClaudeCode_Launchpad_CLI_Setup.nsi
+          grep -qF 'File "source\configure-codex-plugin.js"' "$NSI" || (echo "FAIL: helper not packaged"; exit 1)
+          grep -qF 'Section "Let Claude hand work to Codex" SecCodexPlugin' "$NSI" || (echo "FAIL: no tick"; exit 1)
+          grep -qF '"$INSTDIR\configure-codex-plugin.js" install' "$NSI" || (echo "FAIL: never turned on"; exit 1)
+          grep -qF '"$INSTDIR\configure-codex-plugin.js" remove' "$NSI" || (echo "FAIL: never turned off"; exit 1)
+          grep -qF '!define MUI_PAGE_CUSTOMFUNCTION_PRE ComponentsPre' "$NSI" || (echo "FAIL: the tick is never hidden"; exit 1)
+          if grep -q 'enable-review-gate' "$NSI" source/configure-codex-plugin.js; then echo "FAIL: the review gate must stay off"; exit 1; fi
+          echo "PASS: packaged, offered, turned on and off; review gate never turned on"

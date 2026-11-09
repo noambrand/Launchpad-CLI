@@ -15,7 +15,8 @@ ClaudeCode Launchpad CLI is a Claude Code installer for Windows and macOS. It se
    - Enter your name
    - Choose the AI agent: Claude Code (default), Codex by OpenAI, GitHub Copilot or Antigravity by Google (see [Using Codex](#using-codex), [Using GitHub Copilot](#using-github-copilot) and [Using Google Antigravity](#using-google-antigravity))
    - Choose response language (English or Hebrew)
-   - Select components (Windows Terminal recommended, Git optional)
+   - Select components (Windows Terminal recommended, Git optional, and **Let Claude hand work to
+     Codex** when you have both; see [Claude hands work to Codex](#claude-hands-work-to-codex))
 3. Done! Launch from the desktop shortcut.
 
 ### macOS
@@ -217,6 +218,40 @@ off. It stays off in new sessions and new folders.
 there, which would stop `npm` inside Antigravity, so for Antigravity's session only, Launchpad lets scripts
 on your own PC run. Unsigned scripts from the internet stay blocked, nothing is saved, and Antigravity
 still asks before it runs commands. If you or your company set a script policy, it is left alone.
+
+## Claude hands work to Codex
+
+With both Claude Code and Codex on your PC (Windows), Claude can hand work to Codex. This uses OpenAI's
+own free add-on for Claude Code, which Launchpad installs for you. You get both AIs on the same work:
+
+- **A second opinion:** in Claude, type `/codex:review`. Codex reads your changes and lists the mistakes
+  it finds; ask Claude to fix them. `/codex:adversarial-review` asks Codex to question the approach
+  itself.
+- **Hand over a job:** type `/codex:rescue` and the job, for example `/codex:rescue fix the failing
+  test`. Codex does it in your folder, and Claude shows what Codex says.
+- `/codex:status` shows Codex jobs still running, `/codex:cancel` stops one, and `/codex:setup` checks
+  that Codex is installed and signed in.
+
+**Getting it:** the installer offers the tick **Let Claude hand work to Codex** on its components page
+when this install leaves both agents on your PC. Each install chooses one AI agent, so you get both by
+running the installer twice: once with Claude Code and once with Codex, in either order. The tick shows
+on the second run. It starts ticked; untick it to leave it out, and the next install remembers that.
+Running the installer again with it unticked takes it out.
+
+**Good to know:**
+
+- Claude uses Codex **only when you ask**. Launchpad's copy of the add-on is changed so that Claude never
+  hands a job to Codex on its own.
+- What Codex does counts toward your **Codex (ChatGPT) usage limits**, not Claude's.
+- `/codex:review` reviews the changes in a Git project, so the folder needs Git (the installer offers
+  it).
+- Sign Codex in first: open Codex once from Launchpad, or type `!codex login` in Claude.
+- The add-on's automatic review after every Claude reply (`/codex:setup --enable-review-gate`) stays off.
+  OpenAI warns it can loop and use up your limits quickly, so Launchpad never turns it on.
+- Already installed OpenAI's add-on yourself? Launchpad leaves yours as it is and doesn't add a second
+  copy.
+- Uninstalling Launchpad takes Launchpad's copy out. Codex itself, your sign-in and your conversations
+  stay.
 
 ## Configuration
 
