@@ -54,6 +54,16 @@ test('UT_AntigravityInstall_SilentFailure: a script that exits 0 but installs no
   assert.ok(!fs.existsSync(path.join(d.kivun, 'agy-install.cmd')));
 });
 
+test('UT_AntigravityInstall_FetchFailureSaysWhy: when Google\'s script can\'t be fetched, the screen and the log say why (exit 7)', () => {
+  const d = fx.makeAgyEnv('inst-nofetch', { stub: false });
+  const r = install(d, { KIVUN_TEST_AGY_INSTALLER: path.join(d.root, 'no-such-install.cmd') });
+  assert.strictEqual(r.status, 7, r.stdout + r.stderr);
+  assert.match(r.stdout, /Google's installer could not be fetched or run: .*no-such-install\.cmd/);
+  assert.ok(r.stdout.includes(MANUAL), r.stdout);
+  const log = fs.readFileSync(path.join(d.kivun, 'antigravity-setup.log'), 'utf8');
+  assert.match(log, /failed: Google's installer could not be fetched or run/);
+});
+
 test('UT_AntigravityInstall_BadFolderCharacter: a Kivun path with & says Google\'s installer refuses it', () => {
   const d = fx.makeAgyEnv('inst-amp', { stub: false });
   const kivun = path.join(d.root, 'a&b');

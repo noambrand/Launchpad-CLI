@@ -284,17 +284,19 @@ async function installAntigravity(env) {
   }
   say(env, tag + 'Downloading Antigravity (about 225 MB). This can take a few minutes - please keep this window open...');
   let file = null;
+  const fetchProblems = [];
   try {
     file = await fetchInstaller(env, p);
     // Google's script exits 0 even when its last step fails, so its exit code is ignored (D3).
     cp.spawnSync(env.ComSpec || 'cmd.exe', ['/d', '/c', file], { stdio: 'inherit', env, timeout: 15 * 60 * 1000 });
   } catch (e) {
     CC.log(p, 'install-antigravity: ' + e.message);
-    c.problems.push("Google's installer could not be fetched or run: " + e.message);
+    fetchProblems.push("Google's installer could not be fetched or run: " + e.message);
   }
   if (file) fs.rmSync(file, { force: true });
   c = resolveAntigravity(env, { noCache: true });
-  if (c.missing) return failed(env, p, c.problems);
+  // The fetch error goes first: the search that follows doesn't know why nothing was installed.
+  if (c.missing) return failed(env, p, fetchProblems.concat(c.problems));
   say(env, tag + 'Antigravity ' + c.version + ' installed.');
   return 0;
 }
