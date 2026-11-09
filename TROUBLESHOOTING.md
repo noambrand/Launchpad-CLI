@@ -544,6 +544,13 @@ in, so changing a profile's language doesn't change a conversation you continue.
 
 A session you start by hand, or in Google's Antigravity app, gets no language line.
 
+### Antigravity's first answer doesn't seem to know the folder
+
+Sometimes Antigravity starts on a folder's first message before it has opened the folder. It may then
+check where it is first, with a command such as `Get-Location` that it asks you to approve, or say it
+has no workspace. Approve the check, or tell it to work in the current folder. Your next messages work
+in the folder as usual.
+
 ### "Continue last" started a new conversation
 
 Antigravity treats folder names with different capital letters as different folders: `C:\Work\Notes` and
