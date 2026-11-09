@@ -18,7 +18,7 @@ files are present (a missing one usually means antivirus removed it), Claude / N
 Windows Terminal / winget detection, running antivirus, a Defender-quarantine hint, and
 the install log. **It needs no admin, runs no PowerShell, and sends nothing automatically.**
 
-**Email it to noambbb@gmail.com** or attach it to a [GitHub issue](https://github.com/noambrand/launchpad-cli/issues).
+**Email it to launchpad@excel-armor.com** or attach it to a [GitHub issue](https://github.com/noambrand/launchpad-cli/issues).
 
 ---
 
@@ -478,6 +478,110 @@ Expected: right-to-left display works only with Claude Code. Each word shows wit
 About 170 MB for the program, and about 210 MB more that it unpacks the first time it runs, in
 `%LOCALAPPDATA%\copilot`. To remove Copilot, run `npm uninstall -g @github/copilot`, then delete that folder.
 Uninstalling Launchpad leaves Copilot, its sign-in and its conversations in place.
+
+---
+
+## Google Antigravity
+
+Only for PCs where Antigravity (Google) was chosen in the installer. The install log is
+`%LOCALAPPDATA%\Kivun\install-log.txt`.
+
+### "Antigravity CLI could not be installed", or Launchpad says it can't find `agy`
+
+The installer's details then show `install.cmd /antigravity exit code: 7`, and the install log says why.
+Check the internet connection, then run the installer again. If your PC already had another AI agent,
+Launchpad keeps starting it until Antigravity installs. On a PC with none, Launchpad shows a repair message.
+
+To install it yourself, open Command Prompt from the Start menu and run this one line:
+
+```
+curl -fsSL https://antigravity.google/cli/install.cmd -o install.cmd && install.cmd && del install.cmd
+```
+
+Then run the Launchpad installer again and choose Antigravity (Google). Launchpad looks for `agy.exe` in
+`%LOCALAPPDATA%\agy\bin` first, then on your PATH, and needs version 1.5.3 or newer. To see which one it
+found, run the **Diagnostics** tool: it has an Antigravity section.
+
+### Google's installer says it can't run, or stops at once
+
+Google's installer refuses to run when the command that starts it holds any of these: `&  |  ;  <  >  ^`.
+Launchpad starts it without them. If you run the line above yourself, type it exactly as shown and don't
+add anything to it.
+
+Google's installer can finish with no error even when its last step, adding its folder to your PATH, failed.
+If `agy` isn't found afterwards, close and reopen Command Prompt, then check that `%LOCALAPPDATA%\agy\bin\agy.exe` exists.
+
+### "Antigravity was not started"
+
+Launchpad refuses options that turn off Antigravity's permission questions (`--dangerously-skip-permissions`,
+`--mode auto`), options that would fight a choice Launchpad makes (`--settings`), and `--remote-control` and
+`--remote-agent`. One dash counts as two: `-mode auto` is refused too. It also refuses a word that isn't an
+option or an option's value, such as `changelog` or `remote-control start`, because Antigravity would run it
+as one of its own commands. The message names the option or the word. Remove it from the picker's
+Antigravity options, or from `ANTIGRAVITY_FLAGS` in `config.txt`, then launch again. `--mode plan`,
+`--model` and `--sandbox` are fine.
+
+### Google uses what I type: how do I turn it off?
+
+On Antigravity's "Terms of Service & Data Use" screen, shown once after the sign-in and the colour scheme, a
+tick that lets Google collect and use what you type is already set. To clear it there, press Enter, then the
+Down arrow, then the Right arrow to reach Done, and press Enter. If you left it, type `/config` inside
+Antigravity, then change **Enable Telemetry** to off. It stays off in new sessions and new folders. Launchpad
+can't change it for you: Antigravity keeps it with your Google account.
+
+### `npm` or another script fails inside Antigravity: "running scripts is disabled on this system"
+
+Launchpad allows this for Antigravity's session unless a script policy has already been chosen on the PC,
+because it leaves any chosen policy alone. Either change that policy, if you are allowed to, or ask your
+administrator. A company PC's Group Policy always wins. Also check that you started Antigravity from
+Launchpad: a session you start by hand doesn't get this.
+
+### The first reply isn't in my language
+
+When a folder has its own `AGENTS.md`, Antigravity may skip the language line in the very first message
+and answer in English. The next messages follow it. Also, a conversation keeps the language it started
+in, so changing a profile's language doesn't change a conversation you continue. Start a new one.
+
+A session you start by hand, or in Google's Antigravity app, gets no language line.
+
+### Antigravity's first answer doesn't seem to know the folder
+
+Sometimes Antigravity starts on a folder's first message before it has opened the folder. It may then
+check where it is first, with a command such as `Get-Location` that it asks you to approve, or say it
+has no workspace. Approve the check, or tell it to work in the current folder. Your next messages work
+in the folder as usual.
+
+### "Continue last" started a new conversation
+
+Antigravity treats folder names with different capital letters as different folders: `C:\Work\Notes` and
+`C:\work\notes` don't share conversations. Launchpad starts Antigravity in the folder's real spelling, but a
+conversation first started in a differently spelled folder won't be found. Use **Pick from history**: it
+starts Antigravity, then type `/resume` to choose from every folder's conversations.
+
+### There's no sound, or only one sound
+
+Antigravity has only the *done* sound, at the end of a reply. It has no *permission* sound, because
+Antigravity gives Launchpad no way to know it is asking. Sounds play only when Launchpad started
+Antigravity (picker, right-click or Send To), and they follow the on/off switch in the picker. If the
+*done* sound is missing, run the **Diagnostics** tool: its Antigravity section shows whether the four files
+of Launchpad's plugin are in `%USERPROFILE%\.gemini\config\plugins\launchpad`. If they aren't, run the
+installer again.
+
+### The bottom line doesn't show the model and the weekly limit
+
+Launchpad adds it for launches from Launchpad. If you chose a status line of your own in Antigravity's
+`settings.json` (`%USERPROFILE%\.gemini\antigravity-cli\settings.json`), yours is kept. Parts of the line
+are left out when Antigravity doesn't give them.
+
+### How do I sign out of Antigravity, or remove its sign-in?
+
+Open **Credential Manager** from the Start menu, choose **Windows Credentials**, and delete the entry named
+`gemini:antigravity`. Antigravity asks you to sign in again the next time. Uninstalling Launchpad leaves
+Antigravity, its sign-in and its conversations in place.
+
+### Antigravity asks whether to trust a folder
+
+Expected: it asks once for every new folder. Say yes for your own projects.
 
 ---
 

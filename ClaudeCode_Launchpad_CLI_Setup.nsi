@@ -5,7 +5,7 @@
 Unicode True
 
 !define PRODUCT_NAME "ClaudeCode Launchpad CLI"
-!define PRODUCT_VERSION "3.4.0"
+!define PRODUCT_VERSION "3.5.0"
 !define PRODUCT_PUBLISHER "Noam Brand"
 !define PRODUCT_WEB_SITE "https://github.com"
 !define PRODUCT_DESCRIPTION "Claude Code installer for Windows"
@@ -40,12 +40,12 @@ InstallDir "${INSTALL_DIR}"
 ShowInstDetails show
 
 ; Version info
-VIProductVersion "3.4.0.0"
+VIProductVersion "3.5.0.0"
 VIAddVersionKey "ProductName" "${PRODUCT_NAME}"
 VIAddVersionKey "ProductVersion" "${PRODUCT_VERSION}"
 VIAddVersionKey "CompanyName" "${PRODUCT_PUBLISHER}"
 VIAddVersionKey "FileDescription" "${PRODUCT_DESCRIPTION}"
-VIAddVersionKey "FileVersion" "3.4.0.0"
+VIAddVersionKey "FileVersion" "3.5.0.0"
 VIAddVersionKey "LegalCopyright" "(C) 2026 ${PRODUCT_PUBLISHER}"
 
 ; Modern UI Configuration
@@ -79,6 +79,9 @@ Var FinishText
 !define FINISH_TEXT_CLAUDE "${PRODUCT_NAME} has been installed successfully.$\r$\n$\r$\n${PRODUCT_DESCRIPTION}$\r$\n$\r$\nTIP: Pin it to your taskbar for one-click access — click Start, type '${PRODUCT_NAME}', right-click the result and choose 'Pin to taskbar'. No need to hunt for the desktop icon.$\r$\n$\r$\nYou will need an Anthropic API key to use Claude Code.$\r$\nGet one at: https://console.anthropic.com/"
 !define FINISH_TEXT_CODEX "Codex is ready. When it first opens, sign in with your ChatGPT account or an OpenAI API key. On the Hooks need review screen, choose Trust all and continue to turn on Launchpad's sounds.$\r$\n$\r$\nThe Quick Start Guide explains the sandbox question Codex asks on its first run."
 !define FINISH_TEXT_COPILOT "GitHub Copilot is ready. When it first opens, answer the folder trust question, then type /login if it asks you to sign in with your GitHub account.$\r$\n$\r$\nThe Quick Start Guide explains the other questions Copilot asks on its first run."
+; v3.5.0 (D12). With the two check boxes the finish page shows only about five lines of this text
+; (a label 195u x 40u), so it is kept that short: checked on screen. A label shows && as one &.
+!define FINISH_TEXT_ANTIGRAVITY "Antigravity CLI is ready. First run: choose Google OAuth, sign in in the browser, paste the code shown. On 'Terms of Service && Data Use', press Enter to clear the tick (Google uses what you type while it is ticked), then Down, Right and Enter on Done. Answer the folder trust question."
 !define MUI_FINISHPAGE_TITLE "${PRODUCT_NAME} Installation Complete!"
 !define MUI_FINISHPAGE_TEXT "$FinishText"
 !define MUI_FINISHPAGE_RUN
@@ -118,7 +121,7 @@ Var NodeExe
 ; there (this process's PATH is stale right after install, same as NodeExe),
 ; else `cmd /c claude` so an npm-installed claude.cmd on PATH still works.
 Var ClaudeCmd
-; v3.3.0: the agent chosen on the configuration page, "claude", "codex" or "copilot". .onInit starts it
+; v3.3.0: the agent chosen on the configuration page, "claude", "codex", "copilot" or "antigravity". .onInit starts it
 ; from AGENT in an existing config.txt (missing or anything else = claude), so an upgrade,
 ; also a silent one, keeps the agent the PC already uses.
 Var ConfigAgent
@@ -131,6 +134,10 @@ Var CodexOK
 Var AgentCopilotRadio
 Var AgentCopilotNote
 Var CopilotOK
+; v3.5.0: the same for Google Antigravity CLI.
+Var AgentAntigravityRadio
+Var AgentAntigravityNote
+Var AntigravityOK
 
 ; Pre-install warning: remind users to finish active CLI sessions
 Function .onInit
@@ -163,9 +170,12 @@ Function .onInit
     StrCpy $ConfigAgent "codex"
   ${ElseIf} $0 S== "copilot"
     StrCpy $ConfigAgent "copilot"
+  ${ElseIf} $0 S== "antigravity"
+    StrCpy $ConfigAgent "antigravity"
   ${EndIf}
   Call ApplyAgentChoice
   Call ApplyCopilotChoice
+  Call ApplyAntigravityChoice
 FunctionEnd
 
 ; Configuration page
@@ -185,23 +195,28 @@ nsDialogs::Create 1018
   Pop $ConfigUsername
 
   ; v3.3.0: the AI agent Launchpad installs and starts (D17). Claude Code is the default.
+  ; v3.5.0: four agents, in two rows of two. The page is 300u x 140u: the controls below the
+  ; radios moved down 3u to 11u, a little closer together, and the notes end at 140u.
   ${NSD_CreateLabel} 0 31u 100% 12u "AI agent:"
   Pop $0
-  ${NSD_CreateFirstRadioButton} 0 43u 38% 12u "Claude Code (Anthropic)"
+  ${NSD_CreateFirstRadioButton} 0 43u 48% 12u "Claude Code (Anthropic)"
   Pop $AgentClaudeRadio
-  ${NSD_CreateAdditionalRadioButton} 39% 43u 28% 12u "Codex (OpenAI)"
+  ${NSD_CreateAdditionalRadioButton} 50% 43u 50% 12u "Codex (OpenAI)"
   Pop $AgentCodexRadio
-  ${NSD_CreateAdditionalRadioButton} 68% 43u 32% 12u "GitHub Copilot"
+  ${NSD_CreateAdditionalRadioButton} 0 55u 48% 12u "GitHub Copilot"
   Pop $AgentCopilotRadio
+  ${NSD_CreateAdditionalRadioButton} 50% 55u 50% 12u "Antigravity (Google)"
+  Pop $AgentAntigravityRadio
   ${NSD_OnClick} $AgentClaudeRadio AgentRadioClicked
   ${NSD_OnClick} $AgentCodexRadio AgentRadioClicked
   ${NSD_OnClick} $AgentCopilotRadio AgentRadioClicked
+  ${NSD_OnClick} $AgentAntigravityRadio AgentRadioClicked
 
-  ; Language selection (used by both agents; on an upgrade config.txt keeps its own)
-  ${NSD_CreateLabel} 0 61u 100% 12u "Response language:"
+  ; Language selection (used by every agent; on an upgrade config.txt keeps its own)
+  ${NSD_CreateLabel} 0 72u 100% 10u "Response language:"
   Pop $0
 
-  ${NSD_CreateDropList} 0 73u 100% 200u ""
+  ${NSD_CreateDropList} 0 82u 100% 200u ""
   Pop $ConfigLanguage
   ${NSD_CB_AddString} $ConfigLanguage "English"
   ${NSD_CB_AddString} $ConfigLanguage "Hebrew"
@@ -231,24 +246,32 @@ nsDialogs::Create 1018
   ${NSD_CB_SelectString} $ConfigLanguage "English"
 
   ; Terminal color theme checkbox
-  ${NSD_CreateCheckbox} 0 93u 100% 12u "Apply Kivun light-blue terminal theme (recommended)"
+  ${NSD_CreateCheckbox} 0 99u 100% 12u "Apply Kivun light-blue terminal theme (recommended)"
   Pop $ConfigTerminalColor
   ${NSD_Check} $ConfigTerminalColor
 
   ; Shown only while Codex is selected.
-  ${NSD_CreateLabel} 0 110u 100% 28u "Codex is a large download (about 500 MB). Codex shows Hebrew and Arabic left to right. Right-to-left display works only with Claude Code."
+  ${NSD_CreateLabel} 0 113u 100% 27u "Codex is a large download (about 500 MB). Codex shows Hebrew and Arabic left to right. Right-to-left display works only with Claude Code."
   Pop $AgentCodexNote
   ; Shown only while Copilot is selected.
-  ${NSD_CreateLabel} 0 110u 100% 28u "GitHub Copilot is a download of about 170 MB, and needs Node.js 22 or newer and a GitHub account with Copilot. Copilot shows Hebrew and Arabic left to right. Right-to-left display works only with Claude Code."
+  ${NSD_CreateLabel} 0 113u 100% 27u "GitHub Copilot is a download of about 170 MB, and needs Node.js 22 or newer and a GitHub account with Copilot. Copilot shows Hebrew and Arabic left to right. Right-to-left display works only with Claude Code."
   Pop $AgentCopilotNote
+  ; Shown only while Antigravity is selected. D12: the data-use tick, before the first launch.
+  ; A label shows && as one &.
+  ${NSD_CreateLabel} 0 113u 100% 27u "Antigravity is a download of about 225 MB and needs a Google account. On its 'Terms of Service && Data Use' screen, press Enter to clear the tick (Google uses what you type while it is ticked), then the Down arrow, the Right arrow and Enter on Done."
+  Pop $AgentAntigravityNote
   ShowWindow $AgentCodexNote ${SW_HIDE}
   ShowWindow $AgentCopilotNote ${SW_HIDE}
+  ShowWindow $AgentAntigravityNote ${SW_HIDE}
   ${If} $ConfigAgent == "codex"
     ${NSD_Check} $AgentCodexRadio
     ShowWindow $AgentCodexNote ${SW_SHOW}
   ${ElseIf} $ConfigAgent == "copilot"
     ${NSD_Check} $AgentCopilotRadio
     ShowWindow $AgentCopilotNote ${SW_SHOW}
+  ${ElseIf} $ConfigAgent == "antigravity"
+    ${NSD_Check} $AgentAntigravityRadio
+    ShowWindow $AgentAntigravityNote ${SW_SHOW}
   ${Else}
     ${NSD_Check} $AgentClaudeRadio
   ${EndIf}
@@ -262,15 +285,19 @@ Function ConfigPageLeave
   ${NSD_GetState} $ConfigTerminalColor $ConfigTerminalColor
   ${NSD_GetState} $AgentCodexRadio $0
   ${NSD_GetState} $AgentCopilotRadio $1
+  ${NSD_GetState} $AgentAntigravityRadio $2
   ${If} $0 == ${BST_CHECKED}
     StrCpy $ConfigAgent "codex"
   ${ElseIf} $1 == ${BST_CHECKED}
     StrCpy $ConfigAgent "copilot"
+  ${ElseIf} $2 == ${BST_CHECKED}
+    StrCpy $ConfigAgent "antigravity"
   ${Else}
     StrCpy $ConfigAgent "claude"
   ${EndIf}
   Call ApplyAgentChoice
   Call ApplyCopilotChoice
+  Call ApplyAntigravityChoice
 FunctionEnd
 
 Function AgentRadioClicked
@@ -286,6 +313,12 @@ Function AgentRadioClicked
     ShowWindow $AgentCopilotNote ${SW_SHOW}
   ${Else}
     ShowWindow $AgentCopilotNote ${SW_HIDE}
+  ${EndIf}
+  ${NSD_GetState} $AgentAntigravityRadio $0
+  ${If} $0 == ${BST_CHECKED}
+    ShowWindow $AgentAntigravityNote ${SW_SHOW}
+  ${Else}
+    ShowWindow $AgentAntigravityNote ${SW_HIDE}
   ${EndIf}
 FunctionEnd
 
@@ -375,6 +408,13 @@ Section "!Core Components (Required)" SecCore
   ; v3.4.0: GitHub Copilot CLI setup and launch, and the script its sound hooks call.
   File "source\configure-copilot.js"
   File "source\copilot-sound.js"
+  ; v3.5.0: Google Antigravity CLI setup and launch, the hook its plugin calls (copied into the plugin
+  ; folder by "configure-antigravity.js install" in SecAntigravity, so it must be here first) and the
+  ; status line Launchpad passes to its launches.
+  File "source\configure-antigravity.js"
+  File "source\antigravity-hook.js"
+  File "source\antigravity-statusline.js"
+  File "source\antigravity-statusline.cmd"
   File "source\install.cmd"
   File "source\launchpad-diagnostics.cmd"
   File "source\install-node-elevated.js"
@@ -471,8 +511,9 @@ Section "!Core Components (Required)" SecCore
   ${EndIf}
 
   FileWrite $0 "# AI agent for launches that skip the folder picker (right-click a folder, Send To):$\r$\n"
-  FileWrite $0 "# empty or claude = Claude Code, codex = Codex. Chosen in the installer; run the$\r$\n"
-  FileWrite $0 "# installer again to change it. The folder picker keeps its own choice per profile.$\r$\n"
+  FileWrite $0 "# empty or claude = Claude Code, codex = Codex, copilot = GitHub Copilot,$\r$\n"
+  FileWrite $0 "# antigravity = Antigravity CLI. Chosen in the installer; run the installer again$\r$\n"
+  FileWrite $0 "# to change it. The folder picker keeps its own choice per profile.$\r$\n"
   FileWrite $0 "AGENT=$\r$\n"
 
   FileWrite $0 "# Terminal background color$\r$\n"
@@ -502,6 +543,17 @@ Section "!Core Components (Required)" SecCore
   FileWrite $0 "# First message sent to Codex on launches that skip the folder picker (optional).$\r$\n"
   FileWrite $0 "# Commands that start with / can't run at startup.$\r$\n"
   FileWrite $0 "CODEX_STARTUP_CMD=$\r$\n"
+  FileWrite $0 "# GitHub Copilot startup options (optional, applied on every Copilot launch)$\r$\n"
+  FileWrite $0 "# Example: COPILOT_FLAGS=--add-dir C:\docs$\r$\n"
+  FileWrite $0 "COPILOT_FLAGS=$\r$\n"
+  FileWrite $0 "# First message sent to Copilot on launches that skip the folder picker (optional).$\r$\n"
+  FileWrite $0 "COPILOT_STARTUP_CMD=$\r$\n"
+  FileWrite $0 "# Antigravity startup options (optional, applied on every Antigravity launch)$\r$\n"
+  FileWrite $0 "# Example: ANTIGRAVITY_FLAGS=--mode plan$\r$\n"
+  FileWrite $0 "ANTIGRAVITY_FLAGS=$\r$\n"
+  FileWrite $0 "# First message sent to Antigravity on launches that skip the folder picker (optional).$\r$\n"
+  FileWrite $0 "# Text that starts with / is sent to Antigravity as a message, not run as a command.$\r$\n"
+  FileWrite $0 "ANTIGRAVITY_STARTUP_CMD=$\r$\n"
 
   FileWrite $0 "# Claude Code only (Codex never auto-continues).$\r$\n"
   FileWrite $0 "# Auto-continue when the 5-hour usage limit resets (opt-in, default off).$\r$\n"
@@ -789,6 +841,7 @@ Section "-Use Claude Code" SecAgentClaude
     ${ConfigRead} "$INSTDIR\config.txt" "AGENT=" $0
     ${If} $0 S== "codex"
     ${OrIf} $0 S== "copilot"
+    ${OrIf} $0 S== "antigravity"
       DetailPrint "Switching Launchpad back to Claude Code..."
       nsExec::ExecToLog '"$NodeExe" "$INSTDIR\configure-codex.js" set-agent claude'
       Pop $0
@@ -856,10 +909,13 @@ Section /o "!Install Codex (Required)" SecCodex
 
   ${If} $CodexOK != "1"
     DetailPrint "WARNING: Codex could not be installed"
-    ; With Claude Code on this PC nothing changes (D8). On a PC with no agent, AGENT records
-    ; Codex, so the launcher shows the repair message rather than trying Claude.
+    ; With another agent on this PC nothing changes (D8): Claude Code, or a verified Copilot or
+    ; Antigravity (v3.5.0). On a PC with no agent, AGENT records Codex, so the launcher shows the
+    ; repair message rather than trying Claude.
     StrCpy $2 "0"
     ${If} ${FileExists} "$PROFILE\.local\bin\claude.exe"
+    ${OrIf} ${FileExists} "$INSTDIR\kivun-copilot-path.txt"
+    ${OrIf} ${FileExists} "$INSTDIR\kivun-antigravity-path.txt"
       StrCpy $2 "1"
     ${Else}
       nsExec::ExecToStack 'where claude'
@@ -978,6 +1034,7 @@ Section /o "!Install GitHub Copilot (Required)" SecCopilot
     StrCpy $2 "0"
     ${If} ${FileExists} "$PROFILE\.local\bin\claude.exe"
     ${OrIf} ${FileExists} "$INSTDIR\kivun-codex-path.txt"
+    ${OrIf} ${FileExists} "$INSTDIR\kivun-antigravity-path.txt"
       StrCpy $2 "1"
     ${Else}
       nsExec::ExecToStack 'where claude'
@@ -1020,6 +1077,112 @@ Section "-Right-click entries for Copilot" SecCopilotMenu
   ${EndIf}
 SectionEnd
 
+; v3.5.0: Google Antigravity CLI instead of Claude Code. Built the same way as SecCopilot: AGENT is
+; switched to antigravity only after the installed copy is verified. agy.exe itself needs no Node.js;
+; configure-antigravity.js, which installs and checks it, does.
+Section /o "!Install Antigravity CLI (Required)" SecAntigravity
+  SectionIn RO
+  StrCpy $AntigravityOK "0"
+
+  ; Node by full path, exactly as SecClaudeCode resolves it (this process's PATH is stale).
+  StrCpy $NodeExe "node"
+  ${If} ${FileExists} "$PROGRAMFILES64\nodejs\node.exe"
+    StrCpy $NodeExe "$PROGRAMFILES64\nodejs\node.exe"
+  ${ElseIf} ${FileExists} "$PROGRAMFILES\nodejs\node.exe"
+    StrCpy $NodeExe "$PROGRAMFILES\nodejs\node.exe"
+  ${ElseIf} ${FileExists} "$LOCALAPPDATA\Programs\nodejs\node.exe"
+    StrCpy $NodeExe "$LOCALAPPDATA\Programs\nodejs\node.exe"
+  ${EndIf}
+  DetailPrint "Using Node at: $NodeExe"
+
+  DetailPrint "Installing Antigravity CLI via install.cmd (a download of about 225 MB)..."
+  ExecWait 'cmd /c ""$INSTDIR\install.cmd" /antigravity "$NodeExe""' $0
+  DetailPrint "install.cmd /antigravity exit code: $0"
+
+  ${If} $0 == 0
+    ; The shared sounds only; an Antigravity-only PC gets no Claude settings.json.
+    DetailPrint "Deploying voice alerts for Antigravity..."
+    nsExec::ExecToLog '"$NodeExe" "$INSTDIR\sounds\configure-sound-hooks.js" --deploy-only'
+    Pop $1
+    ; Launchpad's own plugin folder in Antigravity's settings (D8). It copies antigravity-hook.js
+    ; from $INSTDIR, which SecCore has already put there.
+    DetailPrint "Configuring Antigravity (sound and language hooks)..."
+    nsExec::ExecToLog '"$NodeExe" "$INSTDIR\configure-antigravity.js" install'
+    Pop $1
+    ${If} $1 S!= "0"
+      DetailPrint "WARNING: Could not configure Antigravity's sound and language hooks (result: $1)"
+    ${EndIf}
+  ${EndIf}
+
+  ; Windows Terminal profile and color, as at the end of SecClaudeCode.
+  DetailPrint "Applying Windows Terminal profile settings..."
+  nsExec::ExecToLog '"$NodeExe" "$INSTDIR\apply-wt-settings.js"'
+  Pop $1
+  DetailPrint "Applying terminal color from config..."
+  nsExec::ExecToLog '"$NodeExe" "$INSTDIR\apply-terminal-color.js"'
+  Pop $1
+
+  ; The one commit point: verify the copy, cache its path, then AGENT=antigravity.
+  ${If} $0 == 0
+    nsExec::ExecToLog '"$NodeExe" "$INSTDIR\configure-antigravity.js" commit'
+    Pop $1
+    ${If} $1 S== "0"
+      StrCpy $AntigravityOK "1"
+      DetailPrint "Antigravity CLI installed and selected"
+    ${EndIf}
+  ${EndIf}
+
+  ${If} $AntigravityOK != "1"
+    DetailPrint "WARNING: Antigravity CLI could not be installed"
+    ; With another agent on this PC nothing changes. On a PC with no agent, AGENT records Antigravity,
+    ; so the launcher shows the repair message rather than trying Claude.
+    StrCpy $2 "0"
+    ${If} ${FileExists} "$PROFILE\.local\bin\claude.exe"
+    ${OrIf} ${FileExists} "$INSTDIR\kivun-codex-path.txt"
+    ${OrIf} ${FileExists} "$INSTDIR\kivun-copilot-path.txt"
+      StrCpy $2 "1"
+    ${Else}
+      nsExec::ExecToStack 'where claude'
+      Pop $3
+      Pop $4
+      ${If} $3 S== "0"
+        StrCpy $2 "1"
+      ${EndIf}
+    ${EndIf}
+    ${If} $2 == "1"
+      MessageBox MB_OK|MB_ICONEXCLAMATION "Antigravity CLI could not be installed, so nothing was changed: Launchpad keeps starting the AI agent it used before.$\n$\nDetails, and how to install it yourself: $LOCALAPPDATA\Kivun\install-log.txt$\n$\nRun this installer again to try once more." /SD IDOK
+    ${Else}
+      nsExec::ExecToLog '"$NodeExe" "$INSTDIR\configure-codex.js" set-agent antigravity'
+      Pop $1
+      MessageBox MB_OK|MB_ICONEXCLAMATION "Antigravity CLI could not be installed.$\n$\nDetails, and how to install it yourself: $LOCALAPPDATA\Kivun\install-log.txt$\n$\nRun this installer again to finish installing it. Until then, Launchpad shows a repair message instead of starting Antigravity." /SD IDOK
+    ${EndIf}
+  ${EndIf}
+SectionEnd
+
+; Right-click: one entry per agent, as for Codex and Copilot. Antigravity's appear once an Antigravity
+; copy is verified, even when this run chose another agent, and stay until uninstall. A PC with no Claude
+; gets no Claude entry. Kept out of SecAntigravity, which the installer tests run for real: this writes
+; to the real registry.
+Section "-Right-click entries for Antigravity" SecAntigravityMenu
+  ${If} ${FileExists} "$INSTDIR\kivun-antigravity-path.txt"
+    WriteRegStr HKCU "Software\Classes\Directory\shell\ClaudeCodeLaunchpadAntigravity" "" "Open with Antigravity CLI"
+    WriteRegStr HKCU "Software\Classes\Directory\shell\ClaudeCodeLaunchpadAntigravity" "Icon" "$INSTDIR\claude_icon.ico"
+    WriteRegStr HKCU "Software\Classes\Directory\shell\ClaudeCodeLaunchpadAntigravity\command" "" '"$INSTDIR\claudecode-launchpad.bat" OPEN-ANTIGRAVITY "%1"'
+    WriteRegStr HKCU "Software\Classes\Directory\Background\shell\ClaudeCodeLaunchpadAntigravity" "" "Open Antigravity CLI here"
+    WriteRegStr HKCU "Software\Classes\Directory\Background\shell\ClaudeCodeLaunchpadAntigravity" "Icon" "$INSTDIR\claude_icon.ico"
+    WriteRegStr HKCU "Software\Classes\Directory\Background\shell\ClaudeCodeLaunchpadAntigravity\command" "" '"$INSTDIR\claudecode-launchpad.bat" OPEN-ANTIGRAVITY "%V"'
+    ${IfNot} ${FileExists} "$PROFILE\.local\bin\claude.exe"
+      nsExec::ExecToStack 'where claude'
+      Pop $3
+      Pop $4
+      ${If} $3 S!= "0"
+        DeleteRegKey HKCU "Software\Classes\Directory\shell\ClaudeCodeLaunchpad"
+        DeleteRegKey HKCU "Software\Classes\Directory\Background\shell\ClaudeCodeLaunchpad"
+      ${EndIf}
+    ${EndIf}
+  ${EndIf}
+SectionEnd
+
 Section "Install Windows Terminal (Recommended)" SecWindowsTerminal
   DetailPrint "Installing Windows Terminal via install.cmd..."
   ExecWait 'cmd /c "$INSTDIR\install.cmd" /wt' $0
@@ -1049,6 +1212,7 @@ SectionEnd
   !insertmacro MUI_DESCRIPTION_TEXT ${SecClaudeCode} "Claude Code CLI tool (installed via Anthropic native installer)."
   !insertmacro MUI_DESCRIPTION_TEXT ${SecCodex} "Codex CLI by OpenAI, installed with npm (a download of about 500 MB). Chosen on the configuration page instead of Claude Code."
   !insertmacro MUI_DESCRIPTION_TEXT ${SecCopilot} "GitHub Copilot CLI, installed with npm (a download of about 170 MB). Chosen on the configuration page instead of Claude Code."
+  !insertmacro MUI_DESCRIPTION_TEXT ${SecAntigravity} "Google Antigravity CLI, installed with Google's own installer (a download of about 225 MB). Chosen on the configuration page instead of Claude Code."
   !insertmacro MUI_DESCRIPTION_TEXT ${SecWindowsTerminal} "Windows Terminal with light blue color scheme. Falls back to cmd.exe if not installed."
   !insertmacro MUI_DESCRIPTION_TEXT ${SecGit} "Git version control (optional, for development workflows)."
 !insertmacro MUI_FUNCTION_DESCRIPTION_END
@@ -1086,6 +1250,28 @@ Function ApplyCopilotChoice
   ${Else}
     !insertmacro UnselectSection ${SecCopilot}
     SectionSetText ${SecCopilot} ""
+  ${EndIf}
+FunctionEnd
+
+; v3.5.0: an Antigravity choice skips the Claude, Codex and Copilot installs. Runs after
+; ApplyCopilotChoice and overrides what it and ApplyAgentChoice did. A separate function, because the
+; installer tests compile those two on their own. SecAntigravityMenu is selected by default and is
+; never unselected: like Copilot's, the entries of an already verified copy are written on every run.
+Function ApplyAntigravityChoice
+  ${If} $ConfigAgent == "antigravity"
+    !insertmacro UnselectSection ${SecClaudeCode}
+    SectionSetText ${SecClaudeCode} ""
+    !insertmacro UnselectSection ${SecCodex}
+    SectionSetText ${SecCodex} ""
+    !insertmacro UnselectSection ${SecCopilot}
+    SectionSetText ${SecCopilot} ""
+    !insertmacro SelectSection ${SecAntigravity}
+    SectionSetText ${SecAntigravity} "Install Antigravity CLI (Required)"
+    !insertmacro SelectSection ${SecAntigravityMenu}
+    StrCpy $FinishText "${FINISH_TEXT_ANTIGRAVITY}"
+  ${Else}
+    !insertmacro UnselectSection ${SecAntigravity}
+    SectionSetText ${SecAntigravity} ""
   ${EndIf}
 FunctionEnd
 
@@ -1198,6 +1384,8 @@ Section "Uninstall"
   DeleteRegKey HKCU "Software\Classes\Directory\Background\shell\ClaudeCodeLaunchpadCodex"
   DeleteRegKey HKCU "Software\Classes\Directory\shell\ClaudeCodeLaunchpadCopilot"
   DeleteRegKey HKCU "Software\Classes\Directory\Background\shell\ClaudeCodeLaunchpadCopilot"
+  DeleteRegKey HKCU "Software\Classes\Directory\shell\ClaudeCodeLaunchpadAntigravity"
+  DeleteRegKey HKCU "Software\Classes\Directory\Background\shell\ClaudeCodeLaunchpadAntigravity"
 
   ; v3.4.0: Launchpad's one hook file in Copilot's settings folder. A plain delete, so it works with
   ; Node.js gone. Copilot itself, its sign-in and its sessions are the user's and stay.
@@ -1208,6 +1396,15 @@ Section "Uninstall"
   Delete "$0\hooks\launchpad-sounds.json"
   DeleteRegKey HKCR "Directory\shell\ClaudeCodeLaunchpad"
   DeleteRegKey HKCR "Directory\Background\shell\ClaudeCodeLaunchpad"
+
+  ; v3.5.0: Launchpad's plugin folder in Antigravity's settings (D8): its four files, then the folder.
+  ; Plain deletes, so it works with Node.js gone. RMDir without /r keeps the folder when the user put a
+  ; file of their own in it. Antigravity itself, its sign-in and its conversations are the user's and stay.
+  Delete "$PROFILE\.gemini\config\plugins\launchpad\plugin.json"
+  Delete "$PROFILE\.gemini\config\plugins\launchpad\hooks.json"
+  Delete "$PROFILE\.gemini\config\plugins\launchpad\hook.cmd"
+  Delete "$PROFILE\.gemini\config\plugins\launchpad\antigravity-hook.js"
+  RMDir "$PROFILE\.gemini\config\plugins\launchpad"
 
   ; Remove Windows Terminal fragment
   RMDir /r "$LOCALAPPDATA\Microsoft\Windows Terminal\Fragments\ClaudeCodeLaunchpad"

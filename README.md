@@ -22,10 +22,10 @@
 
 </p>
 
-<h3 align="center">Point it at a folder, describe the job in your own language, and an AI agent does the work on your own files: Claude Code, Codex or GitHub Copilot.</h3>
+<h3 align="center">Point it at a folder, describe the job in your own language, and an AI agent does the work on your own files: Claude Code, Codex, GitHub Copilot or Google Antigravity.</h3>
 
 <p align="center">
-  <b>Built for people who do not write code.</b> Anthropic's Claude Code, OpenAI's Codex and GitHub Copilot CLI are genuinely capable AI agents, but they live in a terminal built for programmers, and that is where most people stop. This puts a normal window in front of them: pick your folder, type a sentence, watch it work. On Windows, the installer asks which agent you want; on macOS, it sets up Claude Code. Nothing to configure, no commands to memorise, no administrator rights.
+  <b>Built for people who do not write code.</b> Anthropic's Claude Code, OpenAI's Codex, GitHub Copilot CLI and Google's Antigravity CLI are genuinely capable AI agents, but they live in a terminal built for programmers, and that is where most people stop. This puts a normal window in front of them: pick your folder, type a sentence, watch it work. On Windows, the installer asks which agent you want; on macOS, it sets up Claude Code. Nothing to configure, no commands to memorise, no administrator rights.
 </p>
 
 <table align="center">
@@ -54,7 +54,7 @@
 
 |  | Manual Setup | Launchpad CLI |
 |---|---|---|
-| **Get Claude Code, Codex or GitHub Copilot running** | Find Node.js, Git and the agent's installer, run them in order, fix PATH | One installer, one click |
+| **Get Claude Code, Codex, GitHub Copilot or Antigravity running** | Find Node.js, Git and the agent's installer, run them in order, fix PATH | One installer, one click |
 | **Live status bar** (model, context %, usage) | Write your own statusline script + configure `settings.json` | Pre-installed |
 | **Desktop shortcut + right-click "Open with..."** | Manual `.lnk` files + registry edits | Included |
 | **Pick a folder before launching** | `cd` into every project | GUI picker dialog (browse tree or paste a path) |
@@ -74,7 +74,7 @@
   <img src="assets/picker.png" alt="ClaudeCode Launchpad CLI folder picker (v2.6.16) — folder selection up top, an Advanced options toggle that hides model / flags / startup slash-commands / env-vars by default, and a yellow 'Update available' banner that checks GitHub Releases on launch and offers a one-click Download button" width="780">
 </p>
 
-The desktop shortcut opens this picker: pick a profile from the chip row at the top (or `+ New` to save the current setup as a named profile — folder + model + flags + startup commands + env vars), type/paste a Windows path or browse the tree, optionally pick a model (Opus / Sonnet / Haiku), tap chips for common options (Respond in Hebrew, High effort, Auto-accept file edits, Read-only, Don't fail if Opus is busy, Confirm before changes), and add startup slash commands like `/voicemode:converse` that get typed into Claude after it opens. With Codex or GitHub Copilot, the picker shows that agent's own options instead, and each profile keeps each agent's settings apart.
+The desktop shortcut opens this picker: pick a profile from the chip row at the top (or `+ New` to save the current setup as a named profile — folder + model + flags + startup commands + env vars), type/paste a Windows path or browse the tree, optionally pick a model (Opus / Sonnet / Haiku), tap chips for common options (Respond in Hebrew, High effort, Auto-accept file edits, Read-only, Don't fail if Opus is busy, Confirm before changes), and add startup slash commands like `/voicemode:converse` that get typed into Claude after it opens. With Codex, GitHub Copilot or Antigravity, the picker shows that agent's own options instead, and each profile keeps each agent's settings apart.
 
 ## Launchpad CLI vs Kivun Terminal — which one?
 
@@ -172,16 +172,44 @@ New in 3.4.0: the installer also offers **GitHub Copilot**, with the same folder
 
 Details: [Quick Start](docs/QUICK_START.md#using-github-copilot) and [Troubleshooting](TROUBLESHOOTING.md#github-copilot).
 
+## Antigravity (Google) instead of Claude Code (Windows)
+
+New in 3.5.0: the installer also offers **Antigravity (Google)**, Google's coding agent, with the same
+folder picker, right-click "Open with", profiles and a sound. Since June 2026, Gemini CLI no longer serves
+free or Google AI Pro and Ultra accounts: those accounts moved to Antigravity CLI.
+
+- It is a download of about 225 MB, from Google's own installer, and needs a Google account (a free one
+  works, with a weekly limit). Antigravity itself doesn't need Node.js; Launchpad uses Node.js to install and
+  start it. If you already have Antigravity, Launchpad updates it.
+- The first time it opens: sign in with Google OAuth (your browser opens, then paste the code it shows
+  back into the window), keep the colour scheme, and answer the folder trust question.
+- **Before your first task, on the "Terms of Service & Data Use" screen** (shown once, after the sign-in and
+  the colour scheme): a tick, already set, lets Google use what you type. Press Enter to clear it, then press
+  the Down arrow, then the Right arrow to reach **Done**, and press Enter. To turn it off later, type `/config`
+  in Antigravity, then change **Enable Telemetry**.
+- With more than one agent installed, the picker shows a choice and each profile keeps its own settings.
+  Right-clicking a folder offers one entry for each agent.
+- **Continue last** reopens that folder's conversation. **Pick from history** starts a normal session and
+  tells you to type `/resume`.
+- In a launch from Launchpad, Antigravity's bottom line shows the model, how full the conversation is, and
+  how much of your weekly limit is left. The *done* sound plays at the end of a reply.
+- For Antigravity's session only, Launchpad lets scripts on your own PC run in the PowerShell built into
+  Windows, so `npm` works there. A script policy you or your company chose is left alone.
+- Not available with Antigravity: the *permission* sound (it has no such signal), idle reminder sound and
+  auto-continue. Launchpad refuses its permission bypasses in a profile.
+
+Details: [Quick Start](docs/QUICK_START.md#using-google-antigravity) and [Troubleshooting](TROUBLESHOOTING.md#google-antigravity).
+
 ## Quick Start
 
 ### Windows
 
 1. **[Download `ClaudeCode_Launchpad_CLI_Setup.exe`](https://github.com/noambrand/launchpad-cli/releases/latest)**
-2. Run it - no administrator rights needed. The wizard asks which AI agent to set up (Claude Code, Codex or GitHub Copilot) and detects what's already installed
+2. Run it - no administrator rights needed. The wizard asks which AI agent to set up (Claude Code, Codex, GitHub Copilot or Antigravity) and detects what's already installed
 3. Double-click the **"ClaudeCode Launchpad CLI"** desktop shortcut
 4. Pick a folder and tell your agent what to do
 
-> **SmartScreen / antivirus note:** the installer is **code-signed** by its verified publisher. A brand-new signature still builds Microsoft SmartScreen reputation over time, so for a short while you may still see *"Windows protected your PC"* (click **More info → Run anyway**), and some antivirus (e.g. McAfee) may warn. This is a **false positive**. Launchpad CLI is open-source (MIT) with [auditable source](https://github.com/noambrand/launchpad-cli), installs only official tools (Node.js, Git, Windows Terminal, Claude via [Anthropic's official installer](https://claude.ai/install.cmd), and Codex or GitHub Copilot from npm), and deliberately avoids the download/elevation tricks antivirus watches for. You can scan the file yourself on [VirusTotal](https://www.virustotal.com/). More detail in [TROUBLESHOOTING](TROUBLESHOOTING.md#antivirus-or-smartscreen-flags-the-installer-false-positive).
+> **SmartScreen / antivirus note:** the installer is **code-signed** by its verified publisher. A brand-new signature still builds Microsoft SmartScreen reputation over time, so for a short while you may still see *"Windows protected your PC"* (click **More info → Run anyway**), and some antivirus (e.g. McAfee) may warn. This is a **false positive**. Launchpad CLI is open-source (MIT) with [auditable source](https://github.com/noambrand/launchpad-cli), installs only official tools (Node.js, Git, Windows Terminal, Claude via [Anthropic's official installer](https://claude.ai/install.cmd), Codex or GitHub Copilot from npm, and Antigravity via [Google's official installer](https://antigravity.google/cli/install.cmd)), and deliberately avoids the download/elevation tricks antivirus watches for. You can scan the file yourself on [VirusTotal](https://www.virustotal.com/). More detail in [TROUBLESHOOTING](TROUBLESHOOTING.md#antivirus-or-smartscreen-flags-the-installer-false-positive).
 
 ### macOS
 
@@ -190,7 +218,7 @@ Details: [Quick Start](docs/QUICK_START.md#using-github-copilot) and [Troublesho
 3. Open **Terminal** and type `claude`
 4. Start coding with Claude
 
-> **First time?** You'll need an account for your agent: a Claude Pro/Max subscription or [Anthropic API key](https://console.anthropic.com) for Claude Code, a ChatGPT account or OpenAI API key for Codex, or a GitHub account with a Copilot plan (a free plan works) for GitHub Copilot.
+> **First time?** You'll need an account for your agent: a Claude Pro/Max subscription or [Anthropic API key](https://console.anthropic.com) for Claude Code, a ChatGPT account or OpenAI API key for Codex, a GitHub account with a Copilot plan (a free plan works) for GitHub Copilot, or a Google account (a free one works, with a weekly limit) for Antigravity.
 
 ## Want a hand with your first real task?
 
@@ -275,9 +303,10 @@ RESPONSE_LANGUAGE=english     # 24+ languages supported
 TERMINAL_COLOR=kivun          # kivun / dark / black / white / default, or a hex like #1e1e2e
 CLAUDE_FLAGS=                 # e.g. --continue
 AUTO_CONTINUE=false           # auto-type "continue" when the 5-hour limit resets (see below)
-AGENT=                        # empty = Claude Code, codex = Codex, copilot = GitHub Copilot (set by the installer)
+AGENT=                        # empty = Claude Code, codex = Codex, copilot = GitHub Copilot, antigravity = Antigravity (set by the installer)
 CODEX_FLAGS=                  # Codex options for every Codex launch, e.g. --search
 COPILOT_FLAGS=                # Copilot options for every Copilot launch, e.g. --add-dir C:\docs
+ANTIGRAVITY_FLAGS=            # Antigravity options for every Antigravity launch, e.g. --mode plan
 ```
 
 ## Auto-continue after the 5-hour limit resets (opt-in)
@@ -374,5 +403,5 @@ Right-to-left layout in Claude's replies comes from [rtl-terminal](https://githu
   <a href="https://github.com/noambrand"><img src="https://img.shields.io/badge/GitHub-noambrand-181717?logo=github" alt="GitHub"></a>
   <a href="https://www.linkedin.com/in/noambrand/"><img src="https://img.shields.io/badge/LinkedIn-noambrand-0A66C2?logo=linkedin&logoColor=white" alt="LinkedIn"></a>
   <a href="https://www.facebook.com/noambbb/"><img src="https://img.shields.io/badge/Facebook-noambbb-1877F2?logo=facebook&logoColor=white" alt="Facebook"></a>
-  <a href="mailto:noambbb@gmail.com"><img src="https://img.shields.io/badge/Email-noambbb%40gmail.com-EA4335?logo=gmail&logoColor=white" alt="Email"></a>
+  <a href="mailto:launchpad@excel-armor.com"><img src="https://img.shields.io/badge/Email-launchpad%40excel--armor.com-EA4335?logo=gmail&logoColor=white" alt="Email"></a>
 </p>

@@ -8,7 +8,7 @@
 //                           recording exactly what was added (kivun-codex-changes.json)
 //   uninstall               remove only those recorded additions that are still exactly present
 //   models [--bundled]      refresh the model list cache (kivun-codex-models.json)
-//   set-agent <claude|codex>  the ONLY writer of AGENT in config.txt (D13), one atomic replace (D18)
+//   set-agent <claude|codex|copilot|antigravity>  the ONLY writer of AGENT in config.txt (D13), one atomic replace (D18)
 //   commit                  verify the installed Codex, cache its path, then set-agent codex
 //   prepare [folder]        create a launch folder for a right-click / shortcut launch, print its id
 //                           (the launcher passes the folder in KV_FOLDER, not as an argument)
@@ -144,13 +144,13 @@ function setConfigValue(text, key, value) {
 
 function effectiveAgent(text) {
   const agent = parseConfig(text).get('AGENT');
-  return agent === 'codex' || agent === 'copilot' ? agent : 'claude';
+  return agent === 'codex' || agent === 'copilot' || agent === 'antigravity' ? agent : 'claude';
 }
 
 // The only writer of AGENT (D13). Writes nothing when the effective agent is already right, so a
 // Claude upgrade without an AGENT key leaves config.txt byte-identical (requirement A2).
 function setAgent(agent, env) {
-  if (agent !== 'claude' && agent !== 'codex' && agent !== 'copilot') throw new Error('agent must be claude, codex or copilot');
+  if (agent !== 'claude' && agent !== 'codex' && agent !== 'copilot' && agent !== 'antigravity') throw new Error('agent must be claude, codex, copilot or antigravity');
   const p = paths(env);
   const text = readIfExists(p.config);
   if (effectiveAgent(text) === agent) return false;
@@ -778,7 +778,7 @@ function main(argv) {
     case 'check': { let w; try { w = readLaunch(a1).workdir; } catch (e) { return 1; } try { return fs.statSync(w).isDirectory() ? 0 : 1; } catch (e) { return 1; } }
     case 'missing': return missingFolder(a1);
     default:
-      console.log('usage: node configure-codex.js install|uninstall|models [--bundled]|set-agent <claude|codex>|commit|prepare <folder>|info <id> workdir|compose <id>|run <id> [--relaunch]');
+      console.log('usage: node configure-codex.js install|uninstall|models [--bundled]|set-agent <claude|codex|copilot|antigravity>|commit|prepare <folder>|info <id> workdir|compose <id>|run <id> [--relaunch]');
       return 2;
   }
 }

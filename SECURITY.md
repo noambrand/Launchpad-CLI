@@ -12,7 +12,7 @@
 If you discover a security vulnerability in ClaudeCode Launchpad CLI, please report it responsibly:
 
 1. **Do not** open a public GitHub issue for security vulnerabilities.
-2. Email **noambbb@gmail.com** with:
+2. Email **launchpad@excel-armor.com** with:
    - A description of the vulnerability
    - Steps to reproduce
    - Potential impact

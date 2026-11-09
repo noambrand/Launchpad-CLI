@@ -526,7 +526,7 @@ if (require.main === module) {
 }
 
 module.exports = {
-  MIN_VERSION, MIN_NODE, FOOTER_ITEMS, THEME, paths, install, uninstall, addStatusLine, addTheme, removeSettings, findConversation, languageFolder, scriptPolicyChosen,
+  MIN_VERSION, MIN_NODE, FOOTER_ITEMS, THEME, paths, install, uninstall, addStatusLine, addTheme, removeSettings, findConversation, languageFolder, scriptPolicyChosen, hasVariable,
   npmCandidate, discover, resolveCopilot, launchFromConfig, plan, run, nodeTooOld, installCopilot, prepare, commit, main,
   createLaunch, readLaunch,
 };
