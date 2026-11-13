@@ -222,11 +222,19 @@ function fieldTpm(d) {
 }
 
 // ── 5-Hour Usage ──────────────────────
+// When the weekly reset comes before the session's own reset, the Session bar shows the weekly
+// reset time. Display only: writeRateLimitState() still gives auto-continue the session's own time.
+function sessionResetAt(d) {
+  const s = d.rate_limits?.five_hour?.resets_at;
+  const w = d.rate_limits?.seven_day?.resets_at;
+  return (typeof s === 'number' && typeof w === 'number' && w > 0 && w < s) ? w : s;
+}
+
 function fieldUsage5h(d) {
   const rl = d.rate_limits?.five_hour;
   if (!rl) return `Session ${C.d}-- undefined --${C.n}`;
   const pct = Math.round(rl.used_percentage || 0);
-  const rst = resetLabel(rl.resets_at);
+  const rst = resetLabel(sessionResetAt(d));
   return `Session ${makeBar(pct)} ${pct}%${rst ? C.d + ' resets in ' + rst + C.n : ''}`;
 }
 

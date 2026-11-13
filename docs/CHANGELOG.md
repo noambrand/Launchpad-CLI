@@ -1,5 +1,12 @@
 # Changelog
 
+## [Unreleased]
+
+### Changed: the Session bar never shows a reset later than the Weekly bar
+
+When the weekly limit resets before the session would, the Session bar in the status bar now
+shows the weekly reset time. The auto-continue watcher still waits for the session's own reset time.
+
 ## [3.6.0] - 2026-11-10
 
 ### Added: Claude hands work to Codex, on Windows
