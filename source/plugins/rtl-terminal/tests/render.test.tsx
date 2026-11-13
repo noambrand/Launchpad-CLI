@@ -6,7 +6,6 @@ import { drawBand } from '../hooks/register'
 const VIEWPORT = { columns: 60, rows: 20 }
 const BAND = {
   hasSurvey: false,
-  isCollapsed: false,
   isWorking: false,
   maxRows: 10,
   bodyColumns: 60,
@@ -58,9 +57,7 @@ test('leaves an English reply to the engine', async ($, on) => {
 // A test can't raise prompt.edit, so this draws the band through drawBand, the
 // function the AbovePrompt hook hands next(e)'s tree to while a preview shows.
 test("keeps another plugin's row in the band, with the preview under it", async ($, on) => {
-  on('ui.render', { component: 'AbovePrompt' }, ($, e, next) => {
-    // drawBand takes the terminal's elements, as in the add-on's own hook.
-    if (e.surface !== 'terminal') return next(e)
+  on('ui.render', { component: 'AbovePrompt' }, ($, e) => {
     const els = $.ui.resolve(e)
     const { Text } = els
     const beneath = <Text>other plugin: usage 42%</Text>

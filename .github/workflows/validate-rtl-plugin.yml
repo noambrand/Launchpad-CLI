@@ -44,11 +44,19 @@ jobs:
             || (echo "FAIL: files on disk differ from the checksum list"; exit 1)
           echo "PASS: identical to $(cat ../rtl-terminal.upstream)"
 
+      # Validates what the installer ships: source/plugins without tests/, *.sha256
+      # and *.upstream, as in the NSI's File /r /x line (UT_RTL_CI_05 pins it).
+      # Upstream's tests are typed for the Claude Code they were written on, so a
+      # newer one can reject them on types alone (2.1.323 did, 2026-11-13) while
+      # they still pass; UT_RTL_CI_03 runs them.
       - name: UT_RTL_CI_02 marketplace and plugin pass strict validation
         run: |
           set -eu
-          claude plugin validate --strict source/plugins
-          claude plugin validate --strict source/plugins/rtl-terminal
+          SHIP="$RUNNER_TEMP/shipped-plugins"
+          python3 -c "import shutil, sys; shutil.copytree(sys.argv[1], sys.argv[2], ignore=shutil.ignore_patterns('tests', '*.sha256', '*.upstream'))" source/plugins "$SHIP"
+          test ! -e "$SHIP/rtl-terminal/tests" && test -f "$SHIP/rtl-terminal/hooks/register.tsx"
+          claude plugin validate --strict "$SHIP"
+          claude plugin validate --strict "$SHIP/rtl-terminal"
 
       - name: UT_RTL_CI_03 the plugin's own tests pass on this Claude Code
         run: claude plugin test source/plugins/rtl-terminal
