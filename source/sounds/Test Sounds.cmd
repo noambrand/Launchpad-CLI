@@ -1,6 +1,6 @@
 @echo off
 cd /d "%~dp0"
-echo Playing the five alert sounds in the current mode...
+echo Playing the five alert sounds in the current voice and pack...
 echo.
 echo 1/5  done        (finished successfully)
 node play.js done

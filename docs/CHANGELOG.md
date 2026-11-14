@@ -2,6 +2,23 @@
 
 ## [Unreleased]
 
+### Added: 10 new voices for the voice alerts, and a Voice choice in the picker
+
+Every alert now comes in 11 voices: the Original one, plus 10 new American voices made with
+ElevenLabs, with the same text and the same triggers as before: 8 male (Adam, Will, Eric, Chris, Jon, Vincent, Hale, and the Original
+voice) and 3 female (Bella, Laura, Jessica).
+
+- **Adam is the new default.** Anyone who hasn't picked a voice hears Adam, upgrades included.
+  The Original voice is still in the list. **Bella** is the default when you pick Female.
+- **In the picker:** Advanced options → 🔊 Sound alerts → **Voice**: Male / Female, one chip per
+  voice, and **▶ Preview** to hear the permission alert in the selected voice and pack.
+- **Without the picker:** the new **Choose Voice** launcher, or `voice.js voice <name>` /
+  `voice.js voices`. `voice.js status` shows the voice.
+- Every agent (Claude, Codex, Copilot, Antigravity) uses the chosen voice. A clip a voice lacks
+  plays the Original clip, so an alert never goes silent.
+- The clips add about 16 MB to the sounds folder; the Windows installer grows from about 1.7 MB
+  to about 11 MB.
+
 ### Changed: the Session bar never shows a reset later than the Weekly bar
 
 When the weekly limit resets before the session would, the Session bar in the status bar now

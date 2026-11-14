@@ -269,12 +269,18 @@ Short spoken clips so you don't have to watch the screen. Set up automatically a
 *"Done."* vs *"Done. I'll pretend that took effort."*). Switch with **Regular Sounds ON** /
 **Funny Sounds ON** or `node ~/.claude/sounds/voice.js mode regular|funny`.
 
+**Pick the voice** — the Original voice plus 10 American voices made with ElevenLabs, the same text in each: 8 male (**Adam**,
+Will, Eric, Chris, Jon, Vincent, Hale, and the Original) and 3 female (**Bella**, Laura,
+Jessica). **Adam** plays until you pick one; **Bella** is the default for Female. In the
+picker: **Advanced options → 🔊 Sound alerts → Voice** — Male / Female, a chip per voice, and
+**▶ Preview**. Or double-click **Choose Voice**, or `node ~/.claude/sounds/voice.js voice <name>`.
+
 An optional **repeat reminder** (off by default) re-plays the *waiting* clip every couple
 of minutes once you've gone idle, until you respond. Playback uses Windows Media Player on
 Windows (no PowerShell) and `afplay` on macOS — no Python, no extra installs.
 
-Controls: double-click **Sound ON/OFF**, **Regular/Funny Sounds ON**, **Test Sounds** in
-`~/.claude/sounds/`, or `node ~/.claude/sounds/voice.js on|off|mode <m>|repeat on|off|status`.
+Controls: double-click **Sound ON/OFF**, **Regular/Funny Sounds ON**, **Choose Voice**, **Test Sounds** in
+`~/.claude/sounds/`, or `node ~/.claude/sounds/voice.js on|off|mode <m>|voice <name>|repeat on|off|status`.
 Full details: `~/.claude/sounds/README.md`.
 
 ### Turn all voice alerts off (one global switch)

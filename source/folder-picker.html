@@ -345,6 +345,40 @@
   .profile-chip-row button.profile-chip.active:hover {
     background: #1186e0;
   }
+
+  /* Voice chips (Sound alerts > Voice): the profile chips' look */
+  .voice-chip-row {
+    display: flex;
+    flex-wrap: wrap;
+    margin-top: 6px;
+  }
+  /* margin, not gap: the HTA engine ignores flex gap, so the chips touched */
+  .voice-chip-row button.voice-chip {
+    margin: 0 4px 4px 0;
+    padding: 5px 12px;
+    font-size: 12px;
+    font-family: "Segoe UI", Arial, sans-serif;
+    background: #f4f4f4;
+    border: 1px solid #c8c8c8;
+    color: #303030;
+    border-radius: 14px;
+    cursor: pointer;
+    min-width: 0;
+    white-space: nowrap;
+  }
+  .voice-chip-row button.voice-chip:hover {
+    background: #e5e5e5;
+    border-color: #888;
+  }
+  .voice-chip-row button.voice-chip.active {
+    background: #0078d4;
+    border-color: #005a9e;
+    color: #fff;
+    font-weight: 600;
+  }
+  .voice-chip-row button.voice-chip.active:hover {
+    background: #1186e0;
+  }
   .profile-bar > button {
     padding: 5px 10px;
     font-size: 12px;
@@ -1448,6 +1482,7 @@
 
   function loadSoundConfig() {
     soundCfg = null;
+    loadVoiceIndex();
     try {
       if (!fso.FileExists(soundCfgFile)) return;
       var c = JSON.parse(readUtf8(soundCfgFile));
@@ -1483,6 +1518,7 @@
     if (rep) rep.checked = soundCfg.repeat_enabled;
     var mins = document.getElementById("snd-minutes");
     if (mins) mins.value = soundCfg.repeat_minutes;
+    renderVoiceRow();
   }
 
   function flashSoundStatus() {
@@ -1521,6 +1557,123 @@
     try {
       var cmd = soundsDir + "\\Test Sounds.cmd";
       if (fso.FileExists(cmd)) { wshShell.Run("\"" + cmd + "\"", 1, false); }
+    } catch (e) {}
+  }
+
+  // ---- Voice (Sound alerts > Voice) ------------------------------------
+  // voices\voices.json lists the voices (id, label, gender, description) and the
+  // defaults: "default" (Adam) for no pick and Male, "default_female" (Bella) for
+  // Female. config.json "voice" holds the pick. Only the two voice handlers below
+  // write it, so a user who never picks stays on the default (play.js decides the
+  // same way). Chips, not a <select>: see populateProfileChips for why.
+  var voiceIndex = null;
+  var shownVoices = [];
+
+  function loadVoiceIndex() {
+    voiceIndex = null;
+    try {
+      var f = soundsDir + "\\voices\\voices.json";
+      if (!fso.FileExists(f)) return;
+      var idx = JSON.parse(readUtf8(f));
+      if (idx && idx.voices && idx.voices.length) voiceIndex = idx;
+    } catch (e) { voiceIndex = null; }
+  }
+
+  function voiceEntries() {
+    var out = [];
+    if (voiceIndex) {
+      for (var i = 0; i < voiceIndex.voices.length; i++) {
+        var v = voiceIndex.voices[i];
+        if (v && typeof v.id === "string") out.push(v);
+      }
+    }
+    if (!out.length) out.push({ id: "original", label: "Original", gender: "male", description: "the first Launchpad voice" });
+    return out;
+  }
+
+  function findVoiceEntry(id) {
+    var all = voiceEntries();
+    for (var i = 0; i < all.length; i++) { if (all[i].id === id) return all[i]; }
+    return null;
+  }
+
+  // That gender's default voice id, else its first voice, else null.
+  function defaultVoiceId(gender) {
+    var key = (gender === "female") ? "default_female" : "default";
+    var d = voiceIndex ? findVoiceEntry(voiceIndex[key]) : null;
+    if (d && d.gender === gender) return d.id;
+    var all = voiceEntries();
+    for (var i = 0; i < all.length; i++) { if (all[i].gender === gender) return all[i].id; }
+    return null;
+  }
+
+  function currentVoiceId() {
+    var id = (soundCfg && soundCfg.voice) ? ("" + soundCfg.voice).toLowerCase() : "";
+    if (id && findVoiceEntry(id)) return id;
+    var d = voiceIndex ? findVoiceEntry(voiceIndex["default"]) : null;
+    return d ? d.id : voiceEntries()[0].id;
+  }
+
+  function renderVoiceRow() {
+    var box = document.getElementById("snd-voice-chips");
+    if (!box) return;
+    var cur = findVoiceEntry(currentVoiceId());
+    var gender = (cur && cur.gender === "female") ? "female" : "male";
+    setRadioValue("snd-gender", gender);
+    var all = voiceEntries();
+    var html = "";
+    shownVoices = [];
+    for (var i = 0; i < all.length; i++) {
+      var v = all[i];
+      if (v.gender !== gender) continue;
+      html += '<button type="button" class="voice-chip' + (cur && v.id === cur.id ? ' active' : '') + '"'
+            + ' title="' + escapeHtml(v.description || v.label || v.id) + '"'
+            + ' onclick="onSoundVoiceChip(' + shownVoices.length + ')">' + escapeHtml(v.label || v.id) + '</button>';
+      shownVoices.push(v.id);
+    }
+    box.innerHTML = html;
+  }
+
+  function saveVoice(id) {
+    soundCfg.voice = id;
+    saveSoundConfig(); flashSoundStatus();
+  }
+
+  // Male / Female: switch to that gender's default (Adam / Bella). Clicking the
+  // gender already shown keeps the voice picked in it.
+  function onSoundGenderChange() {
+    if (!soundCfg) return;
+    var gender = (getRadioValue("snd-gender") === "female") ? "female" : "male";
+    var cur = findVoiceEntry(currentVoiceId());
+    if (!(cur && cur.gender === gender)) {
+      var id = defaultVoiceId(gender);
+      if (id) saveVoice(id);
+    }
+    renderVoiceRow();
+  }
+
+  function onSoundVoiceChip(i) {
+    if (!soundCfg || !shownVoices[i]) return;
+    saveVoice(shownVoices[i]);
+    renderVoiceRow();
+  }
+
+  // Play the permission clip of the selected voice and pack (same fallback as play.js),
+  // hidden, through play.vbs. Plays even when Sounds is Off: the user asked for it.
+  function previewVoice() {
+    try {
+      var id = currentVoiceId();
+      var mode = (soundCfg && soundCfg.mode === "funny") ? "funny" : "regular";
+      var cands = [];
+      if (id !== "original") cands.push(soundsDir + "\\voices\\" + id + "\\" + mode + "\\permission.wav");
+      cands.push(soundsDir + "\\" + mode + "\\permission.wav");
+      cands.push(soundsDir + "\\regular\\permission.wav");
+      for (var i = 0; i < cands.length; i++) {
+        if (fso.FileExists(cands[i])) {
+          wshShell.Run("wscript.exe //nologo \"" + soundsDir + "\\play.vbs\" \"" + cands[i] + "\"", 0, false);
+          return;
+        }
+      }
     } catch (e) {}
   }
 
@@ -2123,6 +2276,16 @@
           <label><input type="radio" name="snd-mode" value="funny" onclick="onSoundModeChange()" /> Funny <span style="color:#707070">(playful phrasing)</span></label>
         </div>
 
+        <div class="lbl">Voice:</div>
+        <div>
+          <div class="radio-row">
+            <label><input type="radio" name="snd-gender" value="male" onclick="onSoundGenderChange()" /> Male</label>
+            <label><input type="radio" name="snd-gender" value="female" onclick="onSoundGenderChange()" /> Female</label>
+            <button type="button" onclick="previewVoice()" style="margin-left:12px; padding:4px 10px; font-size:11px; min-width:0;" title="Play the permission alert in the selected voice and pack">▶ Preview</button>
+          </div>
+          <div class="voice-chip-row" id="snd-voice-chips"></div>
+        </div>
+
         <div class="lbl">Repeat reminder:</div>
         <div class="check-row">
           <label><input type="checkbox" id="snd-repeat" onclick="onSoundRepeatChange()" /> Remind me again every</label>
@@ -2132,7 +2295,7 @@
 
         <div class="lbl"></div>
         <div>
-          <button type="button" onclick="testSounds()" title="Play the four alerts (done, permission, waiting, save) in the selected voice pack">▶ Test Sounds</button>
+          <button type="button" onclick="testSounds()" title="Play the five alerts (done, error, permission, waiting, save) in the selected voice and pack">▶ Test Sounds</button>
           <span class="status" id="snd-status" style="margin-left:10px;"></span>
         </div>
       </div>
