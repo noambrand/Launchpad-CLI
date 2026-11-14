@@ -7,9 +7,11 @@
 //   macOS   : afplay
 //   Linux   : paplay || aplay   (best effort; see README - WSL audio is a stub)
 //
-// Two clip sets live in regular/<name>.wav and funny/<name>.wav. config.json "mode"
-// ("regular" | "funny") picks the set; resolution falls back funny -> regular -> flat
-// so a missing funny clip never goes silent unexpectedly.
+// Voices: the first Launchpad voice ("original") lives in regular/<name>.wav and
+// funny/<name>.wav; every other voice in voices/<id>/regular|funny/<name>.wav, listed by
+// voices/voices.json. config.json "voice" picks the voice (no "voice" = the index's
+// default, Adam) and "mode" ("regular" | "funny") the pack. Resolution falls back
+// voice -> original same pack -> original regular -> flat, so an alert never goes silent.
 'use strict';
 const fs = require('fs');
 const path = require('path');
@@ -35,11 +37,54 @@ function mode() {
   return m === 'funny' || m === 'regular' ? m : 'regular';
 }
 
-// Return the path of <name>.wav for the active mode (funny -> regular -> flat), or null.
+// The parsed voices/voices.json, or null when it is missing or broken.
+function loadIndex() {
+  try {
+    const idx = JSON.parse(fs.readFileSync(path.join(DIR, 'voices', 'voices.json'), 'utf8'));
+    return idx && typeof idx === 'object' && Array.isArray(idx.voices) ? idx : null;
+  } catch (_) {
+    return null;
+  }
+}
+
+function voiceDir(id) {
+  try {
+    return fs.statSync(path.join(DIR, 'voices', id)).isDirectory();
+  } catch (_) {
+    return false;
+  }
+}
+
+const cleanId = (v) => String(v || '').toLowerCase().replace(/[^a-z0-9_-]/g, '');
+
+// The voice for "no pick": the index's default, else Adam, else the original clips.
+function defaultVoice() {
+  const idx = loadIndex();
+  const d = cleanId(idx && idx.default);
+  if (d && (d === 'original' || voiceDir(d))) return d;
+  return voiceDir('adam') ? 'adam' : 'original';
+}
+
+// The voice that plays: config.json "voice" when it ships here, otherwise the default.
+// With an index, the voice must also be listed in it: an update copies folders in but
+// never deletes, so a dropped voice's folder can linger, and the picker (which reads only
+// the index) would then show the default while the dropped voice played.
+function voice() {
+  const v = cleanId(cfg().voice);
+  if (v === 'original') return v;
+  const idx = loadIndex();
+  const listed = !idx || idx.voices.some((x) => x && x.id === v);
+  if (v && listed && voiceDir(v)) return v;
+  return defaultVoice();
+}
+
+// Return the path of <name>.wav for the active voice and mode, or null.
 function resolve(name) {
   const safe = String(name || '').toLowerCase().replace(/[^a-z0-9_]/g, '');
   if (!safe) return null;
-  for (const cand of [path.join(mode(), safe), path.join('regular', safe), safe]) {
+  const v = voice();
+  const cands = v === 'original' ? [] : [path.join('voices', v, mode(), safe)];
+  for (const cand of cands.concat([path.join(mode(), safe), path.join('regular', safe), safe])) {
     const p = path.join(DIR, cand + '.wav');
     if (fs.existsSync(p)) return p;
   }
@@ -169,4 +214,4 @@ if (require.main === module) {
   }
 }
 // `clip` kept as an alias of resolve for callers (reminder.js).
-module.exports = { play, resolve, clip: resolve, mode, enabled };
+module.exports = { play, resolve, clip: resolve, mode, enabled, voice, defaultVoice, loadIndex };

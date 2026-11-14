@@ -1,6 +1,6 @@
 #!/bin/bash
 cd "$(dirname "$0")"
-echo "Playing the five alert sounds in the current mode..."
+echo "Playing the five alert sounds in the current voice and pack..."
 echo "1/5  done";       node play.js done;       sleep 3
 echo "2/5  error";      node play.js error;      sleep 3
 echo "3/5  permission"; node play.js permission; sleep 3

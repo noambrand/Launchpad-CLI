@@ -42,12 +42,43 @@ Every alert has two recordings — a plain one and a joke one:
 | waiting | "Attention required." | "Waiting for you. I've been very patient." |
 | save | "Manual intervention." | "About to delete things. Last chance to press escape." |
 
-Clips live in `regular/<name>.wav` and `funny/<name>.wav`; `config.json` `"mode"`
-selects the set and `play.js` falls back `funny → regular → flat`, so a missing funny
-clip never goes silent. Switch any time (applies immediately):
+Every voice has both sets: a `regular/` and a `funny/` folder (the Original voice's at the
+top of this folder, every other voice's under `voices/<name>/`, see **Voices** below).
+`config.json` `"mode"` selects the set, and a clip that is missing falls back to the
+Original voice's clip, so an alert never goes silent. Switch any time (applies immediately):
 
 - Double-click **Regular Sounds ON** / **Funny Sounds ON**
 - or `node voice.js mode regular|funny`
+
+## Voices — Adam by default
+
+Every alert comes in 11 voices: the Original one, plus 10 American voices made with
+ElevenLabs in 2026-11 with the same text and the same triggers; only the voice changes. **Adam** plays when you haven't picked a voice (new installs
+and upgrades alike); **Bella** is the default when you pick Female.
+
+| Male | Female |
+|------|--------|
+| **Adam** (default) — dominant, firm | **Bella** (default) — professional, warm |
+| Will — relaxed optimist | Laura — enthusiastic, quirky |
+| Eric — smooth, trustworthy | Jessica — playful, bright |
+| Chris — charming, down-to-earth | |
+| Jon — calm presence | |
+| Vincent — deep, confident | |
+| Hale — smooth, persuasive | |
+| Original — the first Launchpad voice | |
+
+Pick one in the launcher's picker (**Advanced options → 🔊 Sound alerts → Voice**: Male /
+Female, then a voice, **▶ Preview** to hear it), double-click **Choose Voice**, or run
+`node voice.js voice <name>` (`node voice.js voices` lists them). It applies to the very next
+alert, in every agent (Claude, Codex, Copilot, Antigravity) — they all play through `play.js`.
+
+The Original clips live in `regular/` and `funny/`; every other voice in
+`voices/<name>/regular/` and `voices/<name>/funny/`. `voices/voices.json` lists the voices,
+the two defaults, and each voice's ElevenLabs voice id and settings, so a new line can be
+recorded later in the same voice. `play.js` picks the clip in this order:
+`voices/<voice>/<pack>/<alert>.wav` → `<pack>/<alert>.wav` (Original) →
+`regular/<alert>.wav` → `<alert>.wav`, so a missing clip never goes silent. A `"voice"` that
+doesn't ship (or is garbled) plays the default.
 
 ## How playback works per platform
 
@@ -91,7 +122,9 @@ Double-click in this folder (`.cmd` on Windows, `.command` on macOS), or run the
 | **Sound OFF** | `voice.js off` | silence everything + stop any nag |
 | **Regular Sounds ON** | `voice.js mode regular` | use the plain clips |
 | **Funny Sounds ON** | `voice.js mode funny` | use the joke clips |
-| **Test Sounds** | — | play all four alerts in the current mode |
+| **Choose Voice** | `voice.js choose` | list the voices and pick one by number |
+| — | `voice.js voice <name>` / `voice.js voices` | pick a voice / list them |
+| **Test Sounds** | — | play all five alerts in the current voice and pack |
 | **View Alert Log** | `voice.js log` | open `alerts.log` — when/why each sound fired |
 | — | `voice.js repeat on\|off` | repeat reminder (off by default) |
 | — | `voice.js status` | show current settings |
@@ -102,7 +135,8 @@ Double-click in this folder (`.cmd` on Windows, `.command` on macOS), or run the
 { "enabled": true, "mode": "regular", "repeat_enabled": false, "repeat_minutes": 2 }
 ```
 
-`enabled`, `mode`, and `repeat_*` are re-read on every play, so they apply
+`"voice": "<name>"` is added when you pick a voice; without it you get the default (Adam).
+`enabled`, `mode`, `voice`, and `repeat_*` are re-read on every play, so they apply
 **immediately**. The hooks themselves load only when Claude Code starts, so a fresh
 install takes effect in the next session.
 
@@ -113,14 +147,16 @@ install takes effect in the next session.
 | `play.js` | Plays one alert: `node play.js done\|error\|permission\|waiting\|save` |
 | `play.vbs` | Windows player used by `play.js` (no PowerShell) |
 | `reminder.js` | The repeat reminder: `arm` / `disarm` / internal `wait` |
-| `voice.js` | All controls (on/off, mode, repeat, status, test) |
+| `voice.js` | All controls (on/off, mode, voice, repeat, status, test) |
 | `configure-sound-hooks.js` | Deploys to `~/.claude/sounds` and merges the hooks (idempotent) |
-| `config.json` | `enabled` + `mode` + `repeat_enabled` + `repeat_minutes` |
-| `regular/`, `funny/` | The two clip sets (`done/error/permission/waiting/save.wav`) |
+| `config.json` | `enabled` + `mode` + `voice` (once picked) + `repeat_enabled` + `repeat_minutes` |
+| `regular/`, `funny/` | The Original voice's two clip sets (`done/error/permission/waiting/save.wav`) |
+| `voices/<name>/regular/`, `voices/<name>/funny/` | The other 10 voices, same five clips each |
+| `voices/voices.json` | The voice list, the defaults (Adam, Bella), ElevenLabs ids and settings |
 | `alerts.log` | Trigger log — auto-created at runtime; when/why each alert fired |
 | `*.cmd` / `*.command` | Double-click launchers |
 
-The installer copies this whole folder (including `regular/` and `funny/`) to
+The installer copies this whole folder (including `regular/`, `funny/` and `voices/`) to
 `~/.claude/sounds/` and runs `node configure-sound-hooks.js` once to wire the hooks.
 Re-running that command is safe — it replaces only its own hooks and leaves every other
 setting untouched.
