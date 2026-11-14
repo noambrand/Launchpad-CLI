@@ -71,7 +71,9 @@ function bundle(files, config, index) {
     fs.mkdirSync(path.dirname(path.join(dir, f)), { recursive: true });
     fs.writeFileSync(path.join(dir, f), 'RIFF');
   }
-  return dir;
+  // The real path: on macOS the temp folder /var/... is a link to /private/var/..., and
+  // require() gives play.js the real one as __dirname, so paths must be compared on it.
+  return fs.realpathSync(dir);
 }
 const player = dir => require(path.join(dir, 'play.js'));
 const ORIGINAL_SET = CLIPS.flatMap(c => ['regular/' + c + '.wav', 'funny/' + c + '.wav']);
