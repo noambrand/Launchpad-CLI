@@ -2190,10 +2190,10 @@
     <button type="button" class="browse" onclick="browseFolder()">Browse Folder Tree...</button>
   </div>
 
-  <button type="button" id="advanced-toggle" class="advanced-toggle" title="Click to expand: model, conversation flags, startup slash commands, environment variables" onclick="toggleAdvanced()">
+  <button type="button" id="advanced-toggle" class="advanced-toggle" title="Click to expand: model, conversation flags, sound alerts and voice, terminal color, auto-continue, startup slash commands, environment variables" onclick="toggleAdvanced()">
     <span class="arrow">▶</span>
     <span>Advanced options</span>
-    <span class="sub">— click to show model, flags, startup slash commands, env vars</span>
+    <span class="sub">— model, flags, sounds and voice, terminal color, auto-continue, and more</span>
   </button>
   <div id="advanced-body" class="advanced-body">
 
@@ -2261,24 +2261,7 @@
   </div>
 
   <div class="option" style="margin-top:12px">
-    <div class="opt-label"><span class="opt-num">4</span> <span id="startup-title">Startup slash commands (optional):</span></div>
-    <textarea id="startup-cmds" rows="3" onkeyup="updateFlagPreview()" placeholder="One per line, e.g.&#10;/voicemode:converse&#10;/model opus"></textarea>
-    <div class="flag-help" id="startup-help">Each line is typed into Claude after the session opens. Use this to auto-launch voice mode, switch to a specific model, etc. Leave empty for normal launch.</div>
-  </div>
-
-  <div class="option" style="margin-top:12px">
-    <div class="opt-label">
-      <span class="opt-num">5</span> Environment variables (optional):
-      <button type="button" id="mask-toggle" style="margin-left:auto; padding:4px 10px; font-size:11px; min-width:0;" onclick="toggleMaskEnv()" title="Toggle whether env-var values are shown in the preview below. Values are always masked by default — click to reveal.">👁 show values</button>
-    </div>
-    <div class="env-row">
-      <textarea id="env-vars" rows="3" onkeyup="updateFlagPreview()" placeholder="KEY=VAL, one per line. Lines starting with # are ignored.&#10;e.g.&#10;ANTHROPIC_API_KEY=sk-ant-...&#10;DEBUG=1"></textarea>
-    </div>
-    <div class="flag-help">Per-profile environment variables passed into the Claude session. Values are masked in the preview by default for screenshot safety — click <b>👁 show values</b> above to reveal.</div>
-  </div>
-
-  <div class="option" style="margin-top:12px">
-    <div class="opt-label"><span class="opt-num">6</span> 🔊 Sound alerts (voice):</div>
+    <div class="opt-label"><span class="opt-num">4</span> 🔊 Sound alerts (voice):</div>
     <div id="sound-na" class="flag-help" style="display:none">Voice alerts aren't installed for this user yet, so there's nothing to configure here. (They install automatically the first time you launch.)</div>
     <div id="sound-block" style="display:none">
       <div class="flag-grid">
@@ -2322,7 +2305,7 @@
   </div>
 
   <div class="option" style="margin-top:12px">
-    <div class="opt-label"><span class="opt-num">7</span> 🎨 Terminal color:</div>
+    <div class="opt-label"><span class="opt-num">5</span> 🎨 Terminal color:</div>
     <div class="flag-grid">
       <div class="lbl">Background:</div>
       <div class="radio-row">
@@ -2345,12 +2328,29 @@
   </div>
 
   <div class="option" style="margin-top:12px">
-    <div class="opt-label"><span class="opt-num">8</span> ⏳ Auto-continue when limit resets:</div>
+    <div class="opt-label"><span class="opt-num">6</span> ⏳ Auto-continue when limit resets:</div>
     <div class="check-row">
       <label title="When the 5-hour usage limit resets, a background watcher focuses this tab and types &quot;continue&quot; once so work resumes on its own. Needs the PC awake and the tab still open. CAUTION: it can't see the screen — if a permission prompt is showing at reset time the keystrokes land there; &quot;Auto-accept file edits&quot; above helps but only for file-edit prompts (a command or tool prompt still gets the keys). It does not bypass the limit; use at your own risk."><input type="checkbox" id="auto-continue" onclick="onAutoContinueToggle()" /> Auto-type <b>continue</b> after the 5-hour limit resets</label>
       <span class="status" id="autocontinue-status" style="margin-left:10px;"></span>
     </div>
     <div class="flag-help">Off by default. Resumes idle work unattended once the limit's real reset time passes (it does <b>not</b> bypass the limit). Requires the PC awake and this tab still open. Because the watcher can't read the screen, <b>Auto-accept file edits</b> helps, but it only auto-accepts file-edit prompts, so a pending command or tool prompt still gets the keystrokes. May spend quota on unwanted work, so use at your own risk.</div>
+  </div>
+
+  <div class="option" style="margin-top:12px">
+    <div class="opt-label"><span class="opt-num">7</span> <span id="startup-title">Startup slash commands (optional):</span></div>
+    <textarea id="startup-cmds" rows="3" onkeyup="updateFlagPreview()" placeholder="One per line, e.g.&#10;/voicemode:converse&#10;/model opus"></textarea>
+    <div class="flag-help" id="startup-help">Each line is typed into Claude after the session opens. Use this to auto-launch voice mode, switch to a specific model, etc. Leave empty for normal launch.</div>
+  </div>
+
+  <div class="option" style="margin-top:12px">
+    <div class="opt-label">
+      <span class="opt-num">8</span> Environment variables (optional):
+      <button type="button" id="mask-toggle" style="margin-left:auto; padding:4px 10px; font-size:11px; min-width:0;" onclick="toggleMaskEnv()" title="Toggle whether env-var values are shown in the preview below. Values are always masked by default — click to reveal.">👁 show values</button>
+    </div>
+    <div class="env-row">
+      <textarea id="env-vars" rows="3" onkeyup="updateFlagPreview()" placeholder="KEY=VAL, one per line. Lines starting with # are ignored.&#10;e.g.&#10;ANTHROPIC_API_KEY=sk-ant-...&#10;DEBUG=1"></textarea>
+    </div>
+    <div class="flag-help">Per-profile environment variables passed into the Claude session. Values are masked in the preview by default for screenshot safety — click <b>👁 show values</b> above to reveal.</div>
   </div>
 
   </div><!-- /advanced-body -->

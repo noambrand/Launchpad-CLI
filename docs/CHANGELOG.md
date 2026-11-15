@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+### Changed: the developer options come last in Advanced options
+
+The picker's Advanced options now list the everyday settings first: 4 Sound alerts, 5 Terminal
+color and 6 Auto-continue. The developer tools, 7 Startup slash commands and 8 Environment
+variables, moved to the end. The Advanced options button now names the everyday settings too.
+
 ### Added: 10 new voices for the voice alerts, and a Voice choice in the picker
 
 Every alert now comes in 11 voices: the Original one, plus 10 new American voices made with
