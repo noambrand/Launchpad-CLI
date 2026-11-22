@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased]
+## [3.7.0] - 2026-11-22
 
 ### Changed: the developer options come last in Advanced options
 
