@@ -22,11 +22,13 @@
 
 </p>
 
-<h3 align="center">Point it at a folder, describe the job in your own language, and an AI agent does the work on your own files: Claude Code, Codex, GitHub Copilot or Google Antigravity.</h3>
+<h3 align="center">Claude Code in a window anyone can use: pick a folder, say what you need in your own language, and watch it work on your files, with the full terminal still underneath.</h3>
 
 <p align="center">
-  <b>Built for people who do not write code.</b> Anthropic's Claude Code, OpenAI's Codex, GitHub Copilot CLI and Google's Antigravity CLI are genuinely capable AI agents, but they live in a terminal built for programmers, and that is where most people stop. This puts a normal window in front of them: pick your folder, type a sentence, watch it work. On Windows, the installer asks which agent you want; on macOS, it sets up Claude Code. Nothing to configure, no commands to memorise, no administrator rights.
+  <b>For people who do not write code, and for developers who want a folder picker, a live usage-limit bar, voice alerts and saved profiles around the real Claude Code terminal.</b> Every flag, slash command and keyboard shortcut works as it does in a plain terminal. Anthropic's Claude Code, OpenAI's Codex, GitHub Copilot CLI and Google's Antigravity CLI are genuinely capable AI agents, but they live in a terminal built for programmers, and that is where most people stop. This puts a normal window in front of them: pick your folder, type a sentence, watch it work. On Windows, the installer asks which agent you want; on macOS, it sets up Claude Code. Nothing to configure, no commands to memorise, no administrator rights.
 </p>
+
+<p align="center">⭐ <b>If Launchpad saves you time, a star on GitHub helps other people find it.</b></p>
 
 <table align="center">
 <tr><th align="left">Instead of doing this by hand</th><th align="left">You type this</th></tr>
