@@ -29,7 +29,7 @@ Unicode True
 
 
 ; Per-user install — no admin needed. Everything lands under
-; %LOCALAPPDATA%\Kivun, HKCU registry, and the user's desktop.
+; %LOCALAPPDATA%\LaunchpadAI, HKCU registry, and the user's desktop.
 ; Previous releases requested admin and wrote to HKLM/HKCR; that broke
 ; under "over-the-shoulder" UAC because $LOCALAPPDATA then resolved to
 ; the elevating admin's profile, not the invoking user's. Fixed v2.6.4.
@@ -190,14 +190,46 @@ Function .onInit
   Call ApplyAntigravityChoice
 FunctionEnd
 
-; v3.8.0: Launchpad moved from %LOCALAPPDATA%\Kivun to %LOCALAPPDATA%\LaunchpadAI (Noam, 2026-11-26).
-; While the old folder holds Launchpad's launcher and the new one doesn't, the old one is the live
-; install: copy the user's settings, profiles, records and logs across. A cancelled run copies again
-; next time; once the new folder has its launcher, nothing is copied again, so a left-over old folder
-; never overwrites newer settings. One-launch folders and rate-limit state are not copied.
+; ---- v3.8.0: the move from the old folder (start) ----
+; Launchpad moved from %LOCALAPPDATA%\Kivun to %LOCALAPPDATA%\LaunchpadAI (Noam, 2026-11-26).
+Var CopiedTo          ; the folder the first copy went into ("" until then)
+Var CopiedCreated     ; "1" when that first copy created the folder
+Var IntoOldFolder     ; set by InstallingIntoOldFolder
+
+; "1" in $IntoOldFolder when the folder being installed into is the old folder or inside it (a /D=
+; or Directory page choice). Nothing is then copied, and the old folder is never removed.
+Function InstallingIntoOldFolder
+  Push $R0
+  StrCpy $IntoOldFolder "0"
+  ${If} $INSTDIR == "${OLD_DIR}"
+    StrCpy $IntoOldFolder "1"
+  ${Else}
+    StrLen $R0 "${OLD_DIR}\"
+    StrCpy $R0 $INSTDIR $R0
+    ${If} $R0 == "${OLD_DIR}\"
+      StrCpy $IntoOldFolder "1"
+    ${EndIf}
+  ${EndIf}
+  Pop $R0
+FunctionEnd
+
+; While the old folder holds Launchpad's launcher and the install folder doesn't, the old one is the
+; live install: copy the user's settings, profiles, records and logs across. Run in .onInit (so the
+; pages start from the user's choices) and again in SecCore (CopyAgainIntoFinalFolder). A cancelled
+; run copies again next time; once the install folder has its launcher nothing is copied again, so a
+; left-over old folder never overwrites newer settings. One-launch folders and rate-limit state stay.
 Function CopyFromOldFolder
-  ${If} ${FileExists} "${OLD_DIR}\claudecode-launchpad.bat"
+  Call InstallingIntoOldFolder
+  ${If} $IntoOldFolder == "0"
+  ${AndIf} ${FileExists} "${OLD_DIR}\claudecode-launchpad.bat"
   ${AndIfNot} ${FileExists} "$INSTDIR\claudecode-launchpad.bat"
+    ${If} $CopiedTo == ""
+      StrCpy $CopiedTo "$INSTDIR"
+      StrCpy $CopiedCreated "1"
+      ${If} ${FileExists} "$INSTDIR\*.*"
+        StrCpy $CopiedCreated "0"
+      ${EndIf}
+    ${EndIf}
     CreateDirectory "$INSTDIR"
     CopyFiles /SILENT "${OLD_DIR}\config.txt" "$INSTDIR"
     CopyFiles /SILENT "${OLD_DIR}\profiles.json" "$INSTDIR"
@@ -205,12 +237,46 @@ Function CopyFromOldFolder
     CopyFiles /SILENT "${OLD_DIR}\kivun-*.json" "$INSTDIR"
     CopyFiles /SILENT "${OLD_DIR}\*.log" "$INSTDIR"
     CopyFiles /SILENT "${OLD_DIR}\install-log.txt" "$INSTDIR"
+    CopyFiles /SILENT "${OLD_DIR}\Launchpad-Report.txt" "$INSTDIR"
     ${If} ${FileExists} "${OLD_DIR}\copilot-language\*.*"
       CopyFiles /SILENT "${OLD_DIR}\copilot-language" "$INSTDIR"
     ${EndIf}
     ClearErrors
   ${EndIf}
 FunctionEnd
+
+; SecCore, after the open Launchpad windows are closed: copy again into the final folder (the Directory
+; page may have changed it, and an open picker may have saved since .onInit). A first copy that went
+; into another folder, which it created, is removed.
+Function CopyAgainIntoFinalFolder
+  Call CopyFromOldFolder
+  ${If} $CopiedTo != ""
+  ${AndIf} $CopiedTo != $INSTDIR
+  ${AndIf} $CopiedCreated == "1"
+  ${AndIfNot} ${FileExists} "$CopiedTo\claudecode-launchpad.bat"
+    RMDir /r "$CopiedTo"
+  ${EndIf}
+FunctionEnd
+
+; Removes the old folder once the user's data is in the install folder: config.txt there, and
+; profiles.json too when the old folder had one. Only a Launchpad install (its launcher, VERSION or
+; picker), never the folder being installed into, and never Kivun-WSL (Kivun Terminal). No /REBOOTOK:
+; the installer runs without admin, so nothing could wait for a restart, and NSIS would then offer one.
+Function RemoveOldFolder
+  Call InstallingIntoOldFolder
+  ${If} $IntoOldFolder == "0"
+  ${AndIf} ${FileExists} "$INSTDIR\config.txt"
+    ${If} ${FileExists} "${OLD_DIR}\claudecode-launchpad.bat"
+    ${OrIf} ${FileExists} "${OLD_DIR}\VERSION"
+    ${OrIf} ${FileExists} "${OLD_DIR}\LaunchpadPicker.exe"
+      ${IfNot} ${FileExists} "${OLD_DIR}\profiles.json"
+      ${OrIf} ${FileExists} "$INSTDIR\profiles.json"
+        RMDir /r "${OLD_DIR}"
+      ${EndIf}
+    ${EndIf}
+  ${EndIf}
+FunctionEnd
+; ---- v3.8.0: the move from the old folder (end) ----
 
 ; Configuration page
 Function ConfigPage
@@ -360,16 +426,6 @@ FunctionEnd
 Section "!Core Components (Required)" SecCore
   SectionIn RO  ; Read-only, cannot be deselected
 
-  ; v2.7.6: remember whether the user already has a config.txt BEFORE we touch
-  ; any files. On an upgrade we must PRESERVE it (it holds the user's language,
-  ; theme, CLAUDE_FLAGS and STARTUP_CMD); only a first install gets a freshly
-  ; generated one from the wizard choices. Earlier builds rewrote config.txt on
-  ; every install, silently wiping these settings on every upgrade.
-  StrCpy $ConfigExisted "0"
-  ${If} ${FileExists} "$INSTDIR\config.txt"
-    StrCpy $ConfigExisted "1"
-  ${EndIf}
-
   ; Hardening (v2.6.8): close any launcher window left running from a previous
   ; build BEFORE we overwrite files. An open mshta window only runs its update
   ; check once at load, so without this an upgraded user keeps seeing the OLD
@@ -380,6 +436,20 @@ Section "!Core Components (Required)" SecCore
   File "/oname=$PLUGINSDIR\close-launchers.js" "source\close-launchers.js"
   nsExec::Exec 'cscript.exe //B //Nologo "$PLUGINSDIR\close-launchers.js"'
   Pop $0
+
+  ; v3.8.0: with the open windows closed, copy the user's settings from the old folder into the
+  ; folder chosen on the Directory page (see CopyAgainIntoFinalFolder).
+  Call CopyAgainIntoFinalFolder
+
+  ; v2.7.6: remember whether the user already has a config.txt BEFORE we touch
+  ; any files. On an upgrade we must PRESERVE it (it holds the user's language,
+  ; theme, CLAUDE_FLAGS and STARTUP_CMD); only a first install gets a freshly
+  ; generated one from the wizard choices. Earlier builds rewrote config.txt on
+  ; every install, silently wiping these settings on every upgrade.
+  StrCpy $ConfigExisted "0"
+  ${If} ${FileExists} "$INSTDIR\config.txt"
+    StrCpy $ConfigExisted "1"
+  ${EndIf}
 
   SetOutPath "$INSTDIR"
 
@@ -1285,26 +1355,19 @@ Section "-Claude-to-Codex off" SecCodexPluginOff
   ${EndIf}
 SectionEnd
 
-; v3.8.0: the last step of a move from the old folder (CopyFromOldFolder copied the settings in
-; .onInit, and every section above wrote its paths with $INSTDIR). Repoint what the install doesn't
-; write itself, then remove the old folder; a file still in use goes at the next restart.
+; v3.8.0: the last step of a move from the old folder (every section above wrote its paths with
+; $INSTDIR). move-from-old-folder.js repoints what the install doesn't write itself, Claude's status line
+; and add-on catalog included, whichever AI agent was chosen; then the old folder is removed.
 Section "-Move from the old folder" SecMoveOld
-  ${If} ${FileExists} "${OLD_DIR}\claudecode-launchpad.bat"
+  Call InstallingIntoOldFolder
+  ${If} $IntoOldFolder == "0"
+  ${AndIf} ${FileExists} "${OLD_DIR}\claudecode-launchpad.bat"
     DetailPrint "Moving Launchpad from ${OLD_DIR} to $INSTDIR..."
     Call FindNodeExe
     nsExec::ExecToLog '"$NodeExe" "$INSTDIR\move-from-old-folder.js" "${OLD_DIR}" "$INSTDIR"'
     Pop $0
-    ; Claude's add-on catalog was added from the old folder. Adding it again from the new folder moves
-    ; it, and its add-ons follow (measured 2026-11-26). Runs whichever AI agent was chosen.
-    ${If} ${FileExists} "$PROFILE\.local\bin\claude.exe"
-      nsExec::ExecToLog /TIMEOUT=120000 '"$PROFILE\.local\bin\claude.exe" plugin marketplace add "$INSTDIR\plugins"'
-      Pop $0
-    ${ElseIf} ${FileExists} "$APPDATA\npm\claude.cmd"
-      nsExec::ExecToLog /TIMEOUT=120000 'cmd /d /s /c ""$APPDATA\npm\claude.cmd" plugin marketplace add "$INSTDIR\plugins""'
-      Pop $0
-    ${EndIf}
-    RMDir /r /REBOOTOK "${OLD_DIR}"
   ${EndIf}
+  Call RemoveOldFolder
 SectionEnd
 
 ; Section descriptions
@@ -1512,9 +1575,13 @@ Section "Uninstall"
   ; Remove install directory
   RMDir /r "$INSTDIR"
   ; v3.8.0: an old install left in the folder before 3.8.0 (a move that didn't finish) goes too. Only
-  ; when it holds Launchpad's launcher; Kivun-WSL (Kivun Terminal) is a different folder.
-  ${If} ${FileExists} "${OLD_DIR}\claudecode-launchpad.bat"
-    RMDir /r /REBOOTOK "${OLD_DIR}"
+  ; when it holds Launchpad's launcher, VERSION or picker; Kivun-WSL (Kivun Terminal) is a different folder.
+  ${If} $INSTDIR != "${OLD_DIR}"
+    ${If} ${FileExists} "${OLD_DIR}\claudecode-launchpad.bat"
+    ${OrIf} ${FileExists} "${OLD_DIR}\VERSION"
+    ${OrIf} ${FileExists} "${OLD_DIR}\LaunchpadPicker.exe"
+      RMDir /r "${OLD_DIR}"
+    ${EndIf}
   ${EndIf}
 
   ; Remove Start Menu shortcuts

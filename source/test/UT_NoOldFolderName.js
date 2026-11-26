@@ -26,6 +26,11 @@ function shipped() {
       if (!SKIP_EXT.has(path.extname(n).toLowerCase()) && !ALLOWED_FILES.has(n)) out.push(p);
     }
   })(SOURCE);
+  // The support scripts Launchpad hands out: server recovery and the diagnostics in tools.
+  for (const dir of ['server-recovery', 'tools']) {
+    const p = path.join(REPO, dir);
+    if (fs.existsSync(p)) for (const n of fs.readdirSync(p)) if (/\.cmd$/i.test(n)) out.push(path.join(p, n));
+  }
   return out;
 }
 

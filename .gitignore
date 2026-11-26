@@ -47,3 +47,6 @@ dev/screenshots/
 
 # Launcher test harness work folder (source/test/launcher)
 .test-run/
+
+# One-launch folders a test run can leave next to the source launcher (never shipped)
+source/launch/

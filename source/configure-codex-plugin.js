@@ -175,6 +175,6 @@ function main(argv, env) {
   return 2;
 }
 
-module.exports = { ID, EXIT, paths, findClaude, cmdLine, listPlugins, install, remove: removeMode, main };
+module.exports = { ID, EXIT, paths, findClaude, cmdLine, runClaude, listPlugins, install, remove: removeMode, main };
 
 if (require.main === module) process.exitCode = main(process.argv.slice(2), process.env);
