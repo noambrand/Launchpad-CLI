@@ -96,7 +96,9 @@ function run(d, env) {
     }, env || {}),
     windowsHide: true, timeout: 120000,
   });
-  assert.strictEqual(r.status, 0, 'installer exit ' + r.status);
+  // Quit in .onInit (TEST_STOP_AFTER_COPY) ends an NSIS installer with exit code 2, as a cancel does.
+  const want = env && env.TEST_STOP_AFTER_COPY === '1' ? 2 : 0;
+  assert.strictEqual(r.status, want, 'installer exit ' + r.status);
 }
 const read = f => fs.readFileSync(f, 'utf8');
 const OLD_INSTALL = {
