@@ -18,7 +18,8 @@ Code, [openai/codex-plugin-cc](https://github.com/openai/codex-plugin-cc) (Apach
 
 Noam's decision, 2026-11-10: **Claude uses Codex only when the user asks.** OpenAI's helper description
 starts "Proactively use when Claude Code is stuck…", so Claude could hand a job to Codex on its own, using
-the user's Codex limits. `tools/codex-addon-patch.js` makes four one-line changes, and nothing else:
+the user's Codex limits. `tools/codex-addon-patch.js` makes four one-line changes for that, plus one
+repair (the last row), and nothing else:
 
 | File | OpenAI's text | Launchpad's text |
 |---|---|---|
@@ -26,6 +27,7 @@ the user's Codex limits. `tools/codex-addon-patch.js` makes four one-line change
 | `agents/codex-rescue.md` | `- Do not wait for the user to explicitly ask for Codex. Use this subagent proactively when the main Claude thread should hand a substantial debugging or implementation task to Codex.` | `- Run only when the user asked for Codex. Never start on your own initiative.` |
 | `commands/rescue.md` | (no such line) | `disable-model-invocation: true`, so Claude can't run `/codex:rescue` by itself; the user still can |
 | `commands/setup.md` | (no such line) | `disable-model-invocation: true`, so Claude can't run `/codex:setup` by itself. That command can turn on the review gate |
+| `scripts/session-lifecycle-hook.mjs` | `appendEnvVar` adds its line to the session's shell setup file on every session start | One line per variable: an older line for the same variable is replaced. Claude Code hands the hook the same file on every resume and compact, so on a real PC (2026-11-26) the file reached 75 lines, was cut mid-line, and every shell command in that Claude session failed |
 
 **What these changes can and can't do:**
 - **The commands:** `disable-model-invocation` is a hard stop. OpenAI's other commands already have it.
@@ -37,7 +39,7 @@ the user's Codex limits. `tools/codex-addon-patch.js` makes four one-line change
 ## What it adds to every Claude session
 
 - **Three hooks run in every Claude session**, each a short `node` run:
-  - at session start (sets three variables);
+  - at session start (sets three variables, one line each, however often the session resumes);
   - at session end (stops leftover Codex jobs);
   - after each reply (the review gate). The reply hook takes about 0.3 s and does nothing while the gate
     is off.

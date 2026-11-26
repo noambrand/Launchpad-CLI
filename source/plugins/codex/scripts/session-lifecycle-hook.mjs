@@ -33,10 +33,22 @@ function shellEscape(value) {
 }
 
 function appendEnvVar(name, value) {
-  if (!process.env.CLAUDE_ENV_FILE || value == null || value === "") {
+  const file = process.env.CLAUDE_ENV_FILE;
+  if (!file || value == null || value === "") {
     return;
   }
-  fs.appendFileSync(process.env.CLAUDE_ENV_FILE, `export ${name}=${shellEscape(value)}\n`, "utf8");
+  // Launchpad: one line per variable. Claude Code hands this hook the same file on every resume and
+  // compact; appending grew it until it was cut mid-line and every shell command failed.
+  const prefix = `export ${name}=`;
+  let lines = [];
+  try {
+    lines = fs.readFileSync(file, "utf8").split(/\r?\n/);
+  } catch {
+    // No file yet.
+  }
+  const kept = lines.filter((line) => line !== "" && !line.startsWith(prefix));
+  kept.push(prefix + shellEscape(value));
+  fs.writeFileSync(file, `${kept.join("\n")}\n`, "utf8");
 }
 
 function cleanupSessionJobs(cwd, sessionId) {

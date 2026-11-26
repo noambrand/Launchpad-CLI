@@ -40,6 +40,42 @@ const CHANGES = [
     from: 'allowed-tools: Bash(node:*), Bash(npm:*), AskUserQuestion\n---\n',
     to: ONLY_WHEN_ASKED + '\nallowed-tools: Bash(node:*), Bash(npm:*), AskUserQuestion\n---\n',
   },
+  {
+    // Seen on a real PC, 2026-11-26: after about 25 resumes the file held 75 lines (8 KB) and every
+    // shell command in that Claude session failed.
+    file: 'scripts/session-lifecycle-hook.mjs',
+    why: 'Claude Code gives the start hook the same file on every resume and compact, so appending added the three lines again each time',
+    from: [
+      'function appendEnvVar(name, value) {',
+      '  if (!process.env.CLAUDE_ENV_FILE || value == null || value === "") {',
+      '    return;',
+      '  }',
+      '  fs.appendFileSync(process.env.CLAUDE_ENV_FILE, `export ${name}=${shellEscape(value)}\\n`, "utf8");',
+      '}',
+      '',
+    ].join('\n'),
+    to: [
+      'function appendEnvVar(name, value) {',
+      '  const file = process.env.CLAUDE_ENV_FILE;',
+      '  if (!file || value == null || value === "") {',
+      '    return;',
+      '  }',
+      '  // Launchpad: one line per variable. Claude Code hands this hook the same file on every resume and',
+      '  // compact; appending grew it until it was cut mid-line and every shell command failed.',
+      '  const prefix = `export ${name}=`;',
+      '  let lines = [];',
+      '  try {',
+      '    lines = fs.readFileSync(file, "utf8").split(/\\r?\\n/);',
+      '  } catch {',
+      '    // No file yet.',
+      '  }',
+      '  const kept = lines.filter((line) => line !== "" && !line.startsWith(prefix));',
+      '  kept.push(prefix + shellEscape(value));',
+      '  fs.writeFileSync(file, `${kept.join("\\n")}\\n`, "utf8");',
+      '}',
+      '',
+    ].join('\n'),
+  },
 ];
 
 // Returns { changed: [...], already: [...], missing: [...] }; writes only when write is true and
