@@ -1,5 +1,14 @@
 # Changelog
 
+## [Unreleased]
+
+### Changed: the model and conversation choice are always in view
+
+The picker shows the AI's model and the conversation choice (start fresh, continue last, pick from
+history) right under the folder, for whichever AI is chosen. Advanced options holds the rest, most
+used first: quick options and custom flags, sound alerts, auto-continue, terminal color, startup
+slash commands, environment variables.
+
 ## [3.8.0] - 2026-11-26
 
 ### Fixed: "Attention required" when nothing was asked

@@ -40,7 +40,7 @@ test('UT_PickerCopilot_Wording: the button, the hint and the options all name Co
   assert.strictEqual(p.el('launch-btn').innerText, 'Launch Copilot CLI');
   assert.strictEqual(p.el('hint-launch').innerText, 'Launch Copilot CLI');
   assert.strictEqual(p.el('hint-flags').innerText, 'Copilot options + startup message');
-  assert.strictEqual(p.el('flags-title').innerText, 'Copilot options (optional):');
+  assert.strictEqual(p.el('flags-title').innerText, 'Copilot model and conversation:');
   assert.strictEqual(p.el('preview-cmd').innerText, 'copilot');
   assert.match(p.el('startup-help').innerText, /first message/);
   p.ctx.onAgentChange('claude');
