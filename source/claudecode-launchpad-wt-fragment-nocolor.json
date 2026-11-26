@@ -13,5 +13,30 @@
             "startingDirectory": "%USERPROFILE%",
             "suppressApplicationTitle": true
         }
+    ],
+    "schemes": [
+        {
+            "name": "Launchpad Color",
+            "background": "#C8E6FF",
+            "foreground": "#0C0C0C",
+            "cursorColor": "#0050C8",
+            "selectionBackground": "#32FFF1",
+            "black": "#0C0C0C",
+            "red": "#C50F1F",
+            "green": "#13A10E",
+            "yellow": "#C19C00",
+            "blue": "#0000A0",
+            "purple": "#881798",
+            "cyan": "#005AA0",
+            "white": "#CCCCCC",
+            "brightBlack": "#000000",
+            "brightRed": "#FF1328",
+            "brightGreen": "#0F800B",
+            "brightYellow": "#AB8A00",
+            "brightBlue": "#000078",
+            "brightPurple": "#691275",
+            "brightCyan": "#003C8C",
+            "brightWhite": "#5E5E5E"
+        }
     ]
 }

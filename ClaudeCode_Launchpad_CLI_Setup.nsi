@@ -253,7 +253,7 @@ nsDialogs::Create 1018
   ${NSD_CB_SelectString} $ConfigLanguage "English"
 
   ; Terminal color theme checkbox
-  ${NSD_CreateCheckbox} 0 99u 100% 12u "Apply Kivun light-blue terminal theme (recommended)"
+  ${NSD_CreateCheckbox} 0 99u 100% 12u "Apply the light-blue terminal theme (recommended)"
   Pop $ConfigTerminalColor
   ${NSD_Check} $ConfigTerminalColor
 

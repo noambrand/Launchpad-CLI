@@ -4,21 +4,20 @@
             "name": "ClaudeCode Launchpad CLI",
             "commandline": "\"%LOCALAPPDATA%\\Kivun\\claudecode-launchpad.bat\" --run",
             "icon": "%LOCALAPPDATA%\\Kivun\\claude_icon.ico",
-            "colorScheme": "Noam",
             "cursorShape": "bar",
-            "cursorColor": "#0050C8",
             "font": {
                 "face": "Cascadia Mono",
                 "size": 11
             },
             "scrollbarState": "visible",
             "startingDirectory": "%USERPROFILE%",
-            "suppressApplicationTitle": true
+            "suppressApplicationTitle": true,
+            "colorScheme": "Launchpad Color"
         }
     ],
     "schemes": [
         {
-            "name": "Noam",
+            "name": "Launchpad Color",
             "background": "#C8E6FF",
             "foreground": "#0C0C0C",
             "cursorColor": "#0050C8",

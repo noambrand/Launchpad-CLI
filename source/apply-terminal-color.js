@@ -33,6 +33,12 @@
 // strip comments (carefully, preserving anything inside strings) so the scheme
 // upsert actually lands; a file that's still unparsable after that is treated
 // as genuinely corrupt and left untouched, exactly as before.
+//
+// Measured 2026-11-26: Windows Terminal drops our copy of the scheme from settings.json within a second
+// when the fragment defines the same scheme, so the fragment's definition is the one WT keeps. Every
+// fragment Launchpad writes, the installer's two copies included, calls it "Launchpad Color" (the
+// installer's copy once called it "Noam", so right after an install the settings.json pin pointed at a
+// name no fragment had).
 
 const fs = require('fs');
 const path = require('path');
@@ -290,8 +296,16 @@ function main() {
   if (resolved.warn) console.log('WARNING: ' + resolved.warn);
   console.log('TERMINAL_COLOR=' + rawColor + ' -> ' +
     (resolved.useScheme ? resolved.bg + ' / ' + resolved.fg : 'default (theme untouched)'));
-  writeFragment(resolved);
-  syncSettings(resolved);
+  // The scheme is defined before anything points at it, and un-pinned before its definition goes, so a
+  // Windows Terminal that reloads between the two writes never sees a profile pinned to a missing scheme
+  // (the "invalid colorScheme" warning, seen right after an install on 2026-11-26).
+  if (resolved.useScheme) {
+    writeFragment(resolved);
+    syncSettings(resolved);
+  } else {
+    syncSettings(resolved);
+    writeFragment(resolved);
+  }
 }
 
 try {

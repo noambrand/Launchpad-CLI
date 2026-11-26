@@ -1,5 +1,24 @@
 # Changelog
 
+## [Unreleased]
+
+### Fixed: a Claude session that stops running commands after many resumes
+
+With "Let Claude hand work to Codex" on, every resume or compact of a Claude session added three
+more lines to that session's shell setup file. After about 25 resumes the file was cut mid-line and
+every command Claude ran in that session failed. The Codex add-on now keeps one line per setting, and
+a file that already grew goes back to three lines at the session's next start.
+
+### Fixed: Windows Terminal's "invalid colorScheme" warning right after an install
+
+The terminal fragment the installer copies now uses the same color scheme name, "Launchpad Color", as
+the rest of Launchpad, and the color step defines the scheme before pointing the profile at it. A
+Windows Terminal that was open during the install no longer reports a missing scheme.
+
+### Changed: the setup no longer shows the word "Kivun"
+
+The configuration page's checkbox reads "Apply the light-blue terminal theme (recommended)".
+
 ## [3.7.0] - 2026-11-22
 
 ### Changed: the developer options come last in Advanced options
