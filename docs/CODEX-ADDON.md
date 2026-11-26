@@ -10,7 +10,7 @@ Code, [openai/codex-plugin-cc](https://github.com/openai/codex-plugin-cc) (Apach
   `source/plugins/codex.upstream` (repository, tag, commit, folder), with OpenAI's LICENSE and NOTICE.
 - **The checksums:** `source/plugins/codex.sha256` lists every shipped file.
 - **The catalog:** `source/plugins/.claude-plugin/marketplace.json` lists it as `codex`, so Claude
-  installs it as `codex@launchpad-plugins` from `%LOCALAPPDATA%\Kivun\plugins`.
+  installs it as `codex@launchpad-plugins` from `%LOCALAPPDATA%\LaunchpadAI\plugins`.
 - **Why a copy:** a GitHub source would need Git on the PC, and many users have none. A copy needs no
   network and installs exactly the files that were tested.
 
@@ -55,7 +55,7 @@ repair (the last row), and nothing else:
   - `SecCodexPlugin` runs `configure-codex-plugin.js install`. It is shown only when the install leaves
     both Claude Code and Codex on the PC (`CodexPluginFits`, called from `ComponentsPre`).
   - Unticking it runs `configure-codex-plugin.js remove` (`SecCodexPluginOff`).
-- **The helper's records** in `%LOCALAPPDATA%\Kivun`:
+- **The helper's records** in `%LOCALAPPDATA%\LaunchpadAI`:
   - `kivun-codex-plugin.txt`: Launchpad's copy is on.
   - `kivun-codex-plugin-off.txt`: the user unticked it, so the next run starts unticked.
 - **A user's own `codex@openai-codex`** is left as it is, and no second copy is added. The commands
