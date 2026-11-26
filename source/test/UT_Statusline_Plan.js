@@ -63,3 +63,13 @@ test('UT_StatuslinePlan_TrialAfterResetOrPast: a trial ending after the reset, o
   assert.ok(!/trial/.test(line2('trial-after', { rate_limits: LIMITS }, { account: Object.assign({}, MAX5, { claudeCodeTrialEndsAt: after }) })));
   assert.ok(!/trial/.test(line2('trial-past', { rate_limits: LIMITS }, { account: Object.assign({}, MAX5, { claudeCodeTrialEndsAt: '2020-01-01T00:00:00Z' }) })));
 });
+
+// The token count covers the main conversation only: what helper agents use is not in it (Noam,
+// 2026-11-26), so it is labeled "main tokens", not "total tokens".
+test('UT_StatuslinePlan_MainTokens: line 1 labels the count "main tokens"', () => {
+  const d = fx.makeEnv('slplan-tokens');
+  const r = cp.spawnSync(process.execPath, [path.join(fx.SOURCE, 'statusline.mjs')], { input: JSON.stringify({ context_window: { total_input_tokens: 200000, total_output_tokens: 84000 } }), env: Object.assign({}, d.env, { TZ: 'UTC' }), encoding: 'utf8', windowsHide: true });
+  const line1 = r.stdout.replace(/\x1b\[\d+m/g, '').split('\n')[0];
+  assert.match(line1, /main tokens:284K/);
+  assert.ok(!/total tokens/.test(line1), line1);
+});

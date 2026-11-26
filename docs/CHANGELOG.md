@@ -8,6 +8,11 @@ Line 2 of the status bar ends with your Claude plan and the Claude Code version 
 "Max 5x · v2.1.332". On a Claude Code trial that ends before the weekly reset, the Weekly part also
 shows when the trial ends.
 
+### Changed: "main tokens" on the status bar
+
+The token count on line 1 reads "main tokens": it covers the main conversation, and tokens used
+by helper agents are not in it.
+
 ## [3.8.1] - 2026-11-26
 
 ### Changed: the model and conversation choice are always in view

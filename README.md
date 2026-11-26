@@ -244,7 +244,7 @@ Launchpad gets Claude Code running. If you'd like someone beside you for the fir
 
 A two-line live status bar at the bottom of every session:
 
-> **BookWriter** | 🟢 Sonnet 4.6 | Context 🟩🟩🟩🟩🟩⬜⬜⬜⬜⬜ 51% | tokens: 284K | 24:13
+> **BookWriter** | 🟢 Sonnet 4.6 | Context 🟩🟩🟩🟩🟩⬜⬜⬜⬜⬜ 51% | main tokens: 284K | 24:13
 >
 > Session 🟨🟨🟨🟨🟨🟨🟨🟨⬜⬜ 77% resets in 4h15m (Fri Nov 6 02:00) &nbsp;|&nbsp; Weekly 🟩🟩⬜⬜⬜⬜⬜⬜⬜⬜ 16% resets in 6d18h (Thu Nov 12 16:00) &nbsp;|&nbsp; Max 5x · v2.1.332
 
@@ -252,7 +252,7 @@ A two-line live status bar at the bottom of every session:
 |-------|---------------|
 | **Model** | Active Claude model (color-coded: green = Opus, yellow = Sonnet/Haiku) |
 | **Context** | % of context window consumed (green/yellow/red) |
-| **Tokens** | Combined input + output tokens this session |
+| **Main tokens** | Input + output tokens of the main conversation; tokens used by helper agents are not included |
 | **Session / Weekly** | Usage limit % with countdown to reset, and the exact day and hour of the reset in your PC's local time. On a Claude Code trial that ends before the weekly reset, Weekly also shows when the trial ends |
 | **Plan · version** | Your Claude plan (for example Max 5x or Pro) and the Claude Code version number |
 

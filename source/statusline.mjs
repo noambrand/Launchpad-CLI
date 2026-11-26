@@ -159,7 +159,8 @@ function fieldTokens(d) {
   if (total >= 1_000_000) label = (total / 1_000_000).toFixed(1) + 'M';
   else if (total >= 1_000) label = Math.round(total / 1_000) + 'K';
   else label = String(total);
-  return `${C.y}total tokens:${label}${C.n}`;
+  // The main conversation only: tokens used by helper agents are not in Claude Code's count.
+  return `${C.y}main tokens:${label}${C.n}`;
 }
 
 // ── Duration ──────────────────────────
