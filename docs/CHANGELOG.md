@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+### Fixed: "Attention required" when nothing was asked
+
+The "Attention required" voice alert plays only when Claude's last reply asks you something.
+Claude Code also sends its "waiting for your input" signal a minute after replies that ask
+nothing, for example while a background task keeps going; those stay silent.
+
 ### Changed: Launchpad lives in %LOCALAPPDATA%\LaunchpadAI
 
 Launchpad installs into `%LOCALAPPDATA%\LaunchpadAI`, and the setup no longer shows the word "Kivun".
