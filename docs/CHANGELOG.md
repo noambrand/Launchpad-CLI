@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased]
+## [3.8.0] - 2026-11-26
 
 ### Fixed: "Attention required" when nothing was asked
 
