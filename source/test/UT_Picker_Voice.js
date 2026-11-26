@@ -42,32 +42,32 @@ function chips(p) {
 }
 const checked = (p, name) => (p.radios(name).find(r => r.checked) || {}).value;
 
-test('UT_PickerVoice_DefaultIsAdam: no pick shows Male with Adam selected, and writes nothing', () => {
+test('UT_PickerVoice_DefaultIsJon: no pick shows Male with Jon selected, and writes nothing', () => {
   const d = sandbox('default', { sound: { enabled: true, mode: 'regular' } });
   const before = fs.readFileSync(path.join(d.sounds, 'config.json'), 'utf8');
   const p = open(d);
   assert.strictEqual(checked(p, 'snd-gender'), 'male');
   const c = chips(p);
-  assert.deepStrictEqual(c.map(x => x.label), ['Adam', 'Will', 'Eric', 'Chris', 'Jon', 'Vincent', 'Hale', 'Original']);
-  assert.deepStrictEqual(c.filter(x => x.active).map(x => x.label), ['Adam']);
+  assert.deepStrictEqual(c.map(x => x.label), ['Jon', 'Adam', 'Will', 'Eric', 'Chris', 'Vincent', 'Hale', 'Original']);
+  assert.deepStrictEqual(c.filter(x => x.active).map(x => x.label), ['Jon']);
   assert.strictEqual(fs.readFileSync(path.join(d.sounds, 'config.json'), 'utf8'), before);
 });
 
-test('UT_PickerVoice_FemaleSelectsBella: clicking Female saves Bella and lists the women', () => {
+test('UT_PickerVoice_FemaleSelectsJessica: clicking Female saves Jessica and lists the women', () => {
   const d = sandbox('female', { sound: { enabled: true, mode: 'regular' } });
   const p = open(d);
   p.setRadio('snd-gender', 'female');
   p.ctx.onSoundGenderChange();
-  assert.strictEqual(soundCfg(d).voice, 'bella');
+  assert.strictEqual(soundCfg(d).voice, 'jessica');
   const c = chips(p);
-  assert.deepStrictEqual(c.map(x => x.label), ['Bella', 'Laura', 'Jessica']);
-  assert.deepStrictEqual(c.filter(x => x.active).map(x => x.label), ['Bella']);
+  assert.deepStrictEqual(c.map(x => x.label), ['Jessica', 'Bella', 'Laura']);
+  assert.deepStrictEqual(c.filter(x => x.active).map(x => x.label), ['Jessica']);
 });
 
 test('UT_PickerVoice_ChipSaves: a voice chip saves that voice and keeps the other keys', () => {
   const d = sandbox('chip', { sound: { enabled: true, mode: 'funny', x: 1 } });
   const p = open(d);
-  p.ctx.onSoundVoiceChip(2);
+  p.ctx.onSoundVoiceChip(3);
   const cfg = soundCfg(d);
   assert.strictEqual(cfg.voice, 'eric');
   assert.strictEqual(cfg.x, 1);
@@ -88,11 +88,11 @@ test('UT_PickerVoice_OtherSwitchesDontPin: Sounds On/Off and the pack never writ
   assert.ok(!('voice' in cfg), 'voice must stay unset');
 });
 
-test('UT_PickerVoice_UnknownShowsDefault: a voice that does not ship shows Adam selected', () => {
+test('UT_PickerVoice_UnknownShowsDefault: a voice that does not ship shows Jon selected', () => {
   const d = sandbox('unknown', { sound: { enabled: true, voice: 'zed' } });
   const p = open(d);
   assert.strictEqual(checked(p, 'snd-gender'), 'male');
-  assert.deepStrictEqual(chips(p).filter(x => x.active).map(x => x.label), ['Adam']);
+  assert.deepStrictEqual(chips(p).filter(x => x.active).map(x => x.label), ['Jon']);
 });
 
 test('UT_PickerVoice_NoIndex: without voices.json only the Original voice is offered', () => {

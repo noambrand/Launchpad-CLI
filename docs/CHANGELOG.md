@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+### Changed: Jon and Jessica are the default voices
+
+Anyone who hasn't picked a voice hears **Jon**, and **Jessica** is the default when you pick
+Female. Each default comes first in its list in the picker and in Choose Voice. A voice you picked
+yourself stays as it is.
+
 ### Fixed: a Claude session that stops running commands after many resumes
 
 With "Let Claude hand work to Codex" on, every resume or compact of a Claude session added three
