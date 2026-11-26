@@ -53,7 +53,7 @@ Pin it once so you get a one-click blue Claude icon and never have to look for t
 Click the **ClaudeCode Launchpad CLI** icon. The folder picker opens:
 
 1. Pick the folder Claude should work in (browse the tree, or type/paste a path)
-2. Optionally open **Advanced options** to choose a model (Opus / Sonnet / Haiku), tap option chips (Respond in Hebrew, High effort, Auto-accept file edits, Read-only, ...), or add startup commands
+2. Choose the model (Opus / Sonnet / Haiku) and whether to start fresh or continue, right under the folder. Optionally open **Advanced options** to tap option chips (Respond in Hebrew, High effort, Auto-accept file edits, Read-only, ...), or add startup commands
 3. Click **Launch** - Claude Code opens in that folder with your choices applied
 
 Tip: save a folder + options combo as a **named profile** using the chip row at the top of the picker, then switch between projects in one click.

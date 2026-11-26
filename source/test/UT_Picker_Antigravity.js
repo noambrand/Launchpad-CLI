@@ -89,7 +89,7 @@ test('UT_PickerAntigravity_Wording: its own controls, the data-use note (D12) an
   assert.strictEqual(p.el('launch-btn').innerText, 'Launch Antigravity CLI');
   assert.strictEqual(p.el('hint-launch').innerText, 'Launch Antigravity CLI');
   assert.strictEqual(p.el('hint-flags').innerText, 'Antigravity options + startup message');
-  assert.strictEqual(p.el('flags-title').innerText, 'Antigravity options (optional):');
+  assert.strictEqual(p.el('flags-title').innerText, 'Antigravity model and conversation:');
   assert.match(p.el('custom-help').innerText, /passed to Antigravity/);
   assert.strictEqual(p.el('preview-cmd').innerText, 'agy');
   assert.strictEqual(p.el('startup-title').innerText, 'Startup message (optional):');
