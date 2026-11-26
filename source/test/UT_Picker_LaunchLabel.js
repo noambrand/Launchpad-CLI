@@ -13,7 +13,7 @@ const CLAUDE_LABEL = 'Launch ClaudeCode CLI', CLAUDE_HINT = 'Claude flags + star
 function open(name, profile) {
   const root = path.join(ROOT, 'pl', name);
   fs.rmSync(root, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 });
-  const kivun = path.join(root, 'LAD', 'Kivun'), user = path.join(root, 'User');
+  const kivun = path.join(root, 'LAD', 'LaunchpadAI'), user = path.join(root, 'User');
   fs.mkdirSync(kivun, { recursive: true });
   fs.mkdirSync(path.join(user, '.local', 'bin'), { recursive: true });
   fs.writeFileSync(path.join(user, '.local', 'bin', 'claude.exe'), '');

@@ -99,8 +99,8 @@ const CLAUDE_TEMPLATE = () => fs.readFileSync(path.join(fx.SOURCE, 'config.txt')
 function sandbox(name, opts) {
   opts = opts || {};
   const d = fx.makeEnv('nsis ' + name, { fakeCodex: opts.fakeCodex });
-  // The installer looks for the change record in %LOCALAPPDATA%\Kivun, so the folder is named so.
-  d.kivun = d.env.KIVUN_DIR = path.join(d.root, 'Kivun');
+  // The install folder, named as the installer names it (%LOCALAPPDATA%\LaunchpadAI).
+  d.kivun = d.env.KIVUN_DIR = path.join(d.root, 'LaunchpadAI');
   fs.mkdirSync(d.kivun, { recursive: true });
   d.calls = path.join(d.root, 'calls.jsonl');
   d.profile = path.join(d.root, 'profile');

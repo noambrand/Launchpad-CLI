@@ -129,7 +129,7 @@ if (list) {
       // straight from the WT dropdown gets the language prompt AND the
       // exit-to-shell behavior; without a commandline a hiccupped fragment
       // merge would fall back to cmd.exe (no claude at all).
-      commandline: '"%LOCALAPPDATA%\\Kivun\\claudecode-launchpad.bat" --run',
+      commandline: '"%LOCALAPPDATA%\\LaunchpadAI\\claudecode-launchpad.bat" --run',
       cursorShape: 'bar',
       scrollbarState: 'visible',
       // Lock the tab title so Claude can't overwrite it with "Claude Code";

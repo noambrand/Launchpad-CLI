@@ -80,7 +80,7 @@ const STUB_JS = name => "require('fs').appendFileSync(process.env.STUB_CALLS, JS
 function sandbox(name, opts) {
   opts = opts || {};
   const d = fx.makeEnv('nsis ' + name, { fakeCopilot: opts.fakeCopilot });
-  d.kivun = d.env.KIVUN_DIR = path.join(d.root, 'Kivun');
+  d.kivun = d.env.KIVUN_DIR = path.join(d.root, 'LaunchpadAI');
   fs.mkdirSync(path.join(d.kivun, 'sounds'), { recursive: true });
   d.calls = path.join(d.root, 'calls.jsonl');
   d.profile = path.join(d.root, 'profile');

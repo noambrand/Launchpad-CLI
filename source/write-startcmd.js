@@ -3,7 +3,8 @@
 // Usage: cscript //nologo write-startcmd.js "/voicemode:converse"
 
 var wshShell = new ActiveXObject("WScript.Shell");
-var filePath = wshShell.ExpandEnvironmentStrings("%LOCALAPPDATA%") + "\\Kivun\\kivun-claude-startcmd.txt";
+// Launchpad's folder is the one this script sits in.
+var filePath = new ActiveXObject("Scripting.FileSystemObject").GetParentFolderName(WScript.ScriptFullName) + "\\kivun-claude-startcmd.txt";
 
 var stream = new ActiveXObject("ADODB.Stream");
 stream.Type = 2;

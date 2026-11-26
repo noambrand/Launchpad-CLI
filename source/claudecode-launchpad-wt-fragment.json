@@ -2,8 +2,8 @@
     "profiles": [
         {
             "name": "ClaudeCode Launchpad CLI",
-            "commandline": "\"%LOCALAPPDATA%\\Kivun\\claudecode-launchpad.bat\" --run",
-            "icon": "%LOCALAPPDATA%\\Kivun\\claude_icon.ico",
+            "commandline": "\"%LOCALAPPDATA%\\LaunchpadAI\\claudecode-launchpad.bat\" --run",
+            "icon": "%LOCALAPPDATA%\\LaunchpadAI\\claude_icon.ico",
             "cursorShape": "bar",
             "font": {
                 "face": "Cascadia Mono",

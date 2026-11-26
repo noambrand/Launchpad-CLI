@@ -200,7 +200,7 @@ test('UT_CopilotStatusLine_InstallerTurnsThemOn: after the sound hooks, only onc
 
 test('UT_CopilotStatusLine_UninstallerTakesThemOut: with a record, before the install folder (and the record) is deleted', () => {
   const un = NSI.slice(NSI.indexOf('Section "Uninstall"'));
-  const check = un.indexOf('${If} ${FileExists} "$LOCALAPPDATA\\Kivun\\kivun-copilot-changes.json"');
+  const check = un.indexOf('${If} ${FileExists} "$INSTDIR\\kivun-copilot-changes.json"');
   const run = un.indexOf('configure-copilot.js" uninstall\'');
   assert.ok(check >= 0 && run > check, 'runs only when there is a record');
   assert.ok(run < un.indexOf('RMDir /r "$INSTDIR"'), 'before the folder holding the record is deleted');

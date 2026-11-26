@@ -23,7 +23,7 @@ node -v >> "%OUT%" 2>&1
 
 >> "%OUT%" echo --- curl ---
 where curl >> "%OUT%" 2>&1
-if exist "%LOCALAPPDATA%\Kivun\bin\curl.exe" (echo Recovery curl present: %LOCALAPPDATA%\Kivun\bin\curl.exe >> "%OUT%") else (echo Recovery curl NOT present >> "%OUT%")
+if exist "%LOCALAPPDATA%\LaunchpadAI\bin\curl.exe" (echo Recovery curl present: %LOCALAPPDATA%\LaunchpadAI\bin\curl.exe >> "%OUT%") else (echo Recovery curl NOT present >> "%OUT%")
 >> "%OUT%" echo(
 
 >> "%OUT%" echo --- Where Claude should be ---
@@ -45,8 +45,8 @@ if exist "%USERPROFILE%\.local\bin\claude.exe" (
 >> "%OUT%" echo(
 
 >> "%OUT%" echo --- Full recovery log ---
-if exist "%LOCALAPPDATA%\Kivun\server-recovery-log.txt" (
-  type "%LOCALAPPDATA%\Kivun\server-recovery-log.txt" >> "%OUT%" 2>&1
+if exist "%LOCALAPPDATA%\LaunchpadAI\server-recovery-log.txt" (
+  type "%LOCALAPPDATA%\LaunchpadAI\server-recovery-log.txt" >> "%OUT%" 2>&1
 ) else (
   echo No recovery log found - the fix file may not have run. >> "%OUT%"
 )

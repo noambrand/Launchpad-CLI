@@ -7,7 +7,7 @@
 // Native Windows has no pty wrapper around Claude's output (unlike the Kivun WSL
 // sibling), so this watcher CANNOT read the screen. Instead statusline.mjs writes
 // the 5-hour usage %, its reset epoch, and the working folder to
-//   %LOCALAPPDATA%\Kivun\ratelimit-<hash(cwd)>.json
+//   %LOCALAPPDATA%\LaunchpadAI\ratelimit-<hash(cwd)>.json
 // every render. This watcher polls that file; once the limit has reset it focuses
 // the Launchpad tab and types "continue" + Enter exactly once per reset.
 //
@@ -118,12 +118,12 @@ function resolvePaths(arg, localApp) {
     stateFile = arg;
   } else {
     hash = hashCwd(arg);
-    stateFile = localApp + "\\Kivun\\ratelimit-" + hash + ".json";
+    stateFile = localApp + "\\LaunchpadAI\\ratelimit-" + hash + ".json";
   }
   return {
     hash: hash,
     stateFile: stateFile,
-    doneMarker: localApp + "\\Kivun\\autocontinue-done-" + hash + ".txt"
+    doneMarker: localApp + "\\LaunchpadAI\\autocontinue-done-" + hash + ".txt"
   };
 }
 

@@ -20,7 +20,8 @@ function sandbox(name, opts) {
   opts = opts || {};
   const root = path.join(ROOT, 'pk', name);
   fs.rmSync(root, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 });
-  const d = { root, kivun: path.join(root, 'LAD', 'Kivun'), user: path.join(root, 'User'), work: path.join(root, 'work') };
+  // opts.folder: the install folder's name. v3.2.2's picker only works in the old folder, Kivun.
+  const d = { root, kivun: path.join(root, 'LAD', opts.folder || 'LaunchpadAI'), user: path.join(root, 'User'), work: path.join(root, 'work') };
   for (const k of ['kivun', 'user', 'work']) fs.mkdirSync(d[k], { recursive: true });
   fs.writeFileSync(path.join(d.kivun, 'config.txt'), opts.config || CONFIG);
   fs.writeFileSync(path.join(d.kivun, 'claudecode-launchpad.bat'), '@rem stand-in: the picker only checks that it exists\r\n');
@@ -42,16 +43,47 @@ test('UT_Profiles_ClaudeOnlyUnchanged: a Claude launch writes exactly what the v
   for (const codexToo of [false, true]) {
     const results = [];
     for (const hta of [BASELINE_HTA, HTA]) {
-      const d = sandbox('claude-same', { codex: codexToo });
+      const d = sandbox('claude-same', { codex: codexToo, folder: hta === BASELINE_HTA ? 'Kivun' : 'LaunchpadAI' });
       const p = open(d, hta);
       p.el('path').value = d.work;
       p.ctx.ok();
       const out = files(d.kivun);
       delete out['kivun-codex-path.txt'];
-      results.push({ files: JSON.parse(JSON.stringify(out).split(d.root.replace(/\\/g, '\\\\')).join('<SB>')), runs: p.runs.map(r => r.cmd.split(d.root).join('<SB>')), closed: p.state.closed });
+      // The install folder's name differs between the two runs, so it is written as <K>.
+      const norm = s => s.split(d.kivun).join('<K>').split(d.root).join('<SB>');
+      results.push({ files: JSON.parse(norm(JSON.stringify(out).split(d.kivun.replace(/\\/g, '\\\\')).join('<K>')).split(d.root.replace(/\\/g, '\\\\')).join('<SB>')), runs: p.runs.map(r => norm(r.cmd)), closed: p.state.closed });
     }
     assert.deepStrictEqual(results[1], results[0], codexToo ? 'with Codex also installed' : 'Claude only');
   }
+});
+
+// v3.8.0 (Noam, 2026-11-26: saved profiles must never be lost by the move from %LOCALAPPDATA%\Kivun).
+test('UT_Picker_ProfilesFromOldFolder: with no profiles in LaunchpadAI, the ones in Kivun are read once and saved here', () => {
+  const d = sandbox('profiles-old', { profiles: null });
+  const old = path.join(d.root, 'LAD', 'Kivun');
+  fs.mkdirSync(old, { recursive: true });
+  fs.writeFileSync(path.join(old, 'profiles.json'), CLAUDE_PROFILES);
+  open(d);
+  const saved = JSON.parse(fs.readFileSync(path.join(d.kivun, 'profiles.json'), 'utf8'));
+  assert.strictEqual(saved.active, 'Work');
+  assert.deepStrictEqual(saved.profiles.map(p => p.name), ['Default', 'Work']);
+});
+
+test('UT_Picker_ThemeLabel: the light-blue terminal theme is labeled "Light blue"; the saved value stays kivun', () => {
+  const html = fs.readFileSync(HTA, 'utf8');
+  const m = /<label><input type="radio" name="term-color" value="kivun"[^>]*\/>([^<]*)<\/label>/.exec(html);
+  assert.ok(m, 'the kivun radio, with a plain-text label');
+  assert.strictEqual(m[1].trim(), 'Light blue');
+});
+
+test('UT_Picker_ProfilesHereWin: profiles already in LaunchpadAI are kept; the old folder\'s are not read', () => {
+  const mine = JSON.stringify({ version: 1, active: 'Mine', profiles: [{ name: 'Mine', folder: '', model: '', conv: '', customFlags: '', startupCmds: '', envVars: '' }] });
+  const d = sandbox('profiles-here', { profiles: mine });
+  const old = path.join(d.root, 'LAD', 'Kivun');
+  fs.mkdirSync(old, { recursive: true });
+  fs.writeFileSync(path.join(old, 'profiles.json'), CLAUDE_PROFILES);
+  open(d);
+  assert.strictEqual(JSON.parse(fs.readFileSync(path.join(d.kivun, 'profiles.json'), 'utf8')).active, 'Mine');
 });
 
 test('UT_Picker_CodexLaunch: launch.json, LAUNCH <id>, and none of Claude\'s hand-off files', () => {

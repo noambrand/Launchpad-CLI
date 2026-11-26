@@ -625,7 +625,8 @@
   }
 
   var installDir = getInstallDir();
-  var kivunDir = wshShell.ExpandEnvironmentStrings("%LOCALAPPDATA%") + "\\Kivun";
+  // Launchpad's data files sit next to the picker, in the install folder (%LOCALAPPDATA%\LaunchpadAI).
+  var kivunDir = installDir;
   var resultFile = kivunDir + "\\kivun-workdir.txt";
   var startupFile = kivunDir + "\\kivun-claude-startcmd.txt";
   var envFile = kivunDir + "\\kivun-env.txt";
@@ -635,6 +636,9 @@
   // no-history folder with "No conversation found to continue".
   var oneTimeFlagsFile = kivunDir + "\\kivun-claude-flags.txt";
   var profilesFile = kivunDir + "\\profiles.json";
+  // v3.8.0: before 3.8.0 Launchpad lived in the folder named below. The installer copies the saved
+  // profiles across; if this folder still has none, loadProfiles() reads them once from there.
+  var oldProfilesFile = wshShell.ExpandEnvironmentStrings("%LOCALAPPDATA%") + "\\Kivun\\profiles.json";  // OLD_DATA_DIR
   // v3.3.0 Codex: the installer writes kivun-codex-path.txt once Codex is verified; the runner
   // keeps kivun-codex-models.json up to date. Codex launches use their own launch\<id> folders.
   var codexPathFile = kivunDir + "\\kivun-codex-path.txt";
@@ -1151,6 +1155,7 @@
 
   function loadProfiles() {
     var raw = readUtf8(profilesFile);
+    if (!raw && !fso.FileExists(profilesFile)) raw = readUtf8(oldProfilesFile);
     if (raw) {
       try {
         var parsed = JSON.parse(raw);
@@ -2291,7 +2296,7 @@
     <div class="flag-grid">
       <div class="lbl">Background:</div>
       <div class="radio-row">
-        <label><input type="radio" name="term-color" value="kivun" onclick="onColorPick()" /> Kivun <span style="color:#707070">(light blue)</span></label>
+        <label><input type="radio" name="term-color" value="kivun" onclick="onColorPick()" /> Light blue</label>
         <label><input type="radio" name="term-color" value="dark" onclick="onColorPick()" /> Dark</label>
         <label><input type="radio" name="term-color" value="black" onclick="onColorPick()" /> Black</label>
         <label><input type="radio" name="term-color" value="white" onclick="onColorPick()" /> White</label>

@@ -21,7 +21,7 @@ function sandbox(name, color, settings, fragment) {
   const root = path.join(ROOT, 'wtcolor', name);
   fs.rmSync(root, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 });
   const d = { root, lad: path.join(root, 'LAD') };
-  d.kivun = path.join(d.lad, 'Kivun');
+  d.kivun = path.join(d.lad, 'LaunchpadAI');
   d.settings = path.join(d.lad, 'Packages', 'Microsoft.WindowsTerminal_8wekyb3d8bbwe', 'LocalState', 'settings.json');
   d.fragment = path.join(d.lad, 'Microsoft', 'Windows Terminal', 'Fragments', 'ClaudeCodeLaunchpad', 'claudecode-launchpad-wt-fragment.json');
   for (const f of [d.kivun, path.dirname(d.settings), path.dirname(d.fragment)]) fs.mkdirSync(f, { recursive: true });
