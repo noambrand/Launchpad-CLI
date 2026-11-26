@@ -156,8 +156,12 @@ The GUI folder picker requires Windows Script Host. If it's disabled by policy:
 Right-click the shortcut > Properties > verify the target points to:
 
 ```
-%LOCALAPPDATA%\Kivun\claudecode-launchpad.bat
+%LOCALAPPDATA%\LaunchpadAI\claudecode-launchpad.bat
 ```
+
+A shortcut you made yourself to `%LOCALAPPDATA%\Kivun\claudecode-launchpad.bat` points at the folder
+Launchpad used before 3.8.0. The setup moves Launchpad to `LaunchpadAI` and removes that folder, so
+make the shortcut again, or use the Desktop and Start menu shortcuts the setup creates.
 
 ### "folder-picker.hta is missing… Try reinstalling" popup
 
@@ -247,7 +251,7 @@ What to do:
 
 1. **SmartScreen:** click **More info → Run anyway**.
 2. **Antivirus blocked a step:** allow `ClaudeCode_Launchpad_CLI_Setup.exe` (and the install step), or temporarily turn off real-time scanning for the install, then re-run. The installer is resilient and will skip whatever already succeeded.
-3. **McAfee Web Protection blocking `claude.ai`:** if the log (`%LOCALAPPDATA%\Kivun\install-log.txt`) shows `curl: (6) Could not resolve host: claude.ai`, your antivirus is blocking the domain - allow `claude.ai`, or install Claude manually from <https://claude.ai/download> (the installer will then detect it and skip).
+3. **McAfee Web Protection blocking `claude.ai`:** if the log (`%LOCALAPPDATA%\LaunchpadAI\install-log.txt`) shows `curl: (6) Could not resolve host: claude.ai`, your antivirus is blocking the domain - allow `claude.ai`, or install Claude manually from <https://claude.ai/download> (the installer will then detect it and skip).
 4. **Verify it yourself:** upload the downloaded `.exe` to [VirusTotal](https://www.virustotal.com/) (the SHA256 is shown on the release page) to confirm it's clean.
 
 ---
@@ -255,7 +259,7 @@ What to do:
 ## Codex
 
 These apply when you chose **Codex** in the installer (Windows, v3.3.0+). The install log is
-`%LOCALAPPDATA%\Kivun\install-log.txt`; the diagnostic report above includes it.
+`%LOCALAPPDATA%\LaunchpadAI\install-log.txt`; the diagnostic report above includes it.
 
 ### "Codex could not be installed"
 
@@ -297,7 +301,7 @@ would quietly change what you asked for. Fix the option, then launch again.
 ### "Launchpad's settings file is empty"
 
 `config.txt` lost its contents, so Launchpad can't tell which agent to start. Delete
-`%LOCALAPPDATA%\Kivun\config.txt`, then run the installer again: it writes a fresh one.
+`%LOCALAPPDATA%\LaunchpadAI\config.txt`, then run the installer again: it writes a fresh one.
 
 ### No sounds in Codex
 
@@ -367,7 +371,7 @@ there if you want them gone.
 ## GitHub Copilot
 
 Only for PCs where GitHub Copilot was chosen in the installer. The install log is
-`%LOCALAPPDATA%\Kivun\install-log.txt`.
+`%LOCALAPPDATA%\LaunchpadAI\install-log.txt`.
 
 ### "GitHub Copilot could not be installed"
 
@@ -484,7 +488,7 @@ Uninstalling Launchpad leaves Copilot, its sign-in and its conversations in plac
 ## Google Antigravity
 
 Only for PCs where Antigravity (Google) was chosen in the installer. The install log is
-`%LOCALAPPDATA%\Kivun\install-log.txt`.
+`%LOCALAPPDATA%\LaunchpadAI\install-log.txt`.
 
 ### "Antigravity CLI could not be installed", or Launchpad says it can't find `agy`
 
@@ -589,7 +593,7 @@ Expected: it asks once for every new folder. Say yes for your own projects.
 
 These apply to the installer's **Let Claude hand work to Codex** tick (Windows, v3.6.0+): OpenAI's Codex
 add-on for Claude Code, with `/codex:review` and `/codex:rescue`. The setup log is
-`%LOCALAPPDATA%\Kivun\codex-plugin-setup.log`.
+`%LOCALAPPDATA%\LaunchpadAI\codex-plugin-setup.log`.
 
 ### The installer doesn't show the tick
 
@@ -676,7 +680,7 @@ an older build: update to v2.9.3+ or re-run the installer.**
 If it still doesn't show:
 
 1. Check that `statusline.mjs` exists:
-   - Windows: `%LOCALAPPDATA%\Kivun\statusline.mjs`
+   - Windows: `%LOCALAPPDATA%\LaunchpadAI\statusline.mjs`
    - macOS: `/usr/local/share/kivun/statusline.mjs`
 2. Verify Claude Code settings:
    ```bash

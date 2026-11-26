@@ -70,9 +70,9 @@
 
     // resolvePaths dual-mode (cwd -> derived; literal .json -> used as-is)
     var Pa = resolvePaths("C:\\Users\\noam\\proj", "C:\\LA");
-    eq("resolve cwd stateFile", Pa.stateFile, "C:\\LA\\Kivun\\ratelimit-" + hashCwd("C:\\Users\\noam\\proj") + ".json");
-    eq("resolve cwd doneMarker", Pa.doneMarker, "C:\\LA\\Kivun\\autocontinue-done-" + hashCwd("C:\\Users\\noam\\proj") + ".txt");
-    var Pb = resolvePaths("C:\\LA\\Kivun\\ratelimit-abc123.json", "C:\\LA");
+    eq("resolve cwd stateFile", Pa.stateFile, "C:\\LA\\LaunchpadAI\\ratelimit-" + hashCwd("C:\\Users\\noam\\proj") + ".json");
+    eq("resolve cwd doneMarker", Pa.doneMarker, "C:\\LA\\LaunchpadAI\\autocontinue-done-" + hashCwd("C:\\Users\\noam\\proj") + ".txt");
+    var Pb = resolvePaths("C:\\LA\\LaunchpadAI\\ratelimit-abc123.json", "C:\\LA");
     eq("resolve json hash", Pb.hash, "abc123");
 
     // UT_ResetMath - now vs resets_at + grace (epoch only, DST-safe). decideFire's

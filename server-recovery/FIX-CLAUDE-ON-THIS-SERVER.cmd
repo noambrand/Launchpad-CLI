@@ -10,7 +10,7 @@ echo     (Windows Server 2012 R2 / 8.1, which is missing 'curl')
 echo   ============================================================
 echo(
 
-set "KDIR=%LOCALAPPDATA%\Kivun"
+set "KDIR=%LOCALAPPDATA%\LaunchpadAI"
 set "BIN=%KDIR%\bin"
 set "LOG=%KDIR%\server-recovery-log.txt"
 if not exist "%KDIR%" mkdir "%KDIR%" 2>nul

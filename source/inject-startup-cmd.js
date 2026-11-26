@@ -1,6 +1,6 @@
 // inject-startup-cmd.js - Auto-types a startup command into Claude Code's TUI after it loads
 // Spawned detached by claudecode-launchpad.bat via: start "" /b wscript.exe //nologo inject-startup-cmd.js
-// Reads %LOCALAPPDATA%\Kivun\kivun-claude-startcmd.txt (written by write-startcmd.js),
+// Reads kivun-claude-startcmd.txt next to this script (written by write-startcmd.js),
 // waits for the Launchpad WT window, focuses it, SendKeys the command + Enter, then deletes the file.
 
 var WIN_TITLE = "ClaudeCode Launchpad CLI";
@@ -11,7 +11,7 @@ var PRE_SEND_MS = 250;
 
 var sh = new ActiveXObject("WScript.Shell");
 var fs = new ActiveXObject("Scripting.FileSystemObject");
-var cmdPath = sh.ExpandEnvironmentStrings("%LOCALAPPDATA%\\Kivun\\kivun-claude-startcmd.txt");
+var cmdPath = fs.GetParentFolderName(WScript.ScriptFullName) + "\\kivun-claude-startcmd.txt";
 
 if (!fs.FileExists(cmdPath)) {
   WScript.Quit(0);

@@ -10,7 +10,7 @@
 //   remove    the user unticked it: remember that, and take Launchpad's copy out if this script put it
 //             in. Exit 0, or 1 when the copy could not be taken out
 //
-// Records in %LOCALAPPDATA%\Kivun, read by the installer:
+// Records in the install folder, read by the installer:
 //   kivun-codex-plugin.txt      Launchpad's copy is on (written after Claude lists it)
 //   kivun-codex-plugin-off.txt  the user unticked it, so the next run starts unticked
 //
@@ -31,7 +31,7 @@ const TIMEOUT = 120000;
 function paths(env) {
   env = env || process.env;
   const home = env.USERPROFILE || env.HOME;
-  const kivun = env.KIVUN_DIR || path.join(env.LOCALAPPDATA || path.join(home, 'AppData', 'Local'), 'Kivun');
+  const kivun = env.KIVUN_DIR || __dirname;   // the install folder: this script ships in it
   return {
     home,
     kivun,
@@ -175,6 +175,6 @@ function main(argv, env) {
   return 2;
 }
 
-module.exports = { ID, EXIT, paths, findClaude, cmdLine, listPlugins, install, remove: removeMode, main };
+module.exports = { ID, EXIT, paths, findClaude, cmdLine, runClaude, listPlugins, install, remove: removeMode, main };
 
 if (require.main === module) process.exitCode = main(process.argv.slice(2), process.env);

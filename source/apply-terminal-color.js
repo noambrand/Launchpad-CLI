@@ -190,8 +190,8 @@ function writeFragment(resolved) {
     // Route through the launcher (not a bare `claude`) so a profile opened
     // straight from the WT dropdown gets colors, the language prompt AND the
     // exit-to-shell behavior, instead of a tab that closes the moment Claude ends.
-    commandline: '"%LOCALAPPDATA%\\Kivun\\claudecode-launchpad.bat" --run',
-    icon: '%LOCALAPPDATA%\\Kivun\\claude_icon.ico',
+    commandline: '"%LOCALAPPDATA%\\LaunchpadAI\\claudecode-launchpad.bat" --run',
+    icon: '%LOCALAPPDATA%\\LaunchpadAI\\claude_icon.ico',
     cursorShape: 'bar',
     font: { face: 'Cascadia Mono', size: 11 },
     scrollbarState: 'visible',

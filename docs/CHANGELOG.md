@@ -2,6 +2,24 @@
 
 ## [Unreleased]
 
+### Changed: Launchpad lives in %LOCALAPPDATA%\LaunchpadAI
+
+Launchpad installs into `%LOCALAPPDATA%\LaunchpadAI`, and the setup no longer shows the word "Kivun".
+
+- **An upgrade moves everything across:** settings, saved profiles, the AI agent choice, the Codex,
+  Copilot and Antigravity records, and the logs. Shortcuts, right-click menus, the status line, the
+  terminal profile, Copilot's sound alerts and Claude's add-ons point at the new folder, and the old
+  `%LOCALAPPDATA%\Kivun` folder is removed.
+- **Saved profiles and settings are never lost:** the old folder is removed only once `config.txt`
+  and `profiles.json` are in the new one. If the new folder has no profiles, the picker reads them
+  from the old folder. A folder picked on the setup's folder page gets them too.
+- **This works whichever AI agent you use:** Claude's status line and add-ons move even when Codex,
+  Copilot or Antigravity is the agent the setup starts.
+- **Installing into the old folder on purpose** (for example with `/D=`) keeps it as it is.
+- **Kivun Terminal** (`%LOCALAPPDATA%\Kivun-WSL`) is a different product and folder, and stays as it is.
+- **A shortcut you made yourself** to the old folder's launcher needs to be made again.
+- **The picker's theme choice** "Kivun (light blue)" reads "Light blue".
+
 ### Changed: Jon and Jessica are the default voices
 
 Anyone who hasn't picked a voice hears **Jon**, and **Jessica** is the default when you pick

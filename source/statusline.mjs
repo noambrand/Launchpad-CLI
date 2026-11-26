@@ -63,7 +63,7 @@ function writeRateLimitState(d) {
       ts: Math.floor(Date.now() / 1000)      // epoch SECONDS, matches resets_at units
     };
     const base = process.env.LOCALAPPDATA || path.join(os.homedir(), 'AppData', 'Local');
-    const dir = path.join(base, 'Kivun');
+    const dir = path.join(base, 'LaunchpadAI');
     fs.mkdirSync(dir, { recursive: true });
     const file = path.join(dir, 'ratelimit-' + hashCwd(cwd) + '.json');
     const tmp = file + '.' + process.pid;    // tmp+rename template (kivun sibling :168-173)

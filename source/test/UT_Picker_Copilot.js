@@ -17,7 +17,7 @@ function sandbox(name, opts) {
   opts = opts || {};
   const root = path.join(ROOT, 'pk', name);
   fs.rmSync(root, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 });
-  const d = { root, kivun: path.join(root, 'LAD', 'Kivun'), user: path.join(root, 'User'), work: path.join(root, 'work') };
+  const d = { root, kivun: path.join(root, 'LAD', 'LaunchpadAI'), user: path.join(root, 'User'), work: path.join(root, 'work') };
   for (const k of ['kivun', 'user', 'work']) fs.mkdirSync(d[k], { recursive: true });
   fs.writeFileSync(path.join(d.kivun, 'config.txt'), opts.config || CONFIG);
   fs.writeFileSync(path.join(d.kivun, 'claudecode-launchpad.bat'), '@rem stand-in\r\n');

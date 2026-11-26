@@ -10,7 +10,7 @@ REM  sent anywhere automatically - this only creates a text file
 REM  that YOU choose to email or attach. No PowerShell, no downloads.
 REM ============================================================
 setlocal enableextensions
-set "KDIR=%LOCALAPPDATA%\Kivun"
+set "KDIR=%LOCALAPPDATA%\LaunchpadAI"
 if not exist "%KDIR%" mkdir "%KDIR%" 2>nul
 set "RPT=%KDIR%\Launchpad-Report.txt"
 set "WT_ALIAS=%LOCALAPPDATA%\Microsoft\WindowsApps\wt.exe"

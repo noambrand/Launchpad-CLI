@@ -112,7 +112,7 @@ set "WORK_DIR=%USERPROFILE%"
 
 if "%~1"=="" goto :work_dir_done
 if /i "%~1"=="READFILE" (
-    set "PATHFILE=%LOCALAPPDATA%\Kivun\kivun-workdir.txt"
+    set "PATHFILE=%~dp0kivun-workdir.txt"
     if exist "!PATHFILE!" (
         for /f "usebackq delims=" %%P in ("!PATHFILE!") do set "WORK_DIR=%%P"
     )
@@ -178,7 +178,7 @@ REM deletes. Only a picker launch (arg READFILE) may carry it. On a right-click
 REM "Open with..." or direct launch, clear any stale file left by a picker run
 REM that never reached :run_claude, so it can't leak in and crash a no-history
 REM folder with "No conversation found to continue".
-if /i not "%~1"=="READFILE" del "%LOCALAPPDATA%\Kivun\kivun-claude-flags.txt" >nul 2>&1
+if /i not "%~1"=="READFILE" del "%~dp0kivun-claude-flags.txt" >nul 2>&1
 
 REM --- Tab title = the project folder name, so multiple tabs are
 REM     distinguishable. The WT profile sets suppressApplicationTitle:true,
@@ -335,9 +335,9 @@ if /i "!RESPONSE_LANGUAGE!"=="turoyo" set "LANG_PROMPT=Always respond in Turoyo 
 
 REM --- Read one-time flags (written by the HTA picker on Launch) ---
 set "ONE_TIME_FLAGS="
-if exist "%LOCALAPPDATA%\Kivun\kivun-claude-flags.txt" (
-    for /f "usebackq delims=" %%F in ("%LOCALAPPDATA%\Kivun\kivun-claude-flags.txt") do set "ONE_TIME_FLAGS=%%F"
-    del "%LOCALAPPDATA%\Kivun\kivun-claude-flags.txt"
+if exist "%~dp0kivun-claude-flags.txt" (
+    for /f "usebackq delims=" %%F in ("%~dp0kivun-claude-flags.txt") do set "ONE_TIME_FLAGS=%%F"
+    del "%~dp0kivun-claude-flags.txt"
 )
 set "FINAL_FLAGS=!CLAUDE_FLAGS!"
 if not "!ONE_TIME_FLAGS!"=="" set "FINAL_FLAGS=!FINAL_FLAGS! !ONE_TIME_FLAGS!"
@@ -348,7 +348,7 @@ REM     process spawned below. Unlike kivun-terminal-wsl, there is NO WSL
 REM     boundary here — `set` in cmd is enough; no WSLENV plumbing needed.
 REM     Schema: KEY=VAL one per line, # comments allowed. KEY validated by
 REM     the picker as ^[A-Za-z_][A-Za-z0-9_]*$ before being written.
-set "ENV_FILE=%LOCALAPPDATA%\Kivun\kivun-env.txt"
+set "ENV_FILE=%~dp0kivun-env.txt"
 if exist "!ENV_FILE!" (
     for /f "usebackq eol=# tokens=1,* delims==" %%a in ("!ENV_FILE!") do (
         if not "%%a"=="" set "%%a=%%b"
@@ -356,7 +356,7 @@ if exist "!ENV_FILE!" (
 )
 
 REM --- Apply default STARTUP_CMD from config if no one-time override is queued ---
-if not exist "%LOCALAPPDATA%\Kivun\kivun-claude-startcmd.txt" (
+if not exist "%~dp0kivun-claude-startcmd.txt" (
     if not "!STARTUP_CMD!"=="" (
         cscript //nologo "!SCRIPT_DIR!write-startcmd.js" "!STARTUP_CMD!" >nul 2>&1
     )
@@ -365,7 +365,7 @@ if not exist "%LOCALAPPDATA%\Kivun\kivun-claude-startcmd.txt" (
 REM --- Spawn startup-command injector (detached) if a startup command is queued ---
 REM (File is written by the HTA picker, by the default-apply above, and cleared
 REM  by the launcher.wsf at the top of each run; injector self-deletes after firing.)
-if exist "%LOCALAPPDATA%\Kivun\kivun-claude-startcmd.txt" (
+if exist "%~dp0kivun-claude-startcmd.txt" (
     start "" /b wscript.exe //nologo "!SCRIPT_DIR!inject-startup-cmd.js"
 )
 
@@ -585,7 +585,7 @@ echo.
 cmd /k "doskey codex=exit 43"
 if %ERRORLEVEL% EQU 43 goto :codex_relaunch
 REM The session is over: remove this launch's folder (a closed tab is swept by later launches).
-rmdir /s /q "%LOCALAPPDATA%\Kivun\launch\%KV_ID%" >nul 2>&1
+rmdir /s /q "%~dp0launch\%KV_ID%" >nul 2>&1
 exit /b 0
 :codex_relaunch
 node "%~dp0configure-codex.js" run %KV_ID% --relaunch
@@ -667,7 +667,7 @@ echo.
 cmd /k "doskey copilot=exit 43"
 if %ERRORLEVEL% EQU 43 goto :copilot_relaunch
 REM The session is over: remove this launch's folder (a closed tab is swept by later launches).
-rmdir /s /q "%LOCALAPPDATA%\Kivun\launch\%KV_ID%" >nul 2>&1
+rmdir /s /q "%~dp0launch\%KV_ID%" >nul 2>&1
 exit /b 0
 :copilot_relaunch
 node "%~dp0configure-copilot.js" run %KV_ID% --relaunch
@@ -749,7 +749,7 @@ echo.
 cmd /k "doskey agy=exit 43"
 if %ERRORLEVEL% EQU 43 goto :antigravity_relaunch
 REM The session is over: remove this launch's folder (a closed tab is swept by later launches).
-rmdir /s /q "%LOCALAPPDATA%\Kivun\launch\%KV_ID%" >nul 2>&1
+rmdir /s /q "%~dp0launch\%KV_ID%" >nul 2>&1
 exit /b 0
 :antigravity_relaunch
 node "%~dp0configure-antigravity.js" run %KV_ID% --relaunch

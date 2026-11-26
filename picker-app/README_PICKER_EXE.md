@@ -62,7 +62,7 @@ from your phone) — exactly like `sign-and-release.cmd`.
    (GitHub builds the setup `.exe`, then you run `sign-and-release.cmd` to sign
    and upload the outer installer).
 
-## What ships in the install folder (`%LOCALAPPDATA%\Kivun`)
+## What ships in the install folder (`%LOCALAPPDATA%\LaunchpadAI`)
 
 `LaunchpadPicker.exe` (signed) · `folder-picker.html` · `webview-shim.js` ·
 `Microsoft.Web.WebView2.Core.dll` · `Microsoft.Web.WebView2.WinForms.dll` ·

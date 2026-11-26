@@ -16,7 +16,7 @@ function render(limits) {
     env: Object.assign({}, d.env, { TZ: 'UTC' }), encoding: 'utf8', windowsHide: true,
   });
   assert.strictEqual(r.status, 0, r.stderr);
-  const dir = path.join(d.env.LOCALAPPDATA, 'Kivun');
+  const dir = path.join(d.env.LOCALAPPDATA, 'LaunchpadAI');
   const files = fs.readdirSync(dir).filter(f => /^ratelimit-[0-9a-f]{8}\.json$/.test(f));
   assert.strictEqual(files.length, 1, files.join(','));
   return {
@@ -49,4 +49,16 @@ test('UT_Statusline_SessionCap_WatcherUnchanged: auto-continue still gets the se
   const { state } = render({ five_hour: { used_percentage: 100, resets_at: LATER }, seven_day: { used_percentage: 90, resets_at: SOON } });
   assert.strictEqual(state.five_hour.resets_at, LATER);
   assert.strictEqual(state.five_hour.pct, 100);
+});
+
+// The bar writes the rate-limit state that auto-continue reads, so both name the same folder under
+// %LOCALAPPDATA%: LaunchpadAI, Launchpad's install folder (it was Kivun until 2026-11-26).
+test('UT_Statusline_SameFolder: the status line and auto-continue use the same state folder, LaunchpadAI', () => {
+  const sl = fs.readFileSync(path.join(fx.SOURCE, 'statusline.mjs'), 'utf8');
+  const ac = fs.readFileSync(path.join(fx.SOURCE, 'auto-continue.js'), 'utf8');
+  const slDir = /path\.join\(base, '([^']+)'\)/.exec(sl);
+  const acDirs = [...ac.matchAll(/localApp \+ "\\\\([^\\"]+)\\\\(?:ratelimit|autocontinue-done)-/g)].map(m => m[1]);
+  assert.ok(slDir, 'statusline.mjs: state folder not found');
+  assert.strictEqual(slDir[1], 'LaunchpadAI');
+  assert.deepStrictEqual(acDirs, ['LaunchpadAI', 'LaunchpadAI']);
 });

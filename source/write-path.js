@@ -3,7 +3,8 @@
 // Usage: cscript //nologo write-path.js "C:\path\to\folder"
 
 var wshShell = new ActiveXObject("WScript.Shell");
-var filePath = wshShell.ExpandEnvironmentStrings("%LOCALAPPDATA%") + "\\Kivun\\kivun-workdir.txt";
+// Launchpad's folder is the one this script sits in.
+var filePath = new ActiveXObject("Scripting.FileSystemObject").GetParentFolderName(WScript.ScriptFullName) + "\\kivun-workdir.txt";
 
 var stream = new ActiveXObject("ADODB.Stream");
 stream.Type = 2;

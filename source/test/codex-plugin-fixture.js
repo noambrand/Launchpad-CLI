@@ -48,7 +48,7 @@ function makeEnv(name, opts) {
   const root = path.join(ROOT, 'codex-plugin', name);
   rmrf(root);
   const home = path.join(root, 'h');
-  const kivun = path.join(root, opts.hebrew ? '\u05E7\u05D9\u05D1\u05D5\u05DF \u05D1\u05D3\u05D9\u05E7\u05D4' : 'Kivun');
+  const kivun = path.join(root, opts.hebrew ? '\u05E7\u05D9\u05D1\u05D5\u05DF \u05D1\u05D3\u05D9\u05E7\u05D4' : 'LaunchpadAI');
   for (const dir of [home, kivun, path.join(root, 'ad')]) fs.mkdirSync(dir, { recursive: true });
   const d = { root, home, kivun, state: path.join(root, 'claude-state.json'), calls: path.join(root, 'claude-calls.jsonl'), fake: path.join(root, 'fake-claude.js') };
   fs.writeFileSync(d.fake, FAKE_CLAUDE);

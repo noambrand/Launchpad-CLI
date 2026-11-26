@@ -23,7 +23,7 @@ set "EXIT_CODE=0"
 REM --- Persistent logs (per-user, survive the run so a failed install leaves
 REM     evidence on disk). KIVUN_LOG gets this script's own output; NODE_MSI_LOG
 REM     gets msiexec's verbose log when the Node MSI fallback is used. ---
-set "KIVUN_DIR=%LOCALAPPDATA%\Kivun"
+for %%D in ("%~dp0.") do set "KIVUN_DIR=%%~fD"
 set "KIVUN_LOG=%KIVUN_DIR%\install-log.txt"
 set "NODE_MSI_LOG=%KIVUN_DIR%\node-msi.log"
 if not exist "%KIVUN_DIR%" mkdir "%KIVUN_DIR%" 2>nul

@@ -16,7 +16,7 @@ REM ============================================================================
 setlocal enabledelayedexpansion
 
 set "OUT=%USERPROFILE%\Desktop\LAUNCHPAD-HEBREW-PATH-REPORT.txt"
-set "PATHFILE=%LOCALAPPDATA%\Kivun\kivun-workdir.txt"
+set "PATHFILE=%LOCALAPPDATA%\LaunchpadAI\kivun-workdir.txt"
 set "TMPD=%TEMP%\lp-hebtest"
 
 REM --- capture the codepage BEFORE we touch it (this is the machine default) ---
@@ -44,13 +44,13 @@ for /f "tokens=* delims=" %%C in ('chcp') do set "CP_AFTER=%%C"
 where wt.exe   >nul 2>&1 && (>>"%OUT%" echo     Windows Terminal: found) || (>>"%OUT%" echo     Windows Terminal: NOT FOUND - launcher falls back to plain cmd)
 where node     >nul 2>&1 && (>>"%OUT%" echo     Node.js         : found) || (>>"%OUT%" echo     Node.js         : NOT FOUND)
 where claude   >nul 2>&1 && (>>"%OUT%" echo     claude          : found) || (where claude.cmd >nul 2>&1 && (>>"%OUT%" echo     claude          : found ^(claude.cmd^)) || (>>"%OUT%" echo     claude          : NOT FOUND))
-if exist "%LOCALAPPDATA%\Kivun\VERSION" (
-    for /f "usebackq delims=" %%V in ("%LOCALAPPDATA%\Kivun\VERSION") do >>"%OUT%" echo     Launchpad ver   : %%V
+if exist "%LOCALAPPDATA%\LaunchpadAI\VERSION" (
+    for /f "usebackq delims=" %%V in ("%LOCALAPPDATA%\LaunchpadAI\VERSION") do >>"%OUT%" echo     Launchpad ver   : %%V
 ) else (
     >>"%OUT%" echo     Launchpad ver   : no VERSION file
 )
 >>"%OUT%" echo     Launcher has the UTF-8 line?
-findstr /i /c:"chcp 65001" "%LOCALAPPDATA%\Kivun\claudecode-launchpad.bat" >nul 2>&1 && (>>"%OUT%" echo         YES - claudecode-launchpad.bat sets chcp 65001) || (>>"%OUT%" echo         NO  - claudecode-launchpad.bat is MISSING chcp 65001  ^<== likely cause)
+findstr /i /c:"chcp 65001" "%LOCALAPPDATA%\LaunchpadAI\claudecode-launchpad.bat" >nul 2>&1 && (>>"%OUT%" echo         YES - claudecode-launchpad.bat sets chcp 65001) || (>>"%OUT%" echo         NO  - claudecode-launchpad.bat is MISSING chcp 65001  ^<== likely cause)
 >>"%OUT%" echo.
 
 >>"%OUT%" echo [3] THE PATH THAT WAS LAST PICKED

@@ -50,7 +50,7 @@ const compose = AH.composeCodex;
 function paths(env) {
   env = env || process.env;
   const home = env.HOME || env.USERPROFILE;
-  const kivun = env.KIVUN_DIR || path.join(env.LOCALAPPDATA || path.join(home, 'AppData', 'Local'), 'Kivun');
+  const kivun = env.KIVUN_DIR || __dirname;   // the install folder: this script ships in it
   return {
     home,
     kivun,

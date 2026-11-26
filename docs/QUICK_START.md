@@ -255,7 +255,7 @@ Running the installer again with it unticked takes it out.
 
 ## Configuration
 
-All settings live in one plain-text file: `%LOCALAPPDATA%\Kivun\config.txt`. Open it in Notepad and change anything - nothing is permanent. Common keys:
+All settings live in one plain-text file: `%LOCALAPPDATA%\LaunchpadAI\config.txt`. Open it in Notepad and change anything - nothing is permanent. Common keys:
 
 - `RESPONSE_LANGUAGE` - the language Claude replies in (e.g. `english`, `hebrew`)
 - On Windows, Hebrew, Arabic and other right-to-left replies are right-aligned automatically. Type `/rtl off` inside Claude to turn it off, `/rtl on` to turn it back on.
@@ -297,7 +297,7 @@ The status bar is installed automatically - no configuration needed.
 
 ## Files
 
-Everything is installed in: `%LOCALAPPDATA%\Kivun`
+Everything is installed in: `%LOCALAPPDATA%\LaunchpadAI`
 
 Key files:
 - `LaunchpadPicker.exe` - The signed folder picker (this is what the desktop / Start-menu / taskbar shortcut opens)

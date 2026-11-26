@@ -57,7 +57,10 @@ function makeSandbox(caseId, launcherText) {
   const sb = path.join(ROOT, 'cases', caseId);
   rmrf(sb);
   const d = {
-    root: sb, user: path.join(sb, 'User'), lad: path.join(sb, 'LAD'), kivun: path.join(sb, 'LAD', 'Kivun'),
+    // The install folder is LaunchpadAI; v3.2.2's launcher only works in the old one, Kivun, which it
+    // names itself. normalize() writes either as <K>, so the two runs compare directly.
+    root: sb, user: path.join(sb, 'User'), lad: path.join(sb, 'LAD'),
+    kivun: path.join(sb, 'LAD', /%LOCALAPPDATA%\\Kivun\\/i.test(launcherText || '') ? 'Kivun' : 'LaunchpadAI'),
     bin: path.join(sb, 'bin'), tmp: path.join(sb, 'tmp'), work: path.join(sb, 'work'), stubs: path.join(sb, 'stubs'),
     log: path.join(sb, 'standin.jsonl'), appdata: path.join(sb, 'AppData'),
   };
@@ -80,6 +83,9 @@ function baseEnv(d, extra) {
     HOMEDRIVE: d.user.slice(0, 2), HOMEPATH: d.user.slice(2), ProgramFiles: path.join(d.root, 'PF'),
     PATH: [d.bin, path.join(sys, 'System32'), sys, path.join(sys, 'System32', 'Wbem'), nodeDir].join(';'),
     STANDIN_LOG: d.log, STUB_LOG_DIR: d.stubs,
+    // The launcher's own scripts find the install folder from where they sit; a test that loads
+    // configure-codex.js from source (to make a launch record) needs to be told where it is.
+    KIVUN_DIR: d.kivun,
   };
   return Object.assign(env, extra || {});
 }
@@ -160,6 +166,10 @@ function normalize(result, d) {
   for (const r of result.standIns) for (const k of Object.keys(r.env)) if (varies.includes(k.toUpperCase())) r.env[k] = '<VARIES>';
   let s = JSON.stringify(result);
   const esc = x => x.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  for (const p of [d.kivun, d.kivun.replace(/\\/g, '/')]) {
+    s = s.replace(new RegExp(esc(JSON.stringify(p).slice(1, -1)), 'gi'), '<K>');
+    s = s.replace(new RegExp(esc(p), 'gi'), '<K>');
+  }
   for (const p of [d.root, d.root.replace(/\\/g, '/')]) {
     s = s.replace(new RegExp(esc(JSON.stringify(p).slice(1, -1)), 'gi'), '<SB>');
     s = s.replace(new RegExp(esc(p), 'gi'), '<SB>');

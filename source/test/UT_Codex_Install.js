@@ -89,8 +89,8 @@ test('UT_Install_Fail_Fresh: no Codex and no registry: a plain repair message, e
 // install.cmd itself: /codex with the Node path, as the installer calls it.
 function installCmd(d, args, extra) {
   const lad = path.join(d.root, 'lad');
-  fs.mkdirSync(path.join(lad, 'Kivun'), { recursive: true });
-  for (const f of ['install.cmd', 'configure-codex.js', 'agent-helpers.js']) fs.copyFileSync(path.join(fx.SOURCE, f), path.join(lad, 'Kivun', f));
+  fs.mkdirSync(path.join(lad, 'LaunchpadAI'), { recursive: true });
+  for (const f of ['install.cmd', 'configure-codex.js', 'agent-helpers.js']) fs.copyFileSync(path.join(fx.SOURCE, f), path.join(lad, 'LaunchpadAI', f));
   // install.cmd adds the PATH stored in the registry, where a real Codex on this PC would be found:
   // here `reg` finds nothing.
   const noReg = path.join(d.root, 'no-reg');
@@ -99,9 +99,9 @@ function installCmd(d, args, extra) {
   const env = Object.assign({}, d.env, offline(d), { PATH: noReg + ';' + d.env.PATH, LOCALAPPDATA: lad, TEMP: path.join(d.root, 'tmp'), TMP: path.join(d.root, 'tmp') }, extra || {});
   delete env.KIVUN_DIR; delete env.KIVUN_LOG;      // install.cmd sets both itself
   fs.mkdirSync(env.TEMP, { recursive: true });
-  const line = '/d /s /c ""' + path.join(lad, 'Kivun', 'install.cmd') + '"' + args.map(a => ' "' + a + '"').join('') + '"';
+  const line = '/d /s /c ""' + path.join(lad, 'LaunchpadAI', 'install.cmd') + '"' + args.map(a => ' "' + a + '"').join('') + '"';
   const r = cp.spawnSync(env.ComSpec, [line], { env, encoding: 'utf8', windowsHide: true, windowsVerbatimArguments: true, timeout: 120000 });
-  const log = path.join(lad, 'Kivun', 'install-log.txt');
+  const log = path.join(lad, 'LaunchpadAI', 'install-log.txt');
   return { status: r.status, stdout: r.stdout, log: fs.existsSync(log) ? fs.readFileSync(log, 'utf8') : '' };
 }
 

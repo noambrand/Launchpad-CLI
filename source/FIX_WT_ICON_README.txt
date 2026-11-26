@@ -7,7 +7,7 @@
 
 PROBLEM:
   Windows Terminal shows the generic black terminal icon instead
-  of the blue Kivun/Claude icon on the taskbar and tabs.
+  of the blue Claude icon on the taskbar and tabs.
 
 WHY IT HAPPENS:
   When you customize the ClaudeCode Launchpad profile, Windows
@@ -26,8 +26,8 @@ WHY IT HAPPENS:
 
   The two things that make the taskbar path succeed:
     1. Use a LITERAL absolute path (e.g.
-       C:\Users\YOU\AppData\Local\Kivun\claude_icon.ico),
-       NOT "%LOCALAPPDATA%\Kivun\claude_icon.ico" - the taskbar
+       C:\Users\YOU\AppData\Local\LaunchpadAI\claude_icon.ico),
+       NOT "%LOCALAPPDATA%\LaunchpadAI\claude_icon.ico" - the taskbar
        loader does not reliably expand environment variables.
     2. Keep the icon on the SAME DRIVE as the folder you launch
        into. A cross-drive icon path fails on the taskbar
@@ -54,7 +54,7 @@ HOW TO FIX:
 
     • Add this line inside that profile (use your REAL username,
       a literal path - do NOT use %LOCALAPPDATA% here):
-      "icon": "C:\\Users\\YOU\\AppData\\Local\\Kivun\\claude_icon.ico",
+      "icon": "C:\\Users\\YOU\\AppData\\Local\\LaunchpadAI\\claude_icon.ico",
 
     • Save the file
     • Close ALL Windows Terminal windows
@@ -79,7 +79,7 @@ TROUBLESHOOTING:
   If the icon is STILL wrong after running the fix:
 
   1. Check the icon file exists:
-     %LOCALAPPDATA%\Kivun\claude_icon.ico
+     %LOCALAPPDATA%\LaunchpadAI\claude_icon.ico
 
   2. Make sure you closed ALL Windows Terminal windows
      (not just the current tab - all windows!)

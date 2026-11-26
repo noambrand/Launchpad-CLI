@@ -10,7 +10,9 @@ Unicode True
 !define PRODUCT_WEB_SITE "https://github.com"
 !define PRODUCT_DESCRIPTION "Claude Code installer for Windows"
 !define PRODUCT_SUBTITLE "Automatic installation, light blue terminal, folder shortcuts"
-!define INSTALL_DIR "$LOCALAPPDATA\Kivun"
+!define INSTALL_DIR "$LOCALAPPDATA\LaunchpadAI"
+; v3.8.0: the folder before 3.8.0. An upgrade copies the user's settings from it, then removes it.
+!define OLD_DIR "$LOCALAPPDATA\Kivun"
 
 ; Modern UI
 !include "MUI2.nsh"
@@ -27,7 +29,7 @@ Unicode True
 
 
 ; Per-user install — no admin needed. Everything lands under
-; %LOCALAPPDATA%\Kivun, HKCU registry, and the user's desktop.
+; %LOCALAPPDATA%\LaunchpadAI, HKCU registry, and the user's desktop.
 ; Previous releases requested admin and wrote to HKLM/HKCR; that broke
 ; under "over-the-shoulder" UAC because $LOCALAPPDATA then resolved to
 ; the elevating admin's profile, not the invoking user's. Fixed v2.6.4.
@@ -170,6 +172,9 @@ Function .onInit
   Abort
   continueInstall:
 
+  ; v3.8.0: bring the user's settings over from the old folder before anything below reads them.
+  Call CopyFromOldFolder
+
   ; v3.3.0: start from the agent this PC already uses (see Var ConfigAgent).
   StrCpy $ConfigAgent "claude"
   ${ConfigRead} "$INSTDIR\config.txt" "AGENT=" $0
@@ -184,6 +189,94 @@ Function .onInit
   Call ApplyCopilotChoice
   Call ApplyAntigravityChoice
 FunctionEnd
+
+; ---- v3.8.0: the move from the old folder (start) ----
+; Launchpad moved from %LOCALAPPDATA%\Kivun to %LOCALAPPDATA%\LaunchpadAI (Noam, 2026-11-26).
+Var CopiedTo          ; the folder the first copy went into ("" until then)
+Var CopiedCreated     ; "1" when that first copy created the folder
+Var IntoOldFolder     ; set by InstallingIntoOldFolder
+
+; "1" in $IntoOldFolder when the folder being installed into is the old folder or inside it (a /D=
+; or Directory page choice). Nothing is then copied, and the old folder is never removed.
+Function InstallingIntoOldFolder
+  Push $R0
+  StrCpy $IntoOldFolder "0"
+  ${If} $INSTDIR == "${OLD_DIR}"
+    StrCpy $IntoOldFolder "1"
+  ${Else}
+    StrLen $R0 "${OLD_DIR}\"
+    StrCpy $R0 $INSTDIR $R0
+    ${If} $R0 == "${OLD_DIR}\"
+      StrCpy $IntoOldFolder "1"
+    ${EndIf}
+  ${EndIf}
+  Pop $R0
+FunctionEnd
+
+; While the old folder holds Launchpad's launcher and the install folder doesn't, the old one is the
+; live install: copy the user's settings, profiles, records and logs across. Run in .onInit (so the
+; pages start from the user's choices) and again in SecCore (CopyAgainIntoFinalFolder). A cancelled
+; run copies again next time; once the install folder has its launcher nothing is copied again, so a
+; left-over old folder never overwrites newer settings. One-launch folders and rate-limit state stay.
+Function CopyFromOldFolder
+  Call InstallingIntoOldFolder
+  ${If} $IntoOldFolder == "0"
+  ${AndIf} ${FileExists} "${OLD_DIR}\claudecode-launchpad.bat"
+  ${AndIfNot} ${FileExists} "$INSTDIR\claudecode-launchpad.bat"
+    ${If} $CopiedTo == ""
+      StrCpy $CopiedTo "$INSTDIR"
+      StrCpy $CopiedCreated "1"
+      ${If} ${FileExists} "$INSTDIR\*.*"
+        StrCpy $CopiedCreated "0"
+      ${EndIf}
+    ${EndIf}
+    CreateDirectory "$INSTDIR"
+    CopyFiles /SILENT "${OLD_DIR}\config.txt" "$INSTDIR"
+    CopyFiles /SILENT "${OLD_DIR}\profiles.json" "$INSTDIR"
+    CopyFiles /SILENT "${OLD_DIR}\kivun-*.txt" "$INSTDIR"
+    CopyFiles /SILENT "${OLD_DIR}\kivun-*.json" "$INSTDIR"
+    CopyFiles /SILENT "${OLD_DIR}\*.log" "$INSTDIR"
+    CopyFiles /SILENT "${OLD_DIR}\install-log.txt" "$INSTDIR"
+    CopyFiles /SILENT "${OLD_DIR}\Launchpad-Report.txt" "$INSTDIR"
+    ${If} ${FileExists} "${OLD_DIR}\copilot-language\*.*"
+      CopyFiles /SILENT "${OLD_DIR}\copilot-language" "$INSTDIR"
+    ${EndIf}
+    ClearErrors
+  ${EndIf}
+FunctionEnd
+
+; SecCore, after the open Launchpad windows are closed: copy again into the final folder (the Directory
+; page may have changed it, and an open picker may have saved since .onInit). A first copy that went
+; into another folder, which it created, is removed.
+Function CopyAgainIntoFinalFolder
+  Call CopyFromOldFolder
+  ${If} $CopiedTo != ""
+  ${AndIf} $CopiedTo != $INSTDIR
+  ${AndIf} $CopiedCreated == "1"
+  ${AndIfNot} ${FileExists} "$CopiedTo\claudecode-launchpad.bat"
+    RMDir /r "$CopiedTo"
+  ${EndIf}
+FunctionEnd
+
+; Removes the old folder once the user's data is in the install folder: config.txt there, and
+; profiles.json too when the old folder had one. Only a Launchpad install (its launcher, VERSION or
+; picker), never the folder being installed into, and never Kivun-WSL (Kivun Terminal). No /REBOOTOK:
+; the installer runs without admin, so nothing could wait for a restart, and NSIS would then offer one.
+Function RemoveOldFolder
+  Call InstallingIntoOldFolder
+  ${If} $IntoOldFolder == "0"
+  ${AndIf} ${FileExists} "$INSTDIR\config.txt"
+    ${If} ${FileExists} "${OLD_DIR}\claudecode-launchpad.bat"
+    ${OrIf} ${FileExists} "${OLD_DIR}\VERSION"
+    ${OrIf} ${FileExists} "${OLD_DIR}\LaunchpadPicker.exe"
+      ${IfNot} ${FileExists} "${OLD_DIR}\profiles.json"
+      ${OrIf} ${FileExists} "$INSTDIR\profiles.json"
+        RMDir /r "${OLD_DIR}"
+      ${EndIf}
+    ${EndIf}
+  ${EndIf}
+FunctionEnd
+; ---- v3.8.0: the move from the old folder (end) ----
 
 ; Configuration page
 Function ConfigPage
@@ -333,16 +426,6 @@ FunctionEnd
 Section "!Core Components (Required)" SecCore
   SectionIn RO  ; Read-only, cannot be deselected
 
-  ; v2.7.6: remember whether the user already has a config.txt BEFORE we touch
-  ; any files. On an upgrade we must PRESERVE it (it holds the user's language,
-  ; theme, CLAUDE_FLAGS and STARTUP_CMD); only a first install gets a freshly
-  ; generated one from the wizard choices. Earlier builds rewrote config.txt on
-  ; every install, silently wiping these settings on every upgrade.
-  StrCpy $ConfigExisted "0"
-  ${If} ${FileExists} "$INSTDIR\config.txt"
-    StrCpy $ConfigExisted "1"
-  ${EndIf}
-
   ; Hardening (v2.6.8): close any launcher window left running from a previous
   ; build BEFORE we overwrite files. An open mshta window only runs its update
   ; check once at load, so without this an upgraded user keeps seeing the OLD
@@ -353,6 +436,20 @@ Section "!Core Components (Required)" SecCore
   File "/oname=$PLUGINSDIR\close-launchers.js" "source\close-launchers.js"
   nsExec::Exec 'cscript.exe //B //Nologo "$PLUGINSDIR\close-launchers.js"'
   Pop $0
+
+  ; v3.8.0: with the open windows closed, copy the user's settings from the old folder into the
+  ; folder chosen on the Directory page (see CopyAgainIntoFinalFolder).
+  Call CopyAgainIntoFinalFolder
+
+  ; v2.7.6: remember whether the user already has a config.txt BEFORE we touch
+  ; any files. On an upgrade we must PRESERVE it (it holds the user's language,
+  ; theme, CLAUDE_FLAGS and STARTUP_CMD); only a first install gets a freshly
+  ; generated one from the wizard choices. Earlier builds rewrote config.txt on
+  ; every install, silently wiping these settings on every upgrade.
+  StrCpy $ConfigExisted "0"
+  ${If} ${FileExists} "$INSTDIR\config.txt"
+    StrCpy $ConfigExisted "1"
+  ${EndIf}
 
   SetOutPath "$INSTDIR"
 
@@ -406,6 +503,7 @@ Section "!Core Components (Required)" SecCore
   File "source\claudecode-launchpad-wt-fragment-nocolor.json"
   File "source\apply-wt-settings.js"
   File "source\apply-terminal-color.js"
+  File "source\move-from-old-folder.js"
   File "source\dedupe-launch-tab.js"
   File "source\statusline.mjs"
   File "source\configure-statusline.js"
@@ -709,9 +807,9 @@ Section "!Install Node.js (Required)" SecNodeJS
   DetailPrint "install.cmd /node exit code: $0"
 
   ${If} $0 == 10
-    MessageBox MB_OK "Node.js could not be installed automatically: winget was missing or did not complete, and the official-installer download did not succeed.$\n$\nLog: $LOCALAPPDATA\Kivun\install-log.txt$\n$\nPlease install Node.js manually from https://nodejs.org/"
+    MessageBox MB_OK "Node.js could not be installed automatically: winget was missing or did not complete, and the official-installer download did not succeed.$\n$\nLog: $INSTDIR\install-log.txt$\n$\nPlease install Node.js manually from https://nodejs.org/"
   ${ElseIf} $0 != 0
-    MessageBox MB_OK "Node.js installation may have failed (exit code: $0).$\n$\nNode.js needs administrator rights to install. If a UAC prompt appeared, make sure to approve it.$\n$\nLogs were saved to:$\n  $LOCALAPPDATA\Kivun\install-log.txt$\n  $LOCALAPPDATA\Kivun\node-msi.log$\n$\nYou can also install Node.js manually from https://nodejs.org/"
+    MessageBox MB_OK "Node.js installation may have failed (exit code: $0).$\n$\nNode.js needs administrator rights to install. If a UAC prompt appeared, make sure to approve it.$\n$\nLogs were saved to:$\n  $INSTDIR\install-log.txt$\n  $INSTDIR\node-msi.log$\n$\nYou can also install Node.js manually from https://nodejs.org/"
   ${EndIf}
 
   ; Verify
@@ -935,11 +1033,11 @@ Section /o "!Install Codex (Required)" SecCodex
       ${EndIf}
     ${EndIf}
     ${If} $2 == "1"
-      MessageBox MB_OK|MB_ICONEXCLAMATION "Codex could not be installed, so nothing was changed: Launchpad keeps starting the AI agent it used before.$\n$\nDetails: $LOCALAPPDATA\Kivun\install-log.txt$\n$\nRun this installer again to try once more." /SD IDOK
+      MessageBox MB_OK|MB_ICONEXCLAMATION "Codex could not be installed, so nothing was changed: Launchpad keeps starting the AI agent it used before.$\n$\nDetails: $INSTDIR\install-log.txt$\n$\nRun this installer again to try once more." /SD IDOK
     ${Else}
       nsExec::ExecToLog '"$NodeExe" "$INSTDIR\configure-codex.js" set-agent codex'
       Pop $1
-      MessageBox MB_OK|MB_ICONEXCLAMATION "Codex could not be installed.$\n$\nDetails: $LOCALAPPDATA\Kivun\install-log.txt$\n$\nRun this installer again to finish installing Codex. Until then, Launchpad shows a repair message instead of starting Codex." /SD IDOK
+      MessageBox MB_OK|MB_ICONEXCLAMATION "Codex could not be installed.$\n$\nDetails: $INSTDIR\install-log.txt$\n$\nRun this installer again to finish installing Codex. Until then, Launchpad shows a repair message instead of starting Codex." /SD IDOK
     ${EndIf}
   ${EndIf}
 SectionEnd
@@ -1054,11 +1152,11 @@ Section /o "!Install GitHub Copilot (Required)" SecCopilot
       ${EndIf}
     ${EndIf}
     ${If} $2 == "1"
-      MessageBox MB_OK|MB_ICONEXCLAMATION "GitHub Copilot could not be installed, so nothing was changed: Launchpad keeps starting the AI agent it used before.$\n$\nDetails: $LOCALAPPDATA\Kivun\install-log.txt$\n$\nIf the details say Node.js is too old, open Command Prompt and run: winget install OpenJS.NodeJS.LTS$\n$\nRun this installer again to try once more." /SD IDOK
+      MessageBox MB_OK|MB_ICONEXCLAMATION "GitHub Copilot could not be installed, so nothing was changed: Launchpad keeps starting the AI agent it used before.$\n$\nDetails: $INSTDIR\install-log.txt$\n$\nIf the details say Node.js is too old, open Command Prompt and run: winget install OpenJS.NodeJS.LTS$\n$\nRun this installer again to try once more." /SD IDOK
     ${Else}
       nsExec::ExecToLog '"$NodeExe" "$INSTDIR\configure-codex.js" set-agent copilot'
       Pop $1
-      MessageBox MB_OK|MB_ICONEXCLAMATION "GitHub Copilot could not be installed.$\n$\nDetails: $LOCALAPPDATA\Kivun\install-log.txt$\n$\nIf the details say Node.js is too old, open Command Prompt and run: winget install OpenJS.NodeJS.LTS$\n$\nRun this installer again to finish installing it. Until then, Launchpad shows a repair message instead of starting Copilot." /SD IDOK
+      MessageBox MB_OK|MB_ICONEXCLAMATION "GitHub Copilot could not be installed.$\n$\nDetails: $INSTDIR\install-log.txt$\n$\nIf the details say Node.js is too old, open Command Prompt and run: winget install OpenJS.NodeJS.LTS$\n$\nRun this installer again to finish installing it. Until then, Launchpad shows a repair message instead of starting Copilot." /SD IDOK
     ${EndIf}
   ${EndIf}
 SectionEnd
@@ -1159,11 +1257,11 @@ Section /o "!Install Antigravity CLI (Required)" SecAntigravity
       ${EndIf}
     ${EndIf}
     ${If} $2 == "1"
-      MessageBox MB_OK|MB_ICONEXCLAMATION "Antigravity CLI could not be installed, so nothing was changed: Launchpad keeps starting the AI agent it used before.$\n$\nDetails, and how to install it yourself: $LOCALAPPDATA\Kivun\install-log.txt$\n$\nRun this installer again to try once more." /SD IDOK
+      MessageBox MB_OK|MB_ICONEXCLAMATION "Antigravity CLI could not be installed, so nothing was changed: Launchpad keeps starting the AI agent it used before.$\n$\nDetails, and how to install it yourself: $INSTDIR\install-log.txt$\n$\nRun this installer again to try once more." /SD IDOK
     ${Else}
       nsExec::ExecToLog '"$NodeExe" "$INSTDIR\configure-codex.js" set-agent antigravity'
       Pop $1
-      MessageBox MB_OK|MB_ICONEXCLAMATION "Antigravity CLI could not be installed.$\n$\nDetails, and how to install it yourself: $LOCALAPPDATA\Kivun\install-log.txt$\n$\nRun this installer again to finish installing it. Until then, Launchpad shows a repair message instead of starting Antigravity." /SD IDOK
+      MessageBox MB_OK|MB_ICONEXCLAMATION "Antigravity CLI could not be installed.$\n$\nDetails, and how to install it yourself: $INSTDIR\install-log.txt$\n$\nRun this installer again to finish installing it. Until then, Launchpad shows a repair message instead of starting Antigravity." /SD IDOK
     ${EndIf}
   ${EndIf}
 SectionEnd
@@ -1208,7 +1306,7 @@ Section "Install Git (Optional)" SecGit
   DetailPrint "install.cmd /git exit code: $0"
 
   ${If} $0 == 10
-    MessageBox MB_OK "Git could not be installed automatically: winget was missing or did not complete, and the official-installer download did not succeed.$\n$\nLog: $LOCALAPPDATA\Kivun\install-log.txt$\n$\nPlease install Git manually from https://git-scm.com/"
+    MessageBox MB_OK "Git could not be installed automatically: winget was missing or did not complete, and the official-installer download did not succeed.$\n$\nLog: $INSTDIR\install-log.txt$\n$\nPlease install Git manually from https://git-scm.com/"
   ${ElseIf} $0 != 0
     DetailPrint "Git installation issue (exit code: $0)"
   ${EndIf}
@@ -1238,7 +1336,7 @@ Section "Let Claude hand work to Codex" SecCodexPlugin
     StrCpy $FinishText "Claude can now hand work to Codex: in Claude, type /codex:review or /codex:rescue.$\r$\n$\r$\n$FinishText"
   ${ElseIf} $0 S!= "3"
   ${AndIf} $0 S!= "4"
-    DetailPrint "WARNING: Could not set up Claude to hand work to Codex (result: $0). Details: $LOCALAPPDATA\Kivun\codex-plugin-setup.log"
+    DetailPrint "WARNING: Could not set up Claude to hand work to Codex (result: $0). Details: $INSTDIR\codex-plugin-setup.log"
   ${EndIf}
 SectionEnd
 
@@ -1252,9 +1350,24 @@ Section "-Claude-to-Codex off" SecCodexPluginOff
     nsExec::ExecToLog '"$NodeExe" "$INSTDIR\configure-codex-plugin.js" remove'
     Pop $0
     ${If} $0 S!= "0"
-      DetailPrint "WARNING: Could not turn off Claude-to-Codex (result: $0). Details: $LOCALAPPDATA\Kivun\codex-plugin-setup.log"
+      DetailPrint "WARNING: Could not turn off Claude-to-Codex (result: $0). Details: $INSTDIR\codex-plugin-setup.log"
     ${EndIf}
   ${EndIf}
+SectionEnd
+
+; v3.8.0: the last step of a move from the old folder (every section above wrote its paths with
+; $INSTDIR). move-from-old-folder.js repoints what the install doesn't write itself, Claude's status line
+; and add-on catalog included, whichever AI agent was chosen; then the old folder is removed.
+Section "-Move from the old folder" SecMoveOld
+  Call InstallingIntoOldFolder
+  ${If} $IntoOldFolder == "0"
+  ${AndIf} ${FileExists} "${OLD_DIR}\claudecode-launchpad.bat"
+    DetailPrint "Moving Launchpad from ${OLD_DIR} to $INSTDIR..."
+    Call FindNodeExe
+    nsExec::ExecToLog '"$NodeExe" "$INSTDIR\move-from-old-folder.js" "${OLD_DIR}" "$INSTDIR"'
+    Pop $0
+  ${EndIf}
+  Call RemoveOldFolder
 SectionEnd
 
 ; Section descriptions
@@ -1408,7 +1521,7 @@ Section "Uninstall"
   ; The record of those additions lives in this folder, so this runs before anything is
   ; deleted; if it fails, stop here and keep the record for the next run (handout 7.8).
   ; Neither AI agent is ever uninstalled.
-  ${If} ${FileExists} "$LOCALAPPDATA\Kivun\kivun-codex-changes.json"
+  ${If} ${FileExists} "$INSTDIR\kivun-codex-changes.json"
     StrCpy $NodeExe "node"
     ${If} ${FileExists} "$PROGRAMFILES64\nodejs\node.exe"
       StrCpy $NodeExe "$PROGRAMFILES64\nodejs\node.exe"
@@ -1433,7 +1546,7 @@ Section "Uninstall"
   ; if they still have Launchpad's values. The record lives in this folder, so this runs before
   ; anything is deleted.
   ; Unlike Codex, a failure doesn't stop the uninstall: those are ordinary Copilot settings.
-  ${If} ${FileExists} "$LOCALAPPDATA\Kivun\kivun-copilot-changes.json"
+  ${If} ${FileExists} "$INSTDIR\kivun-copilot-changes.json"
     StrCpy $NodeExe "node"
     ${If} ${FileExists} "$PROGRAMFILES64\nodejs\node.exe"
       StrCpy $NodeExe "$PROGRAMFILES64\nodejs\node.exe"
@@ -1461,6 +1574,15 @@ Section "Uninstall"
 
   ; Remove install directory
   RMDir /r "$INSTDIR"
+  ; v3.8.0: an old install left in the folder before 3.8.0 (a move that didn't finish) goes too. Only
+  ; when it holds Launchpad's launcher, VERSION or picker; Kivun-WSL (Kivun Terminal) is a different folder.
+  ${If} $INSTDIR != "${OLD_DIR}"
+    ${If} ${FileExists} "${OLD_DIR}\claudecode-launchpad.bat"
+    ${OrIf} ${FileExists} "${OLD_DIR}\VERSION"
+    ${OrIf} ${FileExists} "${OLD_DIR}\LaunchpadPicker.exe"
+      RMDir /r "${OLD_DIR}"
+    ${EndIf}
+  ${EndIf}
 
   ; Remove Start Menu shortcuts
   RMDir /r "$SMPROGRAMS\${PRODUCT_NAME}"

@@ -18,7 +18,7 @@ const CONFIG = 'RESPONSE_LANGUAGE=hebrew\r\nTERMINAL_COLOR=kivun\r\nCLAUDE_FLAGS
 function sandbox(name, opts) {
   const root = path.join(ROOT, 'pkv', name);
   fs.rmSync(root, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 });
-  const d = { root, kivun: path.join(root, 'LAD', 'Kivun'), user: path.join(root, 'User') };
+  const d = { root, kivun: path.join(root, 'LAD', 'LaunchpadAI'), user: path.join(root, 'User') };
   d.sounds = path.join(d.user, '.claude', 'sounds');
   for (const p of [d.kivun, path.join(d.sounds, 'voices'), path.join(d.user, '.local', 'bin')]) fs.mkdirSync(p, { recursive: true });
   fs.writeFileSync(path.join(d.kivun, 'config.txt'), CONFIG);

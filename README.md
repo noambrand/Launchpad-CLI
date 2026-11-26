@@ -85,7 +85,7 @@ There are **two** projects in this family. Pick whichever fits how you work:
 |  | **Launchpad CLI** *(this repo)* | **[Kivun Terminal wsl](https://github.com/noambrand/kivun-terminal-wsl)** |
 |---|---|---|
 | **Live status bar** (model, context %, usage) | ✅ | ✅ |
-| **Light-blue Kivun theme** | ✅ Windows Terminal | ✅ Konsole |
+| **Light-blue theme** | ✅ Windows Terminal | ✅ Konsole |
 | **Right-click "Open with..." on a folder** | ✅ Windows Explorer | ✅ Windows Explorer + Linux file managers |
 | **Folder picker dialog with model + flag chips** | ✅ | ✅ |
 | **Named profiles per project** (folder + model + flags + env vars + startup slash-commands) | ✅ v2.6.0 | ✅ v1.4.0 |
@@ -318,7 +318,7 @@ to **On** the same way. Nothing is removed or uninstalled — it's a reversible 
 ## Configuration
 
 Set the terminal color right in the **folder picker → Advanced options** (with an **Apply now**
-button that recolors Windows Terminal instantly), or edit `%LOCALAPPDATA%\Kivun\config.txt`:
+button that recolors Windows Terminal instantly), or edit `%LOCALAPPDATA%\LaunchpadAI\config.txt`:
 
 ```ini
 RESPONSE_LANGUAGE=english     # 24+ languages supported

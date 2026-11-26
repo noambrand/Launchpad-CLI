@@ -124,7 +124,7 @@ const STUB_JS = name => "require('fs').appendFileSync(process.env.STUB_CALLS, JS
 function sandbox(name, opts) {
   opts = opts || {};
   const d = fx.makeAgyEnv('nsis ' + name, { stub: opts.stub });
-  d.kivun = d.env.KIVUN_DIR = path.join(d.root, 'Kivun');
+  d.kivun = d.env.KIVUN_DIR = path.join(d.root, 'LaunchpadAI');
   fs.mkdirSync(path.join(d.kivun, 'sounds'), { recursive: true });
   d.calls = path.join(d.root, 'calls.jsonl');
   for (const f of ['configure-antigravity.js', 'configure-codex.js', 'configure-copilot.js', 'agent-helpers.js', 'antigravity-hook.js']) fs.copyFileSync(path.join(fx.SOURCE, f), path.join(d.kivun, f));
@@ -505,7 +505,7 @@ const STANDIN = "require('fs').appendFileSync(process.env.STANDIN_LOG, JSON.stri
 function installCmd(name, args, extra) {
   const d = fx.makeEnv('cmd ' + name);
   const lad = path.join(d.root, 'lad');
-  const kivun = path.join(lad, 'Kivun');
+  const kivun = path.join(lad, 'LaunchpadAI');
   fs.mkdirSync(kivun, { recursive: true });
   fs.copyFileSync(path.join(fx.SOURCE, 'install.cmd'), path.join(kivun, 'install.cmd'));
   fs.writeFileSync(path.join(kivun, 'configure-antigravity.js'), STANDIN);
