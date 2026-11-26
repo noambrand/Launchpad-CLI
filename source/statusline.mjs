@@ -238,13 +238,58 @@ function fieldUsage5h(d) {
   return `Session ${makeBar(pct)} ${pct}%${rst ? C.d + ' resets in ' + rst + C.n : ''}`;
 }
 
+// ── Account (plan, trial end) ─────────
+// Claude Code keeps the signed-in account in .claude.json (in CLAUDE_CONFIG_DIR when set, else the home
+// folder): the plan and, for a Claude Code trial, when it ends. It stores no end date for a paid
+// subscription, so a cancelled or unpaid one can't be shown. Read once per render; null when unknown.
+let accountCache;
+function readAccount() {
+  if (accountCache !== undefined) return accountCache;
+  accountCache = null;
+  const files = [];
+  if (process.env.CLAUDE_CONFIG_DIR) files.push(path.join(process.env.CLAUDE_CONFIG_DIR, '.claude.json'));
+  files.push(path.join(os.homedir(), '.claude.json'));
+  for (const f of files) {
+    try {
+      const acct = JSON.parse(fs.readFileSync(f, 'utf8')).oauthAccount;
+      if (acct && typeof acct === 'object') { accountCache = acct; break; }
+    } catch {}
+  }
+  return accountCache;
+}
+
+// "Max 5x", "Max 20x", "Pro", "Team" from organizationType and organizationRateLimitTier.
+function planLabel(acct) {
+  const type = String(acct?.organizationType || '').replace(/^claude_/, '');
+  if (!type) return '';
+  const name = type.charAt(0).toUpperCase() + type.slice(1);
+  const tier = /_(\d+x)$/.exec(String(acct.organizationRateLimitTier || ''));
+  return tier ? `${name} ${tier[1]}` : name;
+}
+
+// A Claude Code trial that ends before the weekly reset: "trial ends Sun Jan 4 23:05" (PC's local time).
+function trialNote(weeklyResetSec) {
+  const ends = Date.parse(readAccount()?.claudeCodeTrialEndsAt || '');
+  if (!ends || ends <= Date.now()) return '';
+  if (typeof weeklyResetSec === 'number' && weeklyResetSec > 0 && ends >= weeklyResetSec * 1000) return '';
+  const t = new Date(ends);
+  const hhmm = `${String(t.getHours()).padStart(2, '0')}:${String(t.getMinutes()).padStart(2, '0')}`;
+  return ` ${C.y}trial ends ${DAYS[t.getDay()]} ${MONTHS[t.getMonth()]} ${t.getDate()} ${hhmm}${C.n}`;
+}
+
 // ── 7-Day Usage ───────────────────────
 function fieldUsage7d(d) {
   const rl = d.rate_limits?.seven_day;
-  if (!rl) return `Weekly ${C.d}-- undefined --${C.n}`;
+  if (!rl) return `Weekly ${C.d}-- undefined --${C.n}${trialNote(null)}`;
   const pct = Math.round(rl.used_percentage || 0);
   const rst = resetLabel(rl.resets_at);
-  return `Weekly ${makeBar(pct)} ${pct}%${rst ? C.d + ' resets in ' + rst + C.n : ''}`;
+  return `Weekly ${makeBar(pct)} ${pct}%${rst ? C.d + ' resets in ' + rst + C.n : ''}${trialNote(rl.resets_at)}`;
+}
+
+// ── Plan and Claude Code version (end of line 2) ──
+function fieldPlanVersion(d) {
+  const parts = [planLabel(readAccount()), d.version ? `v${d.version}` : ''].filter(Boolean);
+  return parts.length ? `${C.d}${parts.join(' · ')}${C.n}` : '';
 }
 
 // ── Line 1: session info ──────────────
@@ -264,7 +309,8 @@ const LINE1 = [
 // ── Line 2: usage bars ───────────────
 const LINE2 = [
   fieldUsage5h,
-  fieldUsage7d
+  fieldUsage7d,
+  fieldPlanVersion
 ];
 
 // ── Input / Output ────────────────────

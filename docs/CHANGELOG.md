@@ -1,5 +1,13 @@
 # Changelog
 
+## [Unreleased]
+
+### Added: the plan and the Claude Code version on the status bar
+
+Line 2 of the status bar ends with your Claude plan and the Claude Code version number, for example
+"Max 5x · v2.1.332". On a Claude Code trial that ends before the weekly reset, the Weekly part also
+shows when the trial ends.
+
 ## [3.8.1] - 2026-11-26
 
 ### Changed: the model and conversation choice are always in view
