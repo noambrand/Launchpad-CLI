@@ -32,18 +32,18 @@ const MAX5 = { organizationType: 'claude_max', organizationRateLimitTier: 'defau
 
 test('UT_StatuslinePlan_PlanAndVersion: line 2 ends with the plan and the version number', () => {
   const line = line2('max5', { version: '2.1.332', rate_limits: LIMITS }, { account: MAX5 });
-  assert.match(line, /Weekly .*\|\s+Max 5x · v2\.1\.332$/);
+  assert.match(line, /Weekly .*\|\s+Max 5x\s+\|\s+v2\.1\.332$/);
 });
 
 test('UT_StatuslinePlan_OtherPlans: Max 20x, Pro, Team', () => {
-  const plan = acct => line2('plans', { version: '2.1.332', rate_limits: LIMITS }, { account: acct }).split('|').pop().trim();
-  assert.strictEqual(plan({ organizationType: 'claude_max', organizationRateLimitTier: 'default_claude_max_20x' }), 'Max 20x · v2.1.332');
-  assert.strictEqual(plan({ organizationType: 'claude_pro', organizationRateLimitTier: 'default_claude_ai' }), 'Pro · v2.1.332');
-  assert.strictEqual(plan({ organizationType: 'claude_team' }), 'Team · v2.1.332');
+  const plan = acct => line2('plans', { version: '2.1.332', rate_limits: LIMITS }, { account: acct }).split('|').slice(-2).map(s => s.trim()).join(' | ');
+  assert.strictEqual(plan({ organizationType: 'claude_max', organizationRateLimitTier: 'default_claude_max_20x' }), 'Max 20x | v2.1.332');
+  assert.strictEqual(plan({ organizationType: 'claude_pro', organizationRateLimitTier: 'default_claude_ai' }), 'Pro | v2.1.332');
+  assert.strictEqual(plan({ organizationType: 'claude_team' }), 'Team | v2.1.332');
 });
 
 test('UT_StatuslinePlan_ConfigDir: with CLAUDE_CONFIG_DIR, the plan is read from there', () => {
-  assert.match(line2('cfgdir', { version: '2.1.332', rate_limits: LIMITS }, { account: MAX5, configDir: true }), /Max 5x · v2\.1\.332$/);
+  assert.match(line2('cfgdir', { version: '2.1.332', rate_limits: LIMITS }, { account: MAX5, configDir: true }), /Max 5x\s+\|\s+v2\.1\.332$/);
 });
 
 test('UT_StatuslinePlan_NothingKnown: no account shows only the version; no version either adds nothing', () => {
