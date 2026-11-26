@@ -1580,7 +1580,7 @@
 
   // ---- Voice (Sound alerts > Voice) ------------------------------------
   // voices\voices.json lists the voices (id, label, gender, description) and the
-  // defaults: "default" (Adam) for no pick and Male, "default_female" (Bella) for
+  // defaults: "default" (Jon) for no pick and Male, "default_female" (Jessica) for
   // Female. config.json "voice" holds the pick. Only the two voice handlers below
   // write it, so a user who never picks stays on the default (play.js decides the
   // same way). Chips, not a <select>: see populateProfileChips for why.
@@ -1657,7 +1657,7 @@
     saveSoundConfig(); flashSoundStatus();
   }
 
-  // Male / Female: switch to that gender's default (Adam / Bella). Clicking the
+  // Male / Female: switch to that gender's default (Jon / Jessica). Clicking the
   // gender already shown keeps the voice picked in it.
   function onSoundGenderChange() {
     if (!soundCfg) return;

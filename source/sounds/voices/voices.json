@@ -1,6 +1,6 @@
 {
-  "default": "adam",
-  "default_female": "bella",
+  "default": "jon",
+  "default_female": "jessica",
   "elevenlabs": {
     "model": "eleven_multilingual_v2",
     "takes": {
@@ -9,16 +9,16 @@
     }
   },
   "voices": [
+    { "id": "jon", "label": "Jon", "gender": "male", "description": "calm presence", "elevenlabs_voice_id": "enzbGixeo55iqn1QxbbC", "take": "A" },
     { "id": "adam", "label": "Adam", "gender": "male", "description": "dominant, firm", "elevenlabs_voice_id": "pNInz6obpgDQGcFmaJgB", "take": "B" },
     { "id": "will", "label": "Will", "gender": "male", "description": "relaxed optimist", "elevenlabs_voice_id": "bIHbv24MWmeRgasZH58o", "take": "A" },
     { "id": "eric", "label": "Eric", "gender": "male", "description": "smooth, trustworthy", "elevenlabs_voice_id": "cjVigY5qzO86Huf0OWal", "take": "B" },
     { "id": "chris", "label": "Chris", "gender": "male", "description": "charming, down-to-earth", "elevenlabs_voice_id": "iP95p4xoKVk53GoZ742B", "take": "B" },
-    { "id": "jon", "label": "Jon", "gender": "male", "description": "calm presence", "elevenlabs_voice_id": "enzbGixeo55iqn1QxbbC", "take": "A" },
     { "id": "vincent", "label": "Vincent", "gender": "male", "description": "deep, confident", "elevenlabs_voice_id": "S9WrLrqYPJzmQyWPWbZ5", "take": "A" },
     { "id": "hale", "label": "Hale", "gender": "male", "description": "smooth, persuasive", "elevenlabs_voice_id": "dXtC3XhB9GtPusIpNtQx", "take": "A" },
     { "id": "original", "label": "Original", "gender": "male", "description": "the first Launchpad voice" },
+    { "id": "jessica", "label": "Jessica", "gender": "female", "description": "playful, bright", "elevenlabs_voice_id": "cgSgspJ2msm6clMCkdW9", "take": "B" },
     { "id": "bella", "label": "Bella", "gender": "female", "description": "professional, warm", "elevenlabs_voice_id": "hpp4J3VqNfWAUOO0d1Us", "take": "A" },
-    { "id": "laura", "label": "Laura", "gender": "female", "description": "enthusiastic, quirky", "elevenlabs_voice_id": "FGY2WhTYpPnrIDTdsKH5", "take": "A" },
-    { "id": "jessica", "label": "Jessica", "gender": "female", "description": "playful, bright", "elevenlabs_voice_id": "cgSgspJ2msm6clMCkdW9", "take": "B" }
+    { "id": "laura", "label": "Laura", "gender": "female", "description": "enthusiastic, quirky", "elevenlabs_voice_id": "FGY2WhTYpPnrIDTdsKH5", "take": "A" }
   ]
 }

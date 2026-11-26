@@ -5,7 +5,7 @@
 //   node voice.js off             -> silence all alerts (and stop any nag)
 //   node voice.js mode regular    -> use the plain/professional clips
 //   node voice.js mode funny      -> use the joke clips
-//   node voice.js voice <name>    -> pick the voice (adam, bella, original, ...)
+//   node voice.js voice <name>    -> pick the voice (jon, jessica, original, ...)
 //   node voice.js voices          -> list the voices
 //   node voice.js choose          -> list the voices and ask for a number
 //   node voice.js status          -> print current settings

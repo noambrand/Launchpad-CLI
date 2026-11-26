@@ -271,9 +271,9 @@ Short spoken clips so you don't have to watch the screen. Set up automatically a
 *"Done."* vs *"Done. I'll pretend that took effort."*). Switch with **Regular Sounds ON** /
 **Funny Sounds ON** or `node ~/.claude/sounds/voice.js mode regular|funny`.
 
-**Pick the voice** — the Original voice plus 10 American voices made with ElevenLabs, the same text in each: 8 male (**Adam**,
-Will, Eric, Chris, Jon, Vincent, Hale, and the Original) and 3 female (**Bella**, Laura,
-Jessica). **Adam** plays until you pick one; **Bella** is the default for Female. In the
+**Pick the voice** — the Original voice plus 10 American voices made with ElevenLabs, the same text in each: 8 male (**Jon**,
+Adam, Will, Eric, Chris, Vincent, Hale, and the Original) and 3 female (**Jessica**, Bella,
+Laura). **Jon** plays until you pick one; **Jessica** is the default for Female. In the
 picker: **Advanced options → 🔊 Sound alerts → Voice** — Male / Female, a chip per voice, and
 **▶ Preview**. Or double-click **Choose Voice**, or `node ~/.claude/sounds/voice.js voice <name>`.
 

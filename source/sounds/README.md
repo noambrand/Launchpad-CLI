@@ -50,19 +50,19 @@ Original voice's clip, so an alert never goes silent. Switch any time (applies i
 - Double-click **Regular Sounds ON** / **Funny Sounds ON**
 - or `node voice.js mode regular|funny`
 
-## Voices — Adam by default
+## Voices — Jon by default
 
 Every alert comes in 11 voices: the Original one, plus 10 American voices made with
-ElevenLabs in 2026-11 with the same text and the same triggers; only the voice changes. **Adam** plays when you haven't picked a voice (new installs
-and upgrades alike); **Bella** is the default when you pick Female.
+ElevenLabs in 2026-11 with the same text and the same triggers; only the voice changes. **Jon** plays when you haven't picked a voice (new installs
+and upgrades alike); **Jessica** is the default when you pick Female.
 
 | Male | Female |
 |------|--------|
-| **Adam** (default) — dominant, firm | **Bella** (default) — professional, warm |
+| **Jon** (default) — calm presence | **Jessica** (default) — playful, bright |
+| Adam — dominant, firm | Bella — professional, warm |
 | Will — relaxed optimist | Laura — enthusiastic, quirky |
-| Eric — smooth, trustworthy | Jessica — playful, bright |
+| Eric — smooth, trustworthy | |
 | Chris — charming, down-to-earth | |
-| Jon — calm presence | |
 | Vincent — deep, confident | |
 | Hale — smooth, persuasive | |
 | Original — the first Launchpad voice | |
@@ -135,7 +135,7 @@ Double-click in this folder (`.cmd` on Windows, `.command` on macOS), or run the
 { "enabled": true, "mode": "regular", "repeat_enabled": false, "repeat_minutes": 2 }
 ```
 
-`"voice": "<name>"` is added when you pick a voice; without it you get the default (Adam).
+`"voice": "<name>"` is added when you pick a voice; without it you get the default (Jon).
 `enabled`, `mode`, `voice`, and `repeat_*` are re-read on every play, so they apply
 **immediately**. The hooks themselves load only when Claude Code starts, so a fresh
 install takes effect in the next session.
@@ -152,7 +152,7 @@ install takes effect in the next session.
 | `config.json` | `enabled` + `mode` + `voice` (once picked) + `repeat_enabled` + `repeat_minutes` |
 | `regular/`, `funny/` | The Original voice's two clip sets (`done/error/permission/waiting/save.wav`) |
 | `voices/<name>/regular/`, `voices/<name>/funny/` | The other 10 voices, same five clips each |
-| `voices/voices.json` | The voice list, the defaults (Adam, Bella), ElevenLabs ids and settings |
+| `voices/voices.json` | The voice list, the defaults (Jon, Jessica), ElevenLabs ids and settings |
 | `alerts.log` | Trigger log — auto-created at runtime; when/why each alert fired |
 | `*.cmd` / `*.command` | Double-click launchers |
 

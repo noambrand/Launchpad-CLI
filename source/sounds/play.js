@@ -10,7 +10,7 @@
 // Voices: the first Launchpad voice ("original") lives in regular/<name>.wav and
 // funny/<name>.wav; every other voice in voices/<id>/regular|funny/<name>.wav, listed by
 // voices/voices.json. config.json "voice" picks the voice (no "voice" = the index's
-// default, Adam) and "mode" ("regular" | "funny") the pack. Resolution falls back
+// default, Jon) and "mode" ("regular" | "funny") the pack. Resolution falls back
 // voice -> original same pack -> original regular -> flat, so an alert never goes silent.
 'use strict';
 const fs = require('fs');
@@ -57,12 +57,12 @@ function voiceDir(id) {
 
 const cleanId = (v) => String(v || '').toLowerCase().replace(/[^a-z0-9_-]/g, '');
 
-// The voice for "no pick": the index's default, else Adam, else the original clips.
+// The voice for "no pick": the index's default, else Jon, else the original clips.
 function defaultVoice() {
   const idx = loadIndex();
   const d = cleanId(idx && idx.default);
   if (d && (d === 'original' || voiceDir(d))) return d;
-  return voiceDir('adam') ? 'adam' : 'original';
+  return voiceDir('jon') ? 'jon' : 'original';
 }
 
 // The voice that plays: config.json "voice" when it ships here, otherwise the default.

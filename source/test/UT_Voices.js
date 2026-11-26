@@ -9,7 +9,7 @@ const fs = require('fs'), path = require('path'), os = require('os');
 const SOURCE = process.env.KIVUN_SOURCE || path.resolve(__dirname, '..');
 const SOUNDS = path.join(SOURCE, 'sounds');
 const INDEX = path.join(SOUNDS, 'voices', 'voices.json');
-const IDS = ['adam', 'will', 'eric', 'chris', 'jon', 'vincent', 'hale', 'original', 'bella', 'laura', 'jessica'];
+const IDS = ['jon', 'adam', 'will', 'eric', 'chris', 'vincent', 'hale', 'original', 'jessica', 'bella', 'laura'];
 const FEMALE = ['bella', 'laura', 'jessica'];
 const CLIPS = ['done', 'error', 'permission', 'waiting', 'save'];
 
@@ -26,11 +26,11 @@ function wavFormat(file) {
   assert.fail(file + ' has no fmt chunk');
 }
 
-test('UT_Voices_IndexShape: the 11 voices in order, Adam and Bella as the defaults', () => {
+test('UT_Voices_IndexShape: the 11 voices in order, each default first: Jon and Jessica', () => {
   const index = JSON.parse(fs.readFileSync(INDEX, 'utf8'));
   assert.deepStrictEqual(index.voices.map(v => v.id), IDS);
-  assert.strictEqual(index.default, 'adam');
-  assert.strictEqual(index.default_female, 'bella');
+  assert.strictEqual(index.default, 'jon');
+  assert.strictEqual(index.default_female, 'jessica');
   for (const v of index.voices) {
     assert.strictEqual(v.gender, FEMALE.includes(v.id) ? 'female' : 'male', v.id);
     assert.ok(v.label && v.description, v.id + ' has a label and a description');
@@ -79,14 +79,14 @@ const player = dir => require(path.join(dir, 'play.js'));
 const ORIGINAL_SET = CLIPS.flatMap(c => ['regular/' + c + '.wav', 'funny/' + c + '.wav']);
 const VOICE_SET = id => CLIPS.flatMap(c => ['voices/' + id + '/regular/' + c + '.wav', 'voices/' + id + '/funny/' + c + '.wav']);
 
-test('UT_Voices_DefaultIsAdam: no voice in config.json plays Adam', () => {
-  const dir = bundle(['voices/adam/regular/done.wav', 'regular/done.wav'], { enabled: true, mode: 'regular' });
-  assert.strictEqual(player(dir).resolve('done'), path.join(dir, 'voices', 'adam', 'regular', 'done.wav'));
-  assert.strictEqual(player(dir).voice(), 'adam');
+test('UT_Voices_DefaultIsJon: no voice in config.json plays Jon', () => {
+  const dir = bundle(['voices/jon/regular/done.wav', 'regular/done.wav'], { enabled: true, mode: 'regular' });
+  assert.strictEqual(player(dir).resolve('done'), path.join(dir, 'voices', 'jon', 'regular', 'done.wav'));
+  assert.strictEqual(player(dir).voice(), 'jon');
 });
 
 test('UT_Voices_ChosenVoiceAndPack: the chosen voice in the chosen pack', () => {
-  const dir = bundle(ORIGINAL_SET.concat(VOICE_SET('adam'), VOICE_SET('bella')), { voice: 'bella', mode: 'funny' });
+  const dir = bundle(ORIGINAL_SET.concat(VOICE_SET('jon'), VOICE_SET('bella')), { voice: 'bella', mode: 'funny' });
   assert.strictEqual(player(dir).resolve('permission'), path.join(dir, 'voices', 'bella', 'funny', 'permission.wav'));
 });
 
@@ -96,34 +96,34 @@ test('UT_Voices_MissingClipFallsBackToOriginal: a clip the voice lacks plays the
   assert.strictEqual(player(dir).resolve('save'), path.join(dir, 'funny', 'save.wav'));
 });
 
-test('UT_Voices_UnknownVoiceUsesDefault: a voice that does not ship plays Adam', () => {
-  const dir = bundle(ORIGINAL_SET.concat(VOICE_SET('adam')), { voice: 'zed' });
-  assert.strictEqual(player(dir).resolve('done'), path.join(dir, 'voices', 'adam', 'regular', 'done.wav'));
+test('UT_Voices_UnknownVoiceUsesDefault: a voice that does not ship plays Jon', () => {
+  const dir = bundle(ORIGINAL_SET.concat(VOICE_SET('jon')), { voice: 'zed' });
+  assert.strictEqual(player(dir).resolve('done'), path.join(dir, 'voices', 'jon', 'regular', 'done.wav'));
 });
 
 test('UT_Voices_BadIdStaysInside: a voice id with ../ never leaves the sounds folder', () => {
-  const dir = bundle(ORIGINAL_SET.concat(VOICE_SET('adam'), ['x/regular/done.wav']), { voice: '../../x' });
+  const dir = bundle(ORIGINAL_SET.concat(VOICE_SET('jon'), ['x/regular/done.wav']), { voice: '../../x' });
   const got = player(dir).resolve('done');
-  assert.strictEqual(got, path.join(dir, 'voices', 'adam', 'regular', 'done.wav'));
+  assert.strictEqual(got, path.join(dir, 'voices', 'jon', 'regular', 'done.wav'));
   assert.ok(got.startsWith(dir + path.sep));
 });
 
 test('UT_Voices_OriginalUsesTopFolders: "original" plays the first Launchpad clips', () => {
-  const dir = bundle(ORIGINAL_SET.concat(VOICE_SET('adam')), { voice: 'original' });
+  const dir = bundle(ORIGINAL_SET.concat(VOICE_SET('jon')), { voice: 'original' });
   assert.strictEqual(player(dir).resolve('done'), path.join(dir, 'regular', 'done.wav'));
 });
 
-test('UT_Voices_NoIndexStillPlays: without voices.json Adam still plays, else the Original', () => {
-  const withAdam = bundle(ORIGINAL_SET.concat(VOICE_SET('adam')), {}, null);
-  assert.strictEqual(player(withAdam).resolve('done'), path.join(withAdam, 'voices', 'adam', 'regular', 'done.wav'));
+test('UT_Voices_NoIndexStillPlays: without voices.json Jon still plays, else the Original', () => {
+  const withJon = bundle(ORIGINAL_SET.concat(VOICE_SET('jon')), {}, null);
+  assert.strictEqual(player(withJon).resolve('done'), path.join(withJon, 'voices', 'jon', 'regular', 'done.wav'));
   const without = bundle(ORIGINAL_SET, {}, null);
   assert.strictEqual(player(without).resolve('done'), path.join(without, 'regular', 'done.wav'));
 });
 
 test('UT_Voices_BrokenIndex: a broken voices.json is treated as missing', () => {
-  const dir = bundle(ORIGINAL_SET.concat(VOICE_SET('adam')), { voice: 'bella' }, '{oops');
+  const dir = bundle(ORIGINAL_SET.concat(VOICE_SET('jon')), { voice: 'bella' }, '{oops');
   assert.strictEqual(player(dir).loadIndex(), null);
-  assert.strictEqual(player(dir).resolve('done'), path.join(dir, 'voices', 'adam', 'regular', 'done.wav'));
+  assert.strictEqual(player(dir).resolve('done'), path.join(dir, 'voices', 'jon', 'regular', 'done.wav'));
 });
 
 // ---- voice.js -------------------------------------------------------------------------
@@ -153,29 +153,29 @@ test('UT_VoiceJs_RejectsUnknown: an unknown voice changes nothing and shows the 
   assert.match(out, /Usage/);
 });
 
-test('UT_VoiceJs_StatusDefault: with no pick, status shows Adam as the default', () => {
-  const dir = bundle(VOICE_SET('adam'), { enabled: true, mode: 'regular' });
-  assert.match(voiceJs(dir, ['status']), /Voice:\s+Adam \(default\)/);
+test('UT_VoiceJs_StatusDefault: with no pick, status shows Jon as the default', () => {
+  const dir = bundle(VOICE_SET('jon'), { enabled: true, mode: 'regular' });
+  assert.match(voiceJs(dir, ['status']), /Voice:\s+Jon \(default\)/);
 });
 
-test('UT_VoiceJs_ChooseByNumber: "choose" then 9 picks the 9th voice, Bella', () => {
-  const dir = bundle(VOICE_SET('adam').concat(VOICE_SET('bella')), { enabled: true });
+test('UT_VoiceJs_ChooseByNumber: "choose" then 9 picks the 9th voice, Jessica', () => {
+  const dir = bundle(VOICE_SET('jon').concat(VOICE_SET('jessica')), { enabled: true });
   voiceJs(dir, ['choose'], '9\n');
-  assert.strictEqual(JSON.parse(readCfg(dir)).voice, 'bella');
+  assert.strictEqual(JSON.parse(readCfg(dir)).voice, 'jessica');
 });
 
 test('UT_VoiceJs_ChooseEmptyKeeps: "choose" then Enter changes nothing', () => {
-  const dir = bundle(VOICE_SET('adam'), { enabled: true });
+  const dir = bundle(VOICE_SET('jon'), { enabled: true });
   const before = readCfg(dir);
   assert.match(voiceJs(dir, ['choose'], '\n'), /No change\./);
   assert.strictEqual(readCfg(dir), before);
 });
 
-test('UT_Voices_DroppedVoiceUsesDefault: a voice no longer in voices.json plays Adam, even if its folder was left behind', () => {
+test('UT_Voices_DroppedVoiceUsesDefault: a voice no longer in voices.json plays Jon, even if its folder was left behind', () => {
   const idx = JSON.parse(fs.readFileSync(INDEX, 'utf8'));
   idx.voices = idx.voices.filter(v => v.id !== 'hale');
-  const dir = bundle(ORIGINAL_SET.concat(VOICE_SET('adam'), VOICE_SET('hale')), { voice: 'hale' }, JSON.stringify(idx));
-  assert.strictEqual(player(dir).voice(), 'adam');
-  assert.strictEqual(player(dir).resolve('done'), path.join(dir, 'voices', 'adam', 'regular', 'done.wav'));
-  assert.match(voiceJs(dir, ['status']), /Voice:\s+Adam \(default\)/);
+  const dir = bundle(ORIGINAL_SET.concat(VOICE_SET('jon'), VOICE_SET('hale')), { voice: 'hale' }, JSON.stringify(idx));
+  assert.strictEqual(player(dir).voice(), 'jon');
+  assert.strictEqual(player(dir).resolve('done'), path.join(dir, 'voices', 'jon', 'regular', 'done.wav'));
+  assert.match(voiceJs(dir, ['status']), /Voice:\s+Jon \(default\)/);
 });
