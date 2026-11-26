@@ -184,6 +184,34 @@ function logEvent(name, played, ctx) {
   }
 }
 
+// Claude Code sends "Claude is waiting for your input" (idle_prompt) about a minute after every reply,
+// also when the reply asked nothing and the work goes on by itself, e.g. a background task (Noam,
+// 2026-11-26). True when the last reply in the transcript asks something: a question mark in its
+// text. Unknown (no transcript, unreadable) counts as true, so the clip plays as it always did.
+function lastReplyAsks(ctx) {
+  try {
+    const f = ctx.transcript_path;
+    if (!f) return true;
+    const size = fs.statSync(f).size;
+    const take = Math.min(size, 512 * 1024);
+    const buf = Buffer.alloc(take);
+    const fd = fs.openSync(f, 'r');
+    try { fs.readSync(fd, buf, 0, take, size - take); } finally { fs.closeSync(fd); }
+    const lines = buf.toString('utf8').split('\n');
+    for (let i = lines.length - 1; i >= 0; i--) {
+      let e;
+      try { e = JSON.parse(lines[i]); } catch (_) { continue; }
+      if (!e || e.type !== 'assistant' || !e.message || !Array.isArray(e.message.content)) continue;
+      const text = e.message.content.filter((p) => p && p.type === 'text' && typeof p.text === 'string')
+        .map((p) => p.text).join('\n');
+      if (text.trim()) return /[?？؟]/.test(text);   // ? and its full-width and Arabic forms
+    }
+    return true;
+  } catch (_) {
+    return true;
+  }
+}
+
 function main() {
   if (process.argv.length < 3) return;
   let name = process.argv[2];
@@ -196,6 +224,10 @@ function main() {
   if (name === 'permission' &&
       (ctx.tool_name === 'AskUserQuestion' || ctx.tool_name === 'ExitPlanMode')) {
     name = 'waiting';
+  }
+  if (name === 'waiting' && ctx.hook_event_name === 'Notification' && ctx.notification_type === 'idle_prompt' &&
+      !lastReplyAsks(ctx)) {
+    return logEvent(name, '(no question in the last reply - not played)', ctx);
   }
   const wav = resolve(name);
   if (!wav) return logEvent(name, '(no matching clip)', ctx);

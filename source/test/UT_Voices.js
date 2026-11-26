@@ -179,3 +179,50 @@ test('UT_Voices_DroppedVoiceUsesDefault: a voice no longer in voices.json plays 
   assert.strictEqual(player(dir).resolve('done'), path.join(dir, 'voices', 'jon', 'regular', 'done.wav'));
   assert.match(voiceJs(dir, ['status']), /Voice:\s+Jon \(default\)/);
 });
+
+
+// ---- the idle alert ("Attention required") --------------------------------------------
+// Claude Code sends "Claude is waiting for your input" about a minute after every reply, also when the
+// reply asked nothing and the work goes on by itself (Noam, 2026-11-26). The waiting clip plays only
+// when the last reply asks something. Sound is off in these bundles, so alerts.log tells what happened.
+function idle(dir, transcriptLines) {
+  const t = path.join(dir, 'transcript.jsonl');
+  if (transcriptLines) fs.writeFileSync(t, transcriptLines.map(x => JSON.stringify(x)).join('\n') + '\n');
+  const payload = { hook_event_name: 'Notification', notification_type: 'idle_prompt', message: 'Claude is waiting for your input',
+    session_id: 's1', cwd: dir, transcript_path: transcriptLines === null ? undefined : t };
+  const r = require('child_process').spawnSync(process.execPath, [path.join(dir, 'play.js'), 'waiting'],
+    { input: JSON.stringify(payload), encoding: 'utf8', windowsHide: true, timeout: 15000 });
+  assert.strictEqual(r.status, 0, r.stderr);
+  const log = fs.readFileSync(path.join(dir, 'alerts.log'), 'utf8').trim().split('\n');
+  return log[log.length - 1];
+}
+const said = text => ({ type: 'assistant', message: { role: 'assistant', content: [{ type: 'text', text }] } });
+const toolCall = () => ({ type: 'assistant', message: { role: 'assistant', content: [{ type: 'tool_use', name: 'Bash', input: {} }] } });
+const user = text => ({ type: 'user', message: { role: 'user', content: text } });
+
+test('UT_Voices_IdleNoQuestion: after a reply that asks nothing, the idle notification plays no clip', () => {
+  const dir = bundle(VOICE_SET('jon'), { enabled: false });
+  const line = idle(dir, [user('go'), toolCall(), said('The Mac check is running again. I\'ll merge when it passes.')]);
+  assert.match(line, /alert=waiting .*wav=\(no question in the last reply - not played\)/);
+});
+
+test('UT_Voices_IdleQuestion: after a reply that asks something, the idle clip is due (here: sound off)', () => {
+  const dir = bundle(VOICE_SET('jon'), { enabled: false });
+  const line = idle(dir, [user('go'), said('Done.\n\n> ### \u2753 Question: Should I merge PR #66 now?'), toolCall()]);
+  assert.match(line, /wav=\(sound OFF - not played: waiting\.wav\)/);
+});
+
+test('UT_Voices_IdleUnknown: without a readable transcript the idle clip is due, as before', () => {
+  const dir = bundle(VOICE_SET('jon'), { enabled: false });
+  assert.match(idle(dir, null), /wav=\(sound OFF - not played: waiting\.wav\)/);
+});
+
+test('UT_Voices_PermissionUntouched: a real permission prompt is never held back by the question check', () => {
+  const dir = bundle(VOICE_SET('jon'), { enabled: false });
+  const t = path.join(dir, 'transcript.jsonl');
+  fs.writeFileSync(t, JSON.stringify(said('Running the tests now.')) + '\n');
+  const r = require('child_process').spawnSync(process.execPath, [path.join(dir, 'play.js'), 'permission'],
+    { input: JSON.stringify({ hook_event_name: 'PermissionRequest', tool_name: 'Bash', tool_input: { command: 'npm test' }, transcript_path: t }), encoding: 'utf8', windowsHide: true, timeout: 15000 });
+  assert.strictEqual(r.status, 0, r.stderr);
+  assert.match(fs.readFileSync(path.join(dir, 'alerts.log'), 'utf8'), /alert=permission .*wav=\(sound OFF - not played: permission\.wav\)/);
+});

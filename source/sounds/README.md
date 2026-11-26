@@ -30,6 +30,11 @@ never fires just because a permission prompt appeared (that's `permission`'s job
 matters: an earlier version put the permission clip on `Notification`, which also fires
 on idle, so it announced "permission required" when none was needed.
 
+Claude Code sends the idle notification about a minute after every reply, also when the
+reply asked nothing and the work goes on by itself. So `waiting` ("Attention required")
+plays only when Claude's last reply asks you something (it has a question mark). After a
+reply that asks nothing, the log shows `(no question in the last reply - not played)`.
+
 ## Regular vs Funny mode
 
 Every alert has two recordings — a plain one and a joke one:
