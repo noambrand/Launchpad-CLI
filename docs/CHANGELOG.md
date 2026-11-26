@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased]
+## [3.8.2] - 2026-11-26
 
 ### Added: the plan and the Claude Code version on the status bar
 
