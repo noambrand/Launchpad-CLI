@@ -287,10 +287,14 @@ function fieldUsage7d(d) {
   return `Weekly ${makeBar(pct)} ${pct}%${rst ? C.d + ' resets in ' + rst + C.n : ''}${trialNote(rl.resets_at)}`;
 }
 
-// ── Plan and Claude Code version (end of line 2) ──
-function fieldPlanVersion(d) {
-  const parts = [planLabel(readAccount()), d.version ? `v${d.version}` : ''].filter(Boolean);
-  return parts.length ? `${C.d}${parts.join(' · ')}${C.n}` : '';
+// ── Plan and Claude Code version (end of line 2, each its own field) ──
+function fieldPlan() {
+  const plan = planLabel(readAccount());
+  return plan ? `${C.d}${plan}${C.n}` : '';
+}
+
+function fieldVersion(d) {
+  return d.version ? `${C.d}v${d.version}${C.n}` : '';
 }
 
 // ── Line 1: session info ──────────────
@@ -311,7 +315,8 @@ const LINE1 = [
 const LINE2 = [
   fieldUsage5h,
   fieldUsage7d,
-  fieldPlanVersion
+  fieldPlan,
+  fieldVersion
 ];
 
 // ── Input / Output ────────────────────
