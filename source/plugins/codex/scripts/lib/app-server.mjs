@@ -10,7 +10,7 @@
 import fs from "node:fs";
 import net from "node:net";
 import process from "node:process";
-import { spawn } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import readline from "node:readline";
 import { parseBrokerEndpoint } from "./broker-endpoint.mjs";
 import { ensureBrokerSession, loadBrokerSession } from "./broker-lifecycle.mjs";
@@ -180,6 +180,22 @@ class AppServerClientBase {
   }
 }
 
+// On Windows, cmd.exe (used below via shell) searches the current directory before PATH, and
+// this.cwd is the user's project, so a codex.cmd/.bat committed there would run instead of the
+// real binary. "$PATH:" restricts where.exe's search to PATH only, the same guard
+// configure-antigravity.js's discover() uses for agy.exe.
+function resolveCodexCommand(env) {
+  if (process.platform !== "win32") {
+    return "codex";
+  }
+  const result = spawnSync("where.exe", ["$PATH:codex"], { encoding: "utf8", windowsHide: true, env });
+  const first = String(result.stdout || "")
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean)[0];
+  return first || "codex";
+}
+
 class SpawnedCodexAppServerClient extends AppServerClientBase {
   constructor(cwd, options = {}) {
     super(cwd, options);
@@ -187,9 +203,10 @@ class SpawnedCodexAppServerClient extends AppServerClientBase {
   }
 
   async initialize() {
-    this.proc = spawn("codex", ["app-server"], {
+    const env = this.options.env ?? process.env;
+    this.proc = spawn(resolveCodexCommand(env), ["app-server"], {
       cwd: this.cwd,
-      env: this.options.env ?? process.env,
+      env,
       stdio: ["pipe", "pipe", "pipe"],
       shell: process.platform === "win32" ? (process.env.SHELL || true) : false,
       windowsHide: true
